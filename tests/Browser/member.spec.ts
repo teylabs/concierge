@@ -102,3 +102,13 @@ test('navigates back through the server-provided link', async ({ page }) => {
         .poll(() => visits(page))
         .toEqual([expect.objectContaining({ url: '/workspaces/7/members' })]);
 });
+
+test('lists the owner under Roles rather than "No roles"', async ({ page }) => {
+    await openHarness(page, 'member', 'readOnly');
+    const details = page.getByRole('region', { name: 'Membership' });
+
+    const roles = details.locator('dd').nth(2);
+    await expect(roles).toHaveText('Owner');
+    await expect(details).not.toContainText('No roles');
+    await expect(details.locator('dd').nth(0)).not.toContainText('Owner');
+});

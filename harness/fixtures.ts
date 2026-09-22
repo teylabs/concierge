@@ -46,7 +46,8 @@ export const owner: MemberRow = {
     status: 'active',
     isOwner: true,
     isSelf: true,
-    roles: [{ value: 'owner', label: 'Owner', variant: 'primary' }],
+    // Hosts hide the owner role from `roles`; isOwner carries it.
+    roles: [],
     joinedAt: '2026-08-01T09:00:00Z',
     hasActions: false,
     links: { ...noLinks, show: '/workspaces/7/members/1' },
@@ -177,6 +178,10 @@ export const fixtures = {
     members: {
         default: membersBase,
         readOnly: membersReadOnly,
+        roleless: {
+            ...membersBase,
+            members: [owner, { ...admin, roles: [] }],
+        },
         empty: {
             ...membersBase,
             members: [owner],
@@ -272,7 +277,10 @@ function acceptFixtures(): Record<
             login: '/login',
         }),
         wrong_account: make('wrong_account', { logout: '/logout' }),
-        unverified: make('unverified', { continue: '/email/verify' }),
+        unverified: make('unverified', {
+            continue: '/email/verify',
+            logout: '/logout',
+        }),
         expired: make('expired', { continue: '/' }),
         revoked: make('revoked', { continue: '/' }),
         invalid: make(

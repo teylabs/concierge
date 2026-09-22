@@ -115,3 +115,40 @@ test('reveals nothing about an invalid invitation', async ({ page }) => {
     ).toBeVisible();
     await expect(page.locator('.concierge')).not.toContainText('@');
 });
+
+test.describe('action order', () => {
+    const cases: [string, string[]][] = [
+        ['ready', ['Accept invitation']],
+        ['sign_in_required', ['Sign in', 'Create account']],
+        ['register_required', ['Create account', 'Sign in']],
+        ['unverified', ['Continue', 'Sign out']],
+        ['wrong_account', ['Sign out']],
+    ];
+
+    for (const [state, expected] of cases) {
+        test(`puts the primary action first in the ${state} state`, async ({
+            page,
+        }) => {
+            await openHarness(page, 'accept', state);
+            const actions = page
+                .getByTestId('accept-actions')
+                .locator('a, button');
+
+            await expect(actions).toHaveText(expected);
+            // The first action is the only solid primary one.
+            await expect(actions.first()).toHaveClass(
+                /concierge-primary-solid\)/,
+            );
+            for (const later of await actions
+                .all()
+                .then((all) => all.slice(1))) {
+                await expect(later).not.toHaveClass(
+                    /bg-\(--concierge-primary-solid\)/,
+                );
+            }
+            // Tab order follows visual order.
+            await page.keyboard.press('Tab');
+            await expect(actions.first()).toBeFocused();
+        });
+    }
+});

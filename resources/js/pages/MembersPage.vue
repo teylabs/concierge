@@ -259,11 +259,6 @@ function statusVariant(member: MemberRow): string {
                                         >{{ member.user.name }}</span
                                     >
                                     <Badge
-                                        v-if="member.isOwner"
-                                        :label="t('members.owner')"
-                                        variant="primary-solid"
-                                    />
-                                    <Badge
                                         v-if="member.isSelf"
                                         :label="t('members.you')"
                                         variant="info"
@@ -276,13 +271,21 @@ function statusVariant(member: MemberRow): string {
                             <td class="md:px-3 md:py-3">
                                 <div class="flex flex-wrap gap-1.5">
                                     <Badge
+                                        v-if="member.isOwner"
+                                        :label="t('members.owner')"
+                                        variant="primary-solid"
+                                    />
+                                    <Badge
                                         v-for="role in member.roles"
                                         :key="role.value"
                                         :label="role.label"
                                         :variant="role.variant"
                                     />
                                     <span
-                                        v-if="!member.roles.length"
+                                        v-if="
+                                            !member.roles.length &&
+                                            !member.isOwner
+                                        "
                                         class="text-(--concierge-text-muted)"
                                         >{{ t('members.noRoles') }}</span
                                     >

@@ -9,6 +9,8 @@ const screens: [string, string][] = [
     ['member', 'default'],
     ['accept', 'ready'],
     ['accept', 'wrong_account'],
+    ['accept', 'unverified'],
+    ['members', 'roleless'],
 ];
 
 for (const [name, fixture] of screens) {

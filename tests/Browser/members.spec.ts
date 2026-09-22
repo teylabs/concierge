@@ -367,3 +367,23 @@ test.describe('invitations', () => {
         await expect(item).toContainText('Expired 2 weeks ago');
     });
 });
+
+test.describe('owner role display', () => {
+    test('shows the owner in the Roles column instead of "No roles"', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'roleless');
+        const [ownerRow, rolelessRow] = [
+            page.locator('tbody tr').nth(0),
+            page.locator('tbody tr').nth(1),
+        ];
+
+        const ownerRoles = ownerRow.locator('td').nth(1);
+        await expect(ownerRoles).toHaveText('Owner');
+        await expect(ownerRow.locator('td').nth(0)).not.toContainText('Owner');
+        await expect(ownerRow.locator('td').nth(0)).toContainText('You');
+        await expect(ownerRow).not.toContainText('No roles');
+
+        await expect(rolelessRow.locator('td').nth(1)).toHaveText('No roles');
+    });
+});

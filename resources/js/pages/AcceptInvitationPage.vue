@@ -75,6 +75,75 @@ const showRoles = computed(
         ),
 );
 
+type Action =
+    | { key: 'accept' | 'logout'; kind: 'submit'; label: string }
+    | {
+          key: 'login' | 'register' | 'continue';
+          kind: 'visit';
+          url: string;
+          label: string;
+          primary: boolean;
+      };
+
+/**
+ * One ordered action list so the primary action always comes first in both
+ * visual and tab order. Sign out is always last, and secondary unless it
+ * is the only way forward (wrong_account).
+ */
+const actions = computed<Action[]>(() => {
+    const list: Action[] = [];
+    const registerFirst = knownState.value === 'register_required';
+    let primaryTaken = false;
+
+    if (acceptUrl.value) {
+        list.push({
+            key: 'accept',
+            kind: 'submit',
+            label: accept.failure.value
+                ? t('actions.retry')
+                : t('accept.accept'),
+        });
+        primaryTaken = true;
+    }
+
+    const account: Action[] = [];
+    const push = (
+        key: 'login' | 'register' | 'continue',
+        url: string | null,
+        label: string,
+    ) => {
+        if (url) {
+            account.push({
+                key,
+                kind: 'visit',
+                url,
+                label,
+                primary: !primaryTaken && account.length === 0,
+            });
+        }
+    };
+
+    if (registerFirst) {
+        push('register', links.value.register, t('accept.register'));
+        push('login', links.value.login, t('accept.signIn'));
+    } else {
+        push('login', links.value.login, t('accept.signIn'));
+        push('register', links.value.register, t('accept.register'));
+    }
+    push('continue', links.value.continue, t('accept.continue'));
+    list.push(...account);
+
+    if (links.value.logout) {
+        list.push({
+            key: 'logout',
+            kind: 'submit',
+            label: t('accept.signOut'),
+        });
+    }
+
+    return list;
+});
+
 function visit(url: string, event: MouseEvent) {
     if (shouldIntercept(event)) {
         event.preventDefault();
@@ -155,65 +224,38 @@ function signOut() {
                         {{ logout.failure.value }}
                     </Alert>
 
-                    <div class="flex flex-col gap-2">
-                        <Button
-                            v-if="acceptUrl"
-                            :busy="accept.pending.value"
-                            @click="acceptInvitation"
-                            >{{
-                                accept.failure.value
-                                    ? t('actions.retry')
-                                    : t('accept.accept')
-                            }}</Button
-                        >
-                        <Button
-                            v-if="links.login"
-                            :tier="
-                                knownState === 'register_required'
-                                    ? 'outline'
-                                    : 'solid'
-                            "
-                            :variant="
-                                knownState === 'register_required'
-                                    ? 'muted'
-                                    : 'primary'
-                            "
-                            :href="links.login"
-                            @click="visit(links.login, $event)"
-                            >{{ t('accept.signIn') }}</Button
-                        >
-                        <Button
-                            v-if="links.register"
-                            :tier="
-                                knownState === 'register_required'
-                                    ? 'solid'
-                                    : 'outline'
-                            "
-                            :variant="
-                                knownState === 'register_required'
-                                    ? 'primary'
-                                    : 'muted'
-                            "
-                            :href="links.register"
-                            @click="visit(links.register, $event)"
-                            >{{ t('accept.register') }}</Button
-                        >
-                        <Button
-                            v-if="links.logout"
-                            variant="muted"
-                            tier="outline"
-                            :busy="logout.pending.value"
-                            @click="signOut"
-                            >{{ t('accept.signOut') }}</Button
-                        >
-                        <Button
-                            v-if="links.continue"
-                            :variant="acceptUrl ? 'muted' : 'primary'"
-                            :tier="acceptUrl ? 'ghost' : 'solid'"
-                            :href="links.continue"
-                            @click="visit(links.continue, $event)"
-                            >{{ t('accept.continue') }}</Button
-                        >
+                    <div
+                        class="flex flex-col gap-2"
+                        data-testid="accept-actions"
+                    >
+                        <template v-for="action in actions" :key="action.key">
+                            <Button
+                                v-if="action.kind === 'visit'"
+                                :variant="action.primary ? 'primary' : 'muted'"
+                                :tier="action.primary ? 'solid' : 'outline'"
+                                :href="action.url"
+                                @click="visit(action.url, $event)"
+                                >{{ action.label }}</Button
+                            >
+                            <Button
+                                v-else-if="action.key === 'accept'"
+                                :busy="accept.pending.value"
+                                @click="acceptInvitation"
+                                >{{ action.label }}</Button
+                            >
+                            <Button
+                                v-else
+                                :variant="
+                                    actions.length === 1 ? 'primary' : 'muted'
+                                "
+                                :tier="
+                                    actions.length === 1 ? 'solid' : 'outline'
+                                "
+                                :busy="logout.pending.value"
+                                @click="signOut"
+                                >{{ action.label }}</Button
+                            >
+                        </template>
                     </div>
                 </div>
             </Surface>

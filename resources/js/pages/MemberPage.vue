@@ -125,11 +125,6 @@ function back(event: MouseEvent) {
                             :variant="statusVariant"
                         />
                         <Badge
-                            v-if="member.isOwner"
-                            :label="t('members.owner')"
-                            variant="primary-solid"
-                        />
-                        <Badge
                             v-if="member.isSelf"
                             :label="t('members.you')"
                             variant="info"
@@ -155,13 +150,18 @@ function back(event: MouseEvent) {
                     </dt>
                     <dd class="flex flex-wrap gap-1.5">
                         <Badge
+                            v-if="member.isOwner"
+                            :label="t('members.owner')"
+                            variant="primary-solid"
+                        />
+                        <Badge
                             v-for="role in member.roles"
                             :key="role.value"
                             :label="role.label"
                             :variant="role.variant"
                         />
                         <span
-                            v-if="!member.roles.length"
+                            v-if="!member.roles.length && !member.isOwner"
                             class="text-(--concierge-text-muted)"
                             >{{ t('members.noRoles') }}</span
                         >
