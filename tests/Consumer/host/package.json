@@ -1,0 +1,20 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "types:check": "vue-tsc --noEmit"
+    },
+    "dependencies": {
+        "@inertiajs/vue3": "^3.7.1",
+        "@tailwindcss/vite": "^4.3.3",
+        "@vitejs/plugin-vue": "^6.0.9",
+        "tailwindcss": "^4.3.3",
+        "vite": "^8.3.0",
+        "vue": "^3.5.43"
+    },
+    "devDependencies": {
+        "typescript": "~5.9.3",
+        "vue-tsc": "^2.2.12"
+    }
+}

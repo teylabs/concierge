@@ -1,0 +1,9 @@
+{
+    "printWidth": 80,
+    "tabWidth": 4,
+    "singleQuote": true,
+    "semi": true,
+    "plugins": ["prettier-plugin-tailwindcss"],
+    "tailwindFunctions": [],
+    "overrides": [{ "files": "*.json", "options": { "tabWidth": 4 } }]
+}

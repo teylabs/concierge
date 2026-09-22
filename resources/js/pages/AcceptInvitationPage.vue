@@ -1,0 +1,223 @@
+<script setup lang="ts">
+/**
+ * Invitation landing page. Adapted from cookbook pages/UserManagement/
+ * Invitation (centred card), but it never creates accounts: sign-in and
+ * registration are host (Fortify) links, and acceptance is an explicit POST.
+ * Only the "ready" state can accept, and only when the server sends a link.
+ */
+import { computed } from 'vue';
+import { shouldIntercept } from '../internal/navigation';
+import { useSubmit } from '../internal/useSubmit';
+import { useConcierge } from '../plugin';
+import type { AcceptInvitationPageProps } from '../types';
+import Alert from '../ui/Alert.vue';
+import Badge from '../ui/Badge.vue';
+import Button from '../ui/Button.vue';
+import Surface from '../ui/Surface.vue';
+import type { Variant } from '../ui/variants';
+import type { ConciergeLabelKey } from '../labels';
+
+const props = defineProps<AcceptInvitationPageProps>();
+
+const { adapter, t } = useConcierge();
+const accept = useSubmit();
+const logout = useSubmit();
+
+type State = AcceptInvitationPageProps['state'];
+
+const tone: Record<State, Variant> = {
+    ready: 'primary',
+    sign_in_required: 'info',
+    register_required: 'info',
+    wrong_account: 'warning',
+    unverified: 'warning',
+    expired: 'danger',
+    revoked: 'danger',
+    invalid: 'danger',
+    accepted: 'success',
+    already_member: 'success',
+    suspended: 'danger',
+    authority_lapsed: 'danger',
+    workspace_unavailable: 'warning',
+    grants_changed: 'warning',
+};
+
+const knownState = computed<State>(() =>
+    props.state in tone ? props.state : 'invalid',
+);
+
+const params = computed(() => ({
+    workspace: props.workspace?.name ?? '',
+    email: props.email ?? '',
+}));
+
+const title = computed(() =>
+    props.workspace
+        ? t('accept.title', params.value)
+        : t('accept.titleUnknown'),
+);
+
+const message = computed(() =>
+    t(`accept.${knownState.value}` as ConciergeLabelKey, params.value),
+);
+
+const links = computed(() => props.metadata.links);
+
+const acceptUrl = computed(() =>
+    knownState.value === 'ready' ? links.value.accept : null,
+);
+
+const showRoles = computed(
+    () =>
+        props.roles.length > 0 &&
+        ['ready', 'sign_in_required', 'register_required'].includes(
+            knownState.value,
+        ),
+);
+
+function visit(url: string, event: MouseEvent) {
+    if (shouldIntercept(event)) {
+        event.preventDefault();
+        void adapter.visit(url);
+    }
+}
+
+function acceptInvitation() {
+    if (acceptUrl.value) {
+        void accept.submit({ method: 'post', url: acceptUrl.value });
+    }
+}
+
+function signOut() {
+    if (links.value.logout) {
+        void logout.submit({ method: 'post', url: links.value.logout });
+    }
+}
+</script>
+
+<template>
+    <div
+        class="concierge flex min-h-full items-start justify-center px-4 py-10 font-(family-name:--concierge-font) sm:items-center"
+    >
+        <div class="w-full max-w-md space-y-4">
+            <slot name="header" />
+            <Surface as="article" aria-labelledby="concierge-accept-title">
+                <div class="space-y-5 p-6">
+                    <div class="space-y-2">
+                        <h1
+                            id="concierge-accept-title"
+                            class="text-xl font-semibold tracking-tight text-(--concierge-text)"
+                        >
+                            {{ title }}
+                        </h1>
+                        <p
+                            v-if="email && knownState !== 'invalid'"
+                            class="text-sm text-(--concierge-text-muted)"
+                        >
+                            {{ t('accept.invitedAs', params) }}
+                        </p>
+                    </div>
+
+                    <Alert
+                        :variant="tone[knownState]"
+                        live="polite"
+                        :data-state="knownState"
+                    >
+                        {{ message }}
+                    </Alert>
+
+                    <div v-if="showRoles" class="space-y-2">
+                        <p class="text-sm text-(--concierge-text-muted)">
+                            {{ t('accept.roles') }}
+                        </p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <Badge
+                                v-for="role in roles"
+                                :key="role.value"
+                                :label="role.label"
+                                :variant="role.variant"
+                            />
+                        </div>
+                    </div>
+
+                    <Alert
+                        v-if="accept.failure.value"
+                        variant="danger"
+                        live="assertive"
+                    >
+                        {{ accept.failure.value }}
+                    </Alert>
+                    <Alert
+                        v-if="logout.failure.value"
+                        variant="danger"
+                        live="assertive"
+                    >
+                        {{ logout.failure.value }}
+                    </Alert>
+
+                    <div class="flex flex-col gap-2">
+                        <Button
+                            v-if="acceptUrl"
+                            :busy="accept.pending.value"
+                            @click="acceptInvitation"
+                            >{{
+                                accept.failure.value
+                                    ? t('actions.retry')
+                                    : t('accept.accept')
+                            }}</Button
+                        >
+                        <Button
+                            v-if="links.login"
+                            :tier="
+                                knownState === 'register_required'
+                                    ? 'outline'
+                                    : 'solid'
+                            "
+                            :variant="
+                                knownState === 'register_required'
+                                    ? 'muted'
+                                    : 'primary'
+                            "
+                            :href="links.login"
+                            @click="visit(links.login, $event)"
+                            >{{ t('accept.signIn') }}</Button
+                        >
+                        <Button
+                            v-if="links.register"
+                            :tier="
+                                knownState === 'register_required'
+                                    ? 'solid'
+                                    : 'outline'
+                            "
+                            :variant="
+                                knownState === 'register_required'
+                                    ? 'primary'
+                                    : 'muted'
+                            "
+                            :href="links.register"
+                            @click="visit(links.register, $event)"
+                            >{{ t('accept.register') }}</Button
+                        >
+                        <Button
+                            v-if="links.logout"
+                            variant="muted"
+                            tier="outline"
+                            :busy="logout.pending.value"
+                            @click="signOut"
+                            >{{ t('accept.signOut') }}</Button
+                        >
+                        <Button
+                            v-if="links.continue"
+                            :variant="acceptUrl ? 'muted' : 'primary'"
+                            :tier="acceptUrl ? 'ghost' : 'solid'"
+                            :href="links.continue"
+                            @click="visit(links.continue, $event)"
+                            >{{ t('accept.continue') }}</Button
+                        >
+                    </div>
+                </div>
+            </Surface>
+            <slot name="aside" />
+        </div>
+    </div>
+</template>

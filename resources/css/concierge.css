@@ -1,0 +1,73 @@
+/*
+ * Concierge UI styles. Import from the host Tailwind v4 entry:
+ *
+ *   @import '../../vendor/tey/concierge/resources/css/concierge.css';
+ *
+ * Components use Tailwind utilities that read the --concierge-* variables
+ * below, so hosts restyle Concierge by overriding variables rather than
+ * classes. Defaults are layered so any unlayered host :root rule wins.
+ * Palette and tier structure adapted from the cookbook UI kit
+ * (resources/css/variants.css: pale / solid / outline tiers).
+ */
+@source '../js';
+
+@layer base {
+    :root {
+        --concierge-font: inherit;
+        --concierge-canvas: #f8fafc;
+        --concierge-surface: #ffffff;
+        --concierge-surface-muted: #f8fafc;
+        --concierge-border: #e2e8f0;
+        --concierge-border-strong: #cbd5e1;
+        --concierge-text: #0f172a;
+        --concierge-text-muted: #64748b;
+        --concierge-focus: #4f46e5;
+        --concierge-backdrop: rgb(15 23 42 / 0.5);
+
+        --concierge-primary-solid: #4f46e5;
+        --concierge-primary-solid-hover: #4338ca;
+        --concierge-primary-solid-fg: #ffffff;
+        --concierge-primary-pale: #eef2ff;
+        --concierge-primary-pale-fg: #3730a3;
+        --concierge-primary-outline: #a5b4fc;
+
+        --concierge-success-solid: #059669;
+        --concierge-success-solid-hover: #047857;
+        --concierge-success-solid-fg: #ffffff;
+        --concierge-success-pale: #ecfdf5;
+        --concierge-success-pale-fg: #065f46;
+        --concierge-success-outline: #6ee7b7;
+
+        --concierge-warning-solid: #d97706;
+        --concierge-warning-solid-hover: #b45309;
+        --concierge-warning-solid-fg: #ffffff;
+        --concierge-warning-pale: #fffbeb;
+        --concierge-warning-pale-fg: #92400e;
+        --concierge-warning-outline: #fcd34d;
+
+        --concierge-danger-solid: #dc2626;
+        --concierge-danger-solid-hover: #b91c1c;
+        --concierge-danger-solid-fg: #ffffff;
+        --concierge-danger-pale: #fef2f2;
+        --concierge-danger-pale-fg: #991b1b;
+        --concierge-danger-outline: #fca5a5;
+
+        --concierge-info-solid: #0284c7;
+        --concierge-info-solid-hover: #0369a1;
+        --concierge-info-solid-fg: #ffffff;
+        --concierge-info-pale: #f0f9ff;
+        --concierge-info-pale-fg: #075985;
+        --concierge-info-outline: #7dd3fc;
+
+        --concierge-muted-solid: #475569;
+        --concierge-muted-solid-hover: #334155;
+        --concierge-muted-solid-fg: #ffffff;
+        --concierge-muted-pale: #f1f5f9;
+        --concierge-muted-pale-fg: #334155;
+        --concierge-muted-outline: #cbd5e1;
+    }
+}
+
+.concierge-dialog::backdrop {
+    background: var(--concierge-backdrop);
+}

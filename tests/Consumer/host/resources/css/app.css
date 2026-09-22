@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+@import '../../vendor/tey/concierge/resources/css/concierge.css';
+
+:root {
+    --concierge-primary-solid: #0f766e;
+}

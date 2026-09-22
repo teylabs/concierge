@@ -1,0 +1,44 @@
+{
+    "name": "@tey/concierge",
+    "private": true,
+    "type": "module",
+    "description": "Optional Vue UI for tey/concierge, consumed from vendor/tey/concierge through a host Vite alias.",
+    "exports": {
+        ".": "./resources/js/index.ts",
+        "./inertia": "./resources/js/inertia.ts",
+        "./styles.css": "./resources/css/concierge.css"
+    },
+    "scripts": {
+        "types:generate": "vendor/bin/testbench typescript:transform",
+        "harness": "vite --config harness/vite.config.ts",
+        "types:check": "vue-tsc --noEmit -p tsconfig.json",
+        "format": "prettier --write resources/js resources/css harness tests/Browser",
+        "format:check": "prettier --check resources/js resources/css harness tests/Browser",
+        "test:browser": "playwright test",
+        "consumer:proof": "bash tests/Consumer/prove.sh"
+    },
+    "peerDependencies": {
+        "@inertiajs/vue3": "^3.0",
+        "tailwindcss": "^4.1",
+        "vue": "^3.5"
+    },
+    "peerDependenciesMeta": {
+        "@inertiajs/vue3": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@inertiajs/vue3": "^3.7.1",
+        "@playwright/test": "^1.63.0",
+        "@tailwindcss/vite": "^4.3.3",
+        "@types/node": "^22.20.4",
+        "@vitejs/plugin-vue": "^6.0.9",
+        "prettier": "^3.9.8",
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "tailwindcss": "^4.3.3",
+        "typescript": "~5.9.3",
+        "vite": "^8.3.0",
+        "vue": "^3.5.43",
+        "vue-tsc": "^2.2.12"
+    }
+}
