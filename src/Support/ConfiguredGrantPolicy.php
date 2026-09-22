@@ -4,24 +4,35 @@ namespace Tey\Concierge\Support;
 
 use Illuminate\Auth\Access\Response;
 use Tey\Concierge\Concierge;
+use Tey\Concierge\Contracts\BatchesMembershipReads;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Models\Membership;
 
-class ConfiguredGrantPolicy implements GrantPolicy
+class ConfiguredGrantPolicy implements BatchesMembershipReads, GrantPolicy
 {
+    protected ?MembershipDirectory $directory = null;
+
     public function __construct(protected Concierge $concierge) {}
+
+    public function usingDirectory(MembershipDirectory $directory): GrantPolicy
+    {
+        $policy = clone $this;
+        $policy->directory = $directory;
+
+        return $policy;
+    }
 
     public function grantableRoles(Member $actor, Workspace $workspace): array
     {
-        $membership = $this->concierge->membership($actor, $workspace);
+        $membership = $this->membership($actor, $workspace);
 
         if (! $membership?->isActive()) {
             return [];
         }
 
-        $held = $this->concierge->roleNames($membership);
+        $held = $this->roleNames($workspace, $membership);
 
         return array_values(array_filter(
             Roles::configured(),
@@ -32,13 +43,13 @@ class ConfiguredGrantPolicy implements GrantPolicy
 
     public function authorizeManagement(Member $actor, Workspace $workspace, ?Membership $target = null): Response
     {
-        $membership = $this->concierge->membership($actor, $workspace);
+        $membership = $this->membership($actor, $workspace);
 
         if (! $membership?->isActive()) {
             return Response::deny('You are not an active member of this workspace.', 'not_member');
         }
 
-        $held = $this->concierge->roleNames($membership);
+        $held = $this->roleNames($workspace, $membership);
 
         if (array_intersect(config('concierge.managers', []), $held) === []) {
             return Response::deny('You cannot manage members of this workspace.', 'not_manager');
@@ -56,11 +67,11 @@ class ConfiguredGrantPolicy implements GrantPolicy
             return Response::deny('You cannot manage your own membership.', 'self');
         }
 
-        if ($this->concierge->isOwner($target)) {
+        if ($this->isOwner($workspace, $target)) {
             return Response::deny('The workspace owner cannot be managed.', 'owner_protected');
         }
 
-        $targetRank = Roles::highestRank($this->concierge->roleNames($target));
+        $targetRank = Roles::highestRank($this->roleNames($workspace, $target));
         $actorRank = Roles::highestRank($held);
 
         if ($targetRank !== null && ($actorRank === null || $targetRank <= $actorRank)) {
@@ -87,5 +98,27 @@ class ConfiguredGrantPolicy implements GrantPolicy
         }
 
         return Response::allow();
+    }
+
+    protected function membership(Member $actor, Workspace $workspace): ?Membership
+    {
+        return $this->directory?->covers($workspace)
+            ? $this->directory->membershipOf($actor)
+            : $this->concierge->membership($actor, $workspace);
+    }
+
+    /** @return list<string> */
+    protected function roleNames(Workspace $workspace, Membership $membership): array
+    {
+        return $this->directory?->covers($workspace)
+            ? $this->directory->roleNames($membership)
+            : $this->concierge->roleNames($membership);
+    }
+
+    protected function isOwner(Workspace $workspace, Membership $membership): bool
+    {
+        return $this->directory?->covers($workspace)
+            ? $this->directory->isOwner($membership)
+            : $this->concierge->isOwner($membership);
     }
 }

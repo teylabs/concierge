@@ -5,12 +5,15 @@ namespace Tey\Concierge;
 use Closure;
 use Illuminate\Auth\Access\Response;
 use SensitiveParameter;
+use Tey\Concierge\Contracts\BatchesMembershipReads;
+use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\MembershipDirectory;
 use Tey\Concierge\Support\Roles;
 
 class Concierge
@@ -67,6 +70,28 @@ class Concierge
             fn () => Roles::sort($user->roles()->pluck('name')->all()),
             [$user],
         );
+    }
+
+    /**
+     * A fresh read snapshot for rendering one page; never cached here.
+     *
+     * @param  iterable<Membership>  $memberships
+     */
+    public function directory(Workspace $workspace, Member $actor, iterable $memberships = []): MembershipDirectory
+    {
+        return MembershipDirectory::load($this, $workspace, $actor, $memberships);
+    }
+
+    /**
+     * The bound grant policy, batched through the directory when it opts in;
+     * custom policies that do not opt in are returned untouched.
+     */
+    public function policyFor(MembershipDirectory $directory): GrantPolicy
+    {
+        /** @var GrantPolicy $policy hosts may rebind this to a custom policy */
+        $policy = app(GrantPolicy::class);
+
+        return $policy instanceof BatchesMembershipReads ? $policy->usingDirectory($directory) : $policy;
     }
 
     /** @param  Closure(Invitation, string): string  $callback */
