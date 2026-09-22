@@ -18,18 +18,21 @@ it('defaults invitation expiry to seven days', function () {
     expect(config('concierge.invitations.expires_after_days'))->toBe(7);
 });
 
-it('publishes nothing but the config file', function () {
+it('publishes only the config file and the package migration', function () {
     $published = collect(ServiceProvider::pathsToPublish(ConciergeServiceProvider::class))
-        ->mapWithKeys(fn (string $to, string $from) => [realpath($from) => $to])
+        ->keys()
+        ->map(fn (string $from) => basename($from))
+        ->sort()
+        ->values()
         ->all();
 
-    expect($published)->toBe([realpath(__DIR__.'/../config/concierge.php') => config_path('concierge.php')]);
+    expect($published)->toBe(['concierge.php', 'create_concierge_tables.php']);
 });
 
 it('publishes the package defaults under the concierge-config tag', function () {
     $this->artisan('vendor:publish', ['--tag' => 'concierge-config'])->assertSuccessful();
 
-    expect(require config_path('concierge.php'))->toBe(['invitations' => ['expires_after_days' => 7]]);
+    expect(require config_path('concierge.php'))->toBe(require __DIR__.'/../config/concierge.php');
 });
 
 it('keeps host config values over package defaults', function () {

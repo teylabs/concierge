@@ -2,9 +2,14 @@
 
 namespace Tey\Concierge\Tests;
 
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Lorisleiva\Actions\ActionServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\Permission\PermissionServiceProvider;
 use Tey\Concierge\ConciergeServiceProvider;
+use Workbench\App\Models\User;
+use Workbench\App\Models\Workspace;
 
 class TestCase extends Orchestra
 {
@@ -20,18 +25,51 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
+            PermissionServiceProvider::class,
+            ActionServiceProvider::class,
             ConciergeServiceProvider::class,
         ];
     }
 
-    public function getEnvironmentSetUp($app)
+    public static function usesPostgres(): bool
     {
-        config()->set('database.default', 'testing');
+        return getenv('CONCIERGE_TEST_DB') === 'pgsql';
+    }
 
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+    protected function defineEnvironment($app)
+    {
+        tap($app['config'], function (Repository $config) {
+            if (static::usesPostgres()) {
+                $config->set('database.connections.pgsql', [
+                    'driver' => 'pgsql',
+                    'host' => getenv('CONCIERGE_TEST_DB_HOST') ?: '127.0.0.1',
+                    'port' => getenv('CONCIERGE_TEST_DB_PORT') ?: '5432',
+                    'database' => 'concierge_test_core',
+                    'username' => getenv('CONCIERGE_TEST_DB_USERNAME') ?: 'root',
+                    'password' => getenv('CONCIERGE_TEST_DB_PASSWORD') ?: '',
+                    'charset' => 'utf8',
+                    'prefix' => '',
+                    'search_path' => 'public',
+                    'sslmode' => 'prefer',
+                ]);
+                $config->set('database.default', 'pgsql');
+            } else {
+                $config->set('database.default', 'testing');
+                $config->set('database.connections.testing.foreign_key_constraints', true);
+            }
+
+            $config->set('auth.providers.users.model', User::class);
+            $config->set('permission.teams', true);
+            $config->set('permission.column_names.team_foreign_key', 'workspace_id');
+            $config->set('concierge.models.user', User::class);
+            $config->set('concierge.models.workspace', Workspace::class);
+            $config->set('queue.default', 'sync');
+            $config->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
+        });
+    }
+
+    protected function defineDatabaseMigrations()
+    {
+        $this->app->make('migrator')->path(__DIR__.'/../workbench/database/migrations');
     }
 }
