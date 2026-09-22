@@ -23,41 +23,41 @@ Styles: `resources/css/concierge.css`.
 1. **Vite.** Alias the Composer-installed sources, and dedupe framework
    packages so vendor files resolve the host's copies:
 
-   ```ts
-   resolve: {
-       alias: { '@tey/concierge': path.resolve('vendor/tey/concierge/resources/js') },
-       dedupe: ['vue', '@inertiajs/vue3'],
-   }
-   ```
+    ```ts
+    resolve: {
+        alias: { '@tey/concierge': path.resolve('vendor/tey/concierge/resources/js') },
+        dedupe: ['vue', '@inertiajs/vue3'],
+    }
+    ```
 
-   Mirror the alias in `tsconfig.json` `paths` (`@tey/concierge` →
-   `index.ts`, `@tey/concierge/*` → `*`).
+    Mirror the alias in `tsconfig.json` `paths` (`@tey/concierge` →
+    `index.ts`, `@tey/concierge/*` → `*`).
 
 2. **Tailwind v4.** In the host CSS entry, after `@import 'tailwindcss'`, add:
 
-   ```css
-   @import '../../vendor/tey/concierge/resources/css/concierge.css';
-   ```
+    ```css
+    @import '../../vendor/tey/concierge/resources/css/concierge.css';
+    ```
 
-   This registers the package sources with `@source` and defines the
-   `--concierge-*` variables. Override any variable in an unlayered `:root`
-   rule to restyle Concierge. The pages use no host `@/UI` components.
+    This registers the package sources with `@source` and defines the
+    `--concierge-*` variables. Override any variable in an unlayered `:root`
+    rule to restyle Concierge. The pages use no host `@/UI` components.
 
 3. **Plugin.** Install it once:
 
-   ```ts
-   app.use(createConcierge({ adapter: createInertiaAdapter() }));
-   ```
+    ```ts
+    app.use(createConcierge({ adapter: createInertiaAdapter() }));
+    ```
 
 4. **Wrapper pages.** The host owns layout, breadcrumbs and flash toasts. Pass
    the server props straight through, and use slots for chrome:
 
-   ```vue
-   <AppLayout><MembersPage v-bind="props"><template #breadcrumbs>…</template></MembersPage></AppLayout>
-   ```
+    ```vue
+    <AppLayout><MembersPage v-bind="props"><template #breadcrumbs>…</template></MembersPage></AppLayout>
+    ```
 
-   Every page has the slots `header`, `breadcrumbs` and `aside`. `MembersPage`
-   also has `empty`.
+    Every page has the slots `header`, `breadcrumbs` and `aside`. `MembersPage`
+    also has `empty`.
 
 The peer dependencies the host must install are `vue ^3.5`, `tailwindcss ^4.1`
 and, for the Inertia adapter, `@inertiajs/vue3 ^3`. Nothing else is imported.
@@ -69,14 +69,14 @@ and, for the Inertia adapter, `@inertiajs/vue3 ^3`. Nothing else is imported.
   props, and a `null` link hides the control. Endpoint authorization is still
   mandatory, because hidden UI is not security.
 - Verbs:
-  - POST: invite, suspend, reinstate, transfer ownership, resend, accept, logout
-  - PUT: role changes
-  - DELETE: remove, revoke
+    - POST: invite, suspend, reinstate, transfer ownership, resend, accept, logout
+    - PUT: role changes
+    - DELETE: remove, revoke
 - The members search visits `metadata.refreshUrl` with the query `search` and
   `status`. Empty values are omitted.
 - Validation errors arrive through the adapter as `{ errors }`.
-  - Errors keyed `email`, `roles` or `roles.N` render on their fields.
-  - Any other key (for example a policy denial) renders as a form-level alert.
+    - Errors keyed `email`, `roles` or `roles.N` render on their fields.
+    - Any other key (for example a policy denial) renders as a form-level alert.
 - While a request is pending, repeated submits are ignored. Retry resends the
   identical request, so the server must be idempotent.
 - Ownership transfer requires typing the recipient's name. The server is
