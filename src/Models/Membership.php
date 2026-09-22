@@ -2,9 +2,9 @@
 
 namespace Tey\Concierge\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\MembershipStatus;
@@ -16,11 +16,11 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int $user_id
  * @property MembershipStatus $status
  * @property int|null $invitation_id
- * @property Carbon|null $joined_at
- * @property Carbon|null $suspended_at
+ * @property CarbonInterface|null $joined_at
+ * @property CarbonInterface|null $suspended_at
  * @property int|null $suspended_by_id
  * @property string|null $suspension_reason
- * @property Carbon|null $removed_at
+ * @property CarbonInterface|null $removed_at
  * @property int|null $removed_by_id
  * @property-read Member&Model $user
  * @property-read Workspace&Model $workspace

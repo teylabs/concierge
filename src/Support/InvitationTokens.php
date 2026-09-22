@@ -2,7 +2,7 @@
 
 namespace Tey\Concierge\Support;
 
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 use Tey\Concierge\Models\Invitation;
 
 final class InvitationTokens
@@ -15,7 +15,7 @@ final class InvitationTokens
         return ['token' => $token, 'hash' => Invitation::hashToken($token)];
     }
 
-    public static function expiry(): Carbon
+    public static function expiry(): CarbonInterface
     {
         return now()->addDays((int) config('concierge.invitations.expires_after_days', 7));
     }

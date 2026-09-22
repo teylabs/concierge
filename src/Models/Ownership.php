@@ -2,9 +2,9 @@
 
 namespace Tey\Concierge\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Support\ConciergeModels;
 
@@ -12,7 +12,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int $workspace_id
  * @property int $membership_id
  * @property int|null $previous_membership_id
- * @property Carbon|null $transferred_at
+ * @property CarbonInterface|null $transferred_at
  * @property-read Workspace&Model $workspace
  * @property-read Membership $membership
  */

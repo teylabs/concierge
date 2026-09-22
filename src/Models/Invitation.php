@@ -2,9 +2,9 @@
 
 namespace Tey\Concierge\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use SensitiveParameter;
 use Tey\Concierge\Contracts\Member;
@@ -23,18 +23,18 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int|null $inviter_id
  * @property string $token_hash
  * @property int $generation
- * @property Carbon|null $rotated_at
+ * @property CarbonInterface|null $rotated_at
  * @property InvitationStatus $status
- * @property Carbon $expires_at
- * @property Carbon|null $last_sent_at
+ * @property CarbonInterface $expires_at
+ * @property CarbonInterface|null $last_sent_at
  * @property int $send_count
- * @property Carbon|null $accepted_at
+ * @property CarbonInterface|null $accepted_at
  * @property int|null $accepted_by_id
  * @property int|null $accepted_membership_id
- * @property Carbon|null $revoked_at
+ * @property CarbonInterface|null $revoked_at
  * @property int|null $revoked_by_id
- * @property Carbon $created_at
- * @property Carbon $updated_at
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
  * @property-read (Member&Model)|null $inviter
  * @property-read Workspace&Model $workspace
  */

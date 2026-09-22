@@ -43,7 +43,7 @@ class ResendInvitation
 
             $cooldown = (int) config('concierge.invitations.resend_cooldown_seconds', 60);
 
-            if (($invitation->rotated_at ?? $invitation->created_at)->addSeconds($cooldown)->isFuture()) {
+            if (($invitation->rotated_at ?? $invitation->created_at)->copy()->addSeconds($cooldown)->isFuture()) {
                 Response::deny(__('Please wait before resending this invitation.'), 'cooldown')->authorize();
             }
 
