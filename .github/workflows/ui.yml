@@ -1,0 +1,134 @@
+name: ui
+
+# Optional Vue UI: generated contract types, type-check and formatting,
+# browser behaviour against the scripted harness, and a clean consumer build.
+# Browser tests use typed fixtures and a fake adapter, not a Laravel backend;
+# real endpoint behaviour is proven by host integration tests.
+
+on:
+  push:
+    paths:
+      - 'resources/js/**'
+      - 'resources/css/**'
+      - 'src/Data/UI/**'
+      - 'harness/**'
+      - 'workbench/**'
+      - 'tests/Browser/**'
+      - 'tests/Consumer/**'
+      - 'tests/Data/UI/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'playwright.config.ts'
+      - 'testbench.yaml.dist'
+      - 'composer.json'
+      - '.github/workflows/ui.yml'
+  pull_request:
+    paths:
+      - 'resources/js/**'
+      - 'resources/css/**'
+      - 'src/Data/UI/**'
+      - 'harness/**'
+      - 'workbench/**'
+      - 'tests/Browser/**'
+      - 'tests/Consumer/**'
+      - 'tests/Data/UI/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'playwright.config.ts'
+      - 'testbench.yaml.dist'
+      - 'composer.json'
+      - '.github/workflows/ui.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  types:
+    name: Contract types, type-check, format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Install composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Generated types match src/Data/UI
+        run: vendor/bin/pest --ci tests/Data/UI
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run types:check
+
+      - name: Formatting
+        run: npm run format:check
+
+  browser:
+    name: Browser (harness, desktop + phone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:browser
+        env:
+          CI: true
+
+      - name: Upload screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-browser
+          path: |
+            build/screenshots
+            build/playwright
+          if-no-files-found: ignore
+          retention-days: 7
+
+  consumer:
+    name: Clean consumer install and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Consumer proof
+        run: npm run consumer:proof
