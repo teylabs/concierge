@@ -83,11 +83,13 @@ class Invitation extends Model
         return static::query()->where('token_hash', static::hashToken($token))->first();
     }
 
+    /** @return BelongsTo<Workspace&Model, $this> */
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::workspace(), 'workspace_id');
     }
 
+    /** @return BelongsTo<Member&Model, $this> */
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::user(), 'inviter_id');

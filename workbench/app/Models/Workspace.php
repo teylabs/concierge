@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Tey\Concierge\Concerns\HasMembers;
 use Tey\Concierge\Contracts\Workspace as WorkspaceContract;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property bool $accepts_members
+ */
 class Workspace extends Model implements WorkspaceContract
 {
     use HasMembers;

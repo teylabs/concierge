@@ -24,6 +24,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int|null $removed_by_id
  * @property-read Member&Model $user
  * @property-read Workspace&Model $workspace
+ * @property-read Invitation|null $invitation
  */
 class Membership extends Model
 {
@@ -41,16 +42,19 @@ class Membership extends Model
         ];
     }
 
+    /** @return BelongsTo<Workspace&Model, $this> */
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::workspace(), 'workspace_id');
     }
 
+    /** @return BelongsTo<Member&Model, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::user(), 'user_id');
     }
 
+    /** @return BelongsTo<Invitation, $this> */
     public function invitation(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::invitation(), 'invitation_id');

@@ -9,6 +9,7 @@ use Tey\Concierge\Support\ConciergeModels;
 
 trait InteractsWithMemberships
 {
+    /** @return HasMany<Membership, $this> */
     public function memberships(): HasMany
     {
         return $this->hasMany(ConciergeModels::membership(), 'user_id');
