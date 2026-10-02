@@ -38,12 +38,14 @@ The service provider is registered through Laravel package discovery.
 
 ### Order matters
 
-The package registers its migration automatically, and that migration reads your user and workspace models and tables. So, before `php artisan migrate`:
+The package registers its migration automatically, and that migration reads your user and workspace models and tables. Any `php artisan migrate` run after the package is installed will try to run it, so put everything it reads in place **first**:
 
-1. Create your user and workspace tables and models.
-2. Publish and migrate the Spatie permission tables with teams enabled.
-3. Publish the config and set `concierge.models.user` and `concierge.models.workspace`.
-4. Run `php artisan migrate`, then `php artisan concierge:sync-roles` to create the configured roles.
+1. Define your user and workspace models and their migrations. Both need incrementing integer keys, and the models must implement the Concierge contracts (see Configuration).
+2. Publish the Spatie permission config and migrations, and enable teams (`permission.teams = true`).
+3. Publish `config/concierge.php` and set `concierge.models.user` and `concierge.models.workspace`.
+4. Only then run `php artisan migrate`, followed by `php artisan concierge:sync-roles` to create the configured roles.
+
+If `migrate` runs before step 3, the Concierge migration fails with an `UnsupportedConfiguration` error naming the missing model setting.
 
 ### Configuration
 
@@ -90,7 +92,11 @@ It is available only when **all** of these hold, checked on every request:
 - `concierge.local_login.enabled` is `true`
 - an account email is configured
 
-Otherwise there is no route and no button, and a route cached in `local` and served elsewhere answers 404 before CSRF verification, the guest check and the throttle.
+Otherwise:
+
+- outside `local`, the route is not registered and there is no offer
+- in `local` but disabled or without an account email, the route is registered but answers 404, and there is no offer
+- a route cached in `local` and served elsewhere also answers 404, before CSRF verification, the guest check and the throttle
 
 What it does and does not do:
 
