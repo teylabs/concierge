@@ -5,6 +5,12 @@ use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
 
 return [
+    'features' => [
+        // Set to false for an app that only wants the local-login feature:
+        // no membership bindings, middleware alias, commands or automatic migration.
+        'membership' => true,
+    ],
+
     'models' => [
         'user' => null,
         'workspace' => null,
@@ -38,4 +44,34 @@ return [
     ],
 
     'recent_authentication_seconds' => null,
+
+    /*
+     * One-click sign-in as a configured account, for local development only.
+     * Off by default; it only ever works in the `local` environment. It signs the
+     * account in and nothing else: no roles, membership or workspace are granted.
+     */
+    'local_login' => [
+        'enabled' => false,
+
+        'account' => [
+            // Value of the identity column. Required: nothing is available without it.
+            'email' => null,
+            // Display name for the account if the click has to create it.
+            'name' => null,
+            // Extra columns for a CREATED account; never the identity or password.
+            'attributes' => [],
+        ],
+
+        // The column the account is looked up and created by.
+        'identity' => 'email',
+
+        // The auth guard to sign in on; null means the application default.
+        'guard' => null,
+
+        // Where to go after the click when there is no intended URL; null means '/'.
+        'redirect' => null,
+
+        // Requests per minute per IP.
+        'throttle' => 10,
+    ],
 ];

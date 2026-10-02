@@ -1,6 +1,7 @@
 # Concierge Vue UI
 
-Optional, reusable Vue 3 pages for Concierge membership administration. The PHP
+Optional, reusable Vue 3 pages for Concierge membership administration, plus a
+local-login button that works without them. The PHP
 core never depends on this directory or on Inertia.
 
 ## Exports
@@ -10,6 +11,8 @@ core never depends on this directory or on Inertia.
 - Pages: `MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`.
   Each takes the matching generated `*PageProps` type as its props.
 - `createConcierge({ adapter, labels?, locale? })`: a Vue plugin that every page requires.
+- `LocalLoginButton`: a plain form for one-click local sign-in. It needs no
+  plugin and no Inertia. See [Local login button](#local-login-button).
 - Types: `ConciergeAdapter` and friends, `defaultLabels`, and every generated
   contract type from `types.ts`.
 
@@ -62,6 +65,49 @@ Styles: `resources/css/concierge.css`.
 The peer dependencies the host must install are `vue ^3.5`, `tailwindcss ^4.1`
 and, for the Inertia adapter, `@inertiajs/vue3 ^3`. Nothing else is imported.
 `tests/Consumer/prove.sh` builds exactly this setup from a clean install.
+
+## Local login button
+
+`LocalLoginButton` renders a native `<form method="post">` to the URL the server
+supplies. It is independent of `createConcierge` and of Inertia, so a host login
+page can use it without installing either. It uses the same Vite alias, TypeScript
+paths and `concierge.css` import as the pages (steps 1 and 2 above); nothing else
+is needed.
+
+Props:
+
+- `offer: LocalLoginOffer | null | undefined` (`{ url, email }`). The component
+  renders nothing when it is `null` or missing, so pass the server prop straight
+  through. The server returns `null` in every environment except an enabled,
+  configured `local` one.
+- `csrfToken: string`, **required**. Your page supplies the session's CSRF token
+  (for Inertia, share it from the server; for Blade, `csrf_token()`). It is sent
+  as the hidden `_token` field, never in the URL, and never logged by the
+  component.
+- `label?: string`. Defaults to `Sign in as <email>`.
+- `hint?: string`. Defaults to a line saying it is for local development only
+  and skips the password and two-factor.
+
+```vue
+<script setup lang="ts">
+import { LocalLoginButton, type LocalLoginOffer } from '@tey/concierge';
+
+defineProps<{ localLogin: LocalLoginOffer | null; csrfToken: string }>();
+</script>
+
+<template>
+    <LocalLoginButton :offer="localLogin" :csrf-token="csrfToken" />
+</template>
+```
+
+Server side, pass `'localLogin' => app(\Tey\Concierge\LocalAuth\LocalLogin::class)->offer()`
+as a page prop. The form contains the token and nothing else: the server signs in
+as the account in its own configuration and ignores anything submitted.
+
+While the request is in flight the button is disabled and shows a spinner, and a
+second submit is ignored. The browser then follows the server's redirect;
+validation or refusal messages (such as a soft-deleted account) come back in the
+session error bag under `local_login`, and displaying them is the host's choice.
 
 ## Transport rules
 

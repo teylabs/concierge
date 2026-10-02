@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Tey\Concierge\ConciergeServiceProvider;
@@ -41,4 +42,23 @@ it('keeps host config values over package defaults', function () {
     app()->register(ConciergeServiceProvider::class, force: true);
 
     expect(config('concierge.invitations.expires_after_days'))->toBe(14);
+});
+
+it('keeps the membership feature on by default, with its bindings, alias, command and migration', function () {
+    expect(config('concierge.features.membership'))->toBeTrue()
+        ->and(ConciergeServiceProvider::membershipEnabled())->toBeTrue()
+        ->and(app('router')->getMiddleware())->toHaveKey('concierge.member')
+        ->and(array_keys(Artisan::all()))->toContain('concierge:sync-roles')
+        ->and(array_map('realpath', app('migrator')->paths()))->toContain(realpath(__DIR__.'/../database/migrations/create_concierge_tables.php'));
+});
+
+it('ships local login off, with no account, throttled and with no hard-coded redirect', function () {
+    expect(config('concierge.local_login'))->toBe([
+        'enabled' => false,
+        'account' => ['email' => null, 'name' => null, 'attributes' => []],
+        'identity' => 'email',
+        'guard' => null,
+        'redirect' => null,
+        'throttle' => 10,
+    ]);
 });

@@ -87,6 +87,10 @@ to: number | null,
 },
 };
 export type LengthAwarePaginatorInterface<TKey, TValue> = LengthAwarePaginator<TKey, TValue>;
+export type LocalLoginOffer = {
+url: string,
+email: string,
+};
 export type MemberGrants = {
 payload: MemberGrantsPayload,
 metadata: MemberGrantsMetadata,

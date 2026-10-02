@@ -23,4 +23,7 @@ css="$(ls dist/assets/*.css)"
 grep -q -- '--concierge-surface' "$css"
 grep -q 'var(--concierge-primary-solid)' "$css"
 grep -q '#0f766e' "$css"
+# The local-login button is imported and rendered by the host, so its markup must be in the bundle.
+grep -q 'data-concierge' dist/assets/*.js
+grep -q 'local-login' dist/assets/*.js
 echo "Consumer proof passed: $(du -h "$css" | cut -f1) CSS, $(ls dist/assets/*.js | wc -l | tr -d ' ') JS chunk(s)."

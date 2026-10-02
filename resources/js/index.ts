@@ -1,3 +1,4 @@
+export { default as LocalLoginButton } from './LocalLoginButton.vue';
 export { default as AcceptInvitationPage } from './pages/AcceptInvitationPage.vue';
 export { default as InviteMemberPage } from './pages/InviteMemberPage.vue';
 export { default as MemberPage } from './pages/MemberPage.vue';
