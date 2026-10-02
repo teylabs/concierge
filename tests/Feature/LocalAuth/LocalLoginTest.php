@@ -203,20 +203,24 @@ it('leaves an existing account exactly as it is: hash, name, verification, times
 it('survives two first clicks racing for the same new account', function () {
     local_login_enable();
 
-    // Simulate the other request winning between our lookup and our insert.
+    // Simulate the other request winning in the gap between our lookup (which found
+    // nothing) and our insert: the winner row appears right after that lookup runs.
+    // It must not be written from a model event, which fires inside our own insert
+    // transaction and would be rolled back with it.
     $raced = false;
-    User::creating(function (User $user) use (&$raced): void {
-        if ($raced) {
+    DB::listen(function ($query) use (&$raced): void {
+        if ($raced || ! str_starts_with(strtolower($query->sql), 'select') || ! in_array(LOCAL_LOGIN_EMAIL, $query->bindings, true)) {
             return;
         }
 
         $raced = true;
-        DB::table('users')->insert(['name' => 'Winner', 'email' => $user->email, 'password' => 'winner-hash', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('users')->insert(['name' => 'Winner', 'email' => LOCAL_LOGIN_EMAIL, 'password' => 'winner-hash', 'created_at' => now(), 'updated_at' => now()]);
     });
 
     local_login_click()->assertRedirect('/');
 
-    expect(User::count())->toBe(1)
+    expect($raced)->toBeTrue()
+        ->and(User::count())->toBe(1)
         ->and(local_login_account()->name)->toBe('Winner')
         ->and(local_login_account()->password)->toBe('winner-hash');
 

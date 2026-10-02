@@ -23,8 +23,8 @@ use Tey\Concierge\LocalAuth\Exceptions\LocalLoginRefused;
  *   normally), a sensible name, a verified address if the table has the column,
  *   and the configured extra attributes; those can never override the identity
  *   or the password. No roles are given.
- * - Two first clicks racing is safe: the loser hits the unique index, re-reads
- *   the winner's row and carries on.
+ * - Two first clicks racing is safe: the loser hits the unique index, rolls back
+ *   its insert, re-reads the winner's row and carries on.
  * - A soft-deleted match is refused, not restored and not duplicated.
  * - Only the Eloquent user provider is supported; anything else fails closed.
  */
@@ -51,8 +51,13 @@ final class ResolveLocalAccount
             'password' => Hash::make(Str::random(48)),
         ]);
 
+        // The insert runs in its own transaction on the model's connection. Inside an
+        // outer transaction that is a savepoint, so a losing race rolls back to it and
+        // leaves the outer transaction usable: PostgreSQL aborts the whole transaction
+        // on a unique violation otherwise, and the re-read below would fail. The catch
+        // is outside, after that rollback.
         try {
-            $account->save();
+            $account->getConnection()->transaction(fn () => $account->save());
         } catch (UniqueConstraintViolationException $exception) {
             $winner = $this->find($model, $identity, $value) ?? throw $exception;
 
