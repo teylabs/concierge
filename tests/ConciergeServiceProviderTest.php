@@ -19,7 +19,7 @@ it('defaults invitation expiry to seven days', function () {
     expect(config('concierge.invitations.expires_after_days'))->toBe(7);
 });
 
-it('publishes only the config file and the package migration', function () {
+it('publishes only the config file and the package migrations', function () {
     $published = collect(ServiceProvider::pathsToPublish(ConciergeServiceProvider::class))
         ->keys()
         ->map(fn (string $from) => basename($from))
@@ -27,7 +27,7 @@ it('publishes only the config file and the package migration', function () {
         ->values()
         ->all();
 
-    expect($published)->toBe(['concierge.php', 'create_concierge_tables.php']);
+    expect($published)->toBe(['concierge.php', 'create_concierge_tables.php', 'create_concierge_tenant_invitations_table.php']);
 });
 
 it('publishes the package defaults under the concierge-config tag', function () {

@@ -2,13 +2,17 @@
 
 use Illuminate\Support\Facades\DB;
 use Tey\Concierge\Actions\AcceptInvitation;
+use Tey\Concierge\Actions\AcceptTenantInvitation;
+use Tey\Concierge\Actions\InviteTenant;
 use Tey\Concierge\Actions\RevokeInvitation;
+use Tey\Concierge\Actions\RevokeTenantInvitation;
 use Tey\Concierge\Actions\SuspendMembership;
 use Tey\Concierge\Actions\TransferOwnership;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Tests\TestCase;
+use Workbench\App\Models\Workspace;
 
 beforeEach(function () {
     if (! TestCase::usesPostgres() || ! function_exists('pcntl_fork')) {
@@ -26,9 +30,10 @@ beforeEach(function () {
  * then releases the lock so they race. Returns each operation's outcome.
  *
  * @param  array<string, Closure(): string>  $operations
+ * @param  string  $table  the table whose row (by id) is held; the workspace by default
  * @return array<string, string>
  */
-function race(int $workspaceId, array $operations): array
+function race(int $workspaceId, array $operations, string $table = 'workspaces'): array
 {
     config()->set('database.connections.locker', config('database.connections.pgsql'));
     $locker = DB::connection('locker');
@@ -38,7 +43,7 @@ function race(int $workspaceId, array $operations): array
 
     try {
         $locker->beginTransaction();
-        $locker->select('select id from workspaces where id = ? for update', [$workspaceId]);
+        $locker->select("select id from {$table} where id = ? for update", [$workspaceId]);
 
         foreach ($operations as $name => $operation) {
             $pid = pcntl_fork();
@@ -186,4 +191,54 @@ it('never suspends the owner when a transfer races a suspension', function () {
             ['transfer' => (string) $recipient->id, 'suspend' => 'AuthorizationException:owner_protected'],
             ['transfer' => 'AuthorizationException:recipient_invalid', 'suspend' => 'suspended'],
         ], true))->toBeTrue();
+});
+
+it('provisions exactly one workspace when a tenant invitation is accepted concurrently', function () {
+    app(Concierge::class)->provisionWorkspaceUsing(
+        fn ($owner) => Workspace::query()->create(['name' => "{$owner->name}'s workspace"]),
+    );
+    $platform = host_user('platform');
+    config(['concierge.tenant_invitations.platform_owners' => ['platform@example.test']]);
+    $peer = host_user('peer');
+    $issued = InviteTenant::run($platform, $peer->email);
+    $before = DB::table('workspaces')->count();
+
+    $results = race($issued->invitation->id, [
+        'first' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
+        'second' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
+    ], 'concierge_tenant_invitations');
+
+    expect(collect($results)->sort()->values()->all())->toBe(['already_provisioned', 'provisioned'])
+        ->and(DB::table('workspaces')->count())->toBe($before + 1)
+        ->and(DB::table('concierge_ownerships')->count())->toBe(2) // the seeded Acme and the peer's
+        ->and(DB::table('concierge_memberships')->where('user_id', $peer->id)->count())->toBe(1);
+});
+
+it('serializes tenant acceptance against revocation', function () {
+    app(Concierge::class)->provisionWorkspaceUsing(
+        fn ($owner) => Workspace::query()->create(['name' => "{$owner->name}'s workspace"]),
+    );
+    $platform = host_user('platform');
+    config(['concierge.tenant_invitations.platform_owners' => ['platform@example.test']]);
+    $peer = host_user('peer');
+    $issued = InviteTenant::run($platform, $peer->email);
+    $before = DB::table('workspaces')->count();
+
+    $results = race($issued->invitation->id, [
+        'accept' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
+        'revoke' => fn () => RevokeTenantInvitation::run($platform, $issued->invitation)->status->value,
+    ], 'concierge_tenant_invitations');
+
+    $row = $issued->invitation->fresh();
+
+    if ($results['accept'] === 'provisioned') {
+        expect($row->status)->toBe(InvitationStatus::Accepted)
+            ->and($results['revoke'])->toStartWith('ValidationException')
+            ->and(DB::table('workspaces')->count())->toBe($before + 1);
+    } else {
+        expect($row->status)->toBe(InvitationStatus::Revoked)
+            ->and($results['accept'])->toContain('InvitationRejected')
+            ->and($row->workspace_id)->toBeNull()
+            ->and(DB::table('workspaces')->count())->toBe($before);
+    }
 });
