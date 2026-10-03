@@ -21,7 +21,9 @@ use Workbench\App\Models\Workspace;
 uses(TestCase::class)->in('ArchTest.php', 'ConciergeServiceProviderTest.php', 'Concurrency', 'Data', 'Feature');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
 uses(RefreshDatabase::class)->in('Feature');
-uses(TenantInvitationsOffTestCase::class, RefreshDatabase::class)->in('TenantOff');
+// No RefreshDatabase: on a shared PostgreSQL database whichever class migrates first decides the
+// schema, and this one boots without the tenant migration. It must not touch the database.
+uses(TenantInvitationsOffTestCase::class)->in('TenantOff');
 uses(DatabaseMigrations::class)->in('Concurrency');
 
 function host_user(string $name, bool $verified = true): User
