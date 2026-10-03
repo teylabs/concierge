@@ -10,6 +10,7 @@ use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
+use Tey\Concierge\Models\TenantInvitation;
 
 final class ConciergeModels
 {
@@ -51,6 +52,12 @@ final class ConciergeModels
     public static function invitation(): string
     {
         return config('concierge.models.invitation', Invitation::class);
+    }
+
+    /** @return class-string<TenantInvitation> */
+    public static function tenantInvitation(): string
+    {
+        return config('concierge.models.tenant_invitation', TenantInvitation::class);
     }
 
     public static function userTable(): string

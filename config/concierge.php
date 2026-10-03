@@ -3,12 +3,18 @@
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
+use Tey\Concierge\Models\TenantInvitation;
 
 return [
     'features' => [
         // Set to false for an app that only wants the local-login feature:
         // no membership bindings, middleware alias, commands or automatic migration.
         'membership' => true,
+
+        // Platform-level tenant invitations: a platform owner invites an email and
+        // accepting provisions that person's OWN workspace. Off by default: no table,
+        // limiter or Gate definition until true. Set it before publishing migrations.
+        'tenant_invitations' => false,
     ],
 
     'models' => [
@@ -17,6 +23,7 @@ return [
         'membership' => Membership::class,
         'ownership' => Ownership::class,
         'invitation' => Invitation::class,
+        'tenant_invitation' => TenantInvitation::class,
     ],
 
     'guard' => null,
@@ -41,6 +48,18 @@ return [
         'expires_after_days' => 7,
         'resend_cooldown_seconds' => 60,
         'deliver' => true,
+    ],
+
+    /*
+     * Only read when features.tenant_invitations is true. Authorization is the Gate
+     * ability below: define it yourself for full control, or list platform owners'
+     * verified emails. With neither, everyone is denied.
+     */
+    'tenant_invitations' => [
+        'ability' => 'concierge.manage-tenants',
+        'platform_owners' => [],
+        // Requests per minute for the named limiters the host applies to its routes.
+        'throttle' => ['inspect' => 30, 'accept' => 10, 'invite' => 20],
     ],
 
     'recent_authentication_seconds' => null,

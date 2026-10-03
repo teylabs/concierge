@@ -36,6 +36,17 @@ class TestCase extends Orchestra
         return getenv('CONCIERGE_TEST_DB') === 'pgsql';
     }
 
+    /**
+     * The package reads its feature switch while the provider registers, before
+     * defineEnvironment() runs, so a test host sets it with the "host config".
+     */
+    protected function resolveApplicationConfiguration($app)
+    {
+        parent::resolveApplicationConfiguration($app);
+
+        $app['config']->set('concierge.features', ['membership' => true, 'tenant_invitations' => true]);
+    }
+
     protected function defineEnvironment($app)
     {
         tap($app['config'], function (Repository $config) {
@@ -63,6 +74,7 @@ class TestCase extends Orchestra
             $config->set('permission.column_names.team_foreign_key', 'workspace_id');
             $config->set('concierge.models.user', User::class);
             $config->set('concierge.models.workspace', Workspace::class);
+            $config->set('concierge.tenant_invitations.platform_owners', ['platform@example.test']);
             $config->set('queue.default', 'sync');
             $config->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
         });

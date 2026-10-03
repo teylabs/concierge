@@ -12,6 +12,7 @@ use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
+use Tey\Concierge\Models\TenantInvitation;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\MembershipDirectory;
 use Tey\Concierge\Support\Roles;
@@ -20,6 +21,12 @@ class Concierge
 {
     /** @var (Closure(Invitation, string): string)|null */
     protected ?Closure $invitationUrl = null;
+
+    /** @var (Closure(TenantInvitation, string): string)|null */
+    protected ?Closure $tenantInvitationUrl = null;
+
+    /** @var (Closure(Member, TenantInvitation): mixed)|null */
+    protected ?Closure $workspaceProvisioner = null;
 
     public function context(): WorkspaceContext
     {
@@ -110,5 +117,43 @@ class Concierge
     public function deliversInvitations(): bool
     {
         return $this->invitationUrl !== null && config('concierge.invitations.deliver', true);
+    }
+
+    /** @param  Closure(TenantInvitation, string): string  $callback */
+    public function tenantInvitationUrlUsing(?Closure $callback): static
+    {
+        $this->tenantInvitationUrl = $callback;
+
+        return $this;
+    }
+
+    public function tenantInvitationUrl(TenantInvitation $invitation, #[SensitiveParameter] string $token): ?string
+    {
+        return $this->tenantInvitationUrl ? ($this->tenantInvitationUrl)($invitation, $token) : null;
+    }
+
+    public function deliversTenantInvitations(): bool
+    {
+        return $this->tenantInvitationUrl !== null && config('concierge.invitations.deliver', true);
+    }
+
+    /**
+     * How the host creates the (saved) workspace an accepted tenant invitation
+     * provisions. Runs inside the acceptance transaction; the invitee is then
+     * established as its owner.
+     *
+     * @param  (Closure(Member, TenantInvitation): mixed)|null  $callback
+     */
+    public function provisionWorkspaceUsing(?Closure $callback): static
+    {
+        $this->workspaceProvisioner = $callback;
+
+        return $this;
+    }
+
+    /** @return (Closure(Member, TenantInvitation): mixed)|null */
+    public function workspaceProvisioner(): ?Closure
+    {
+        return $this->workspaceProvisioner;
     }
 }
