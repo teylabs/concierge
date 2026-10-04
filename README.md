@@ -162,14 +162,21 @@ One click signs in as an account named in configuration, creating it on the firs
 It is available only when **all** of these hold, checked on every request:
 
 - the application environment is exactly `local`
+- uncached process `APP_ENV` is exactly `local` (`getenv`, with `$_SERVER` fallback only when the process value is absent)
 - `concierge.local_login.enabled` is `true`
 - an account email is configured
 
+A locally generated configuration cache is not proof that the running process is local.
+When configuration is cached, supply `APP_ENV=local` in the development process
+environment; Laravel skips loading `.env` on cached boots. Missing raw `APP_ENV`
+disables local login. An explicit nonlocal process value takes precedence over
+`$_SERVER`, and Concierge never changes the application's environment.
+
 Otherwise:
 
-- outside `local`, the route is not registered and there is no offer
-- in `local` but disabled or without an account email, the route is registered but answers 404, and there is no offer
-- a route cached in `local` and served elsewhere also answers 404, before CSRF verification, the guest check and the throttle
+- outside either local environment boundary, the route is not registered and there is no offer
+- with both environments `local` but disabled or without an account email, the route is registered but answers 404, and there is no offer
+- a route cached in `local` and served with nonlocal or missing raw `APP_ENV` also answers 404, before CSRF verification, the guest check and the throttle
 
 What it does and does not do:
 

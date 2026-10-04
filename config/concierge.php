@@ -69,7 +69,8 @@ return [
 
     /*
      * One-click sign-in as a configured account, for local development only.
-     * Off by default; it only ever works in the `local` environment. It signs the
+     * Off by default; both the application and uncached process APP_ENV must be
+     * exactly `local`. Missing APP_ENV fails closed, even with cached config. It signs the
      * account in and nothing else: no roles, membership or workspace are granted.
      */
     'local_login' => [
