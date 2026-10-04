@@ -343,3 +343,60 @@ it('never leaks the token hash through serialization', function () {
 
     expect($array)->not->toHaveKey('token_hash')->and($array)->not->toHaveKey('pending_key');
 });
+
+it('refuses to invite an email that already has a workspace, unless allowed', function () {
+    $issued = invite_tenant();
+    AcceptTenantInvitation::run(host_user('peer'), $issued->token);
+
+    expect(fn () => invite_tenant('PEER@example.test'))
+        ->toThrow(ValidationException::class, 'That email already has a workspace.');
+    expect(TenantInvitation::query()->count())->toBe(1);
+
+    config(['concierge.tenant_invitations.allow_reinvite_after_accept' => true]);
+    expect(invite_tenant()->invitation->isPending())->toBeTrue();
+});
+
+it('lets a revoked invitation be re-invited', function () {
+    $revoked = invite_tenant();
+    RevokeTenantInvitation::run($this->platform, $revoked->invitation);
+
+    expect(invite_tenant()->invitation->isPending())->toBeTrue();
+});
+
+it('keeps the original inviter on resend and reports the resender in the event', function () {
+    $issued = invite_tenant();
+    $second = host_user('second');
+    Gate::define('concierge.manage-tenants', fn ($user) => $user->is($this->platform) || $user->is($second));
+    $this->travel(2)->minutes();
+    Event::fake([TenantInvitationResent::class]);
+
+    $resent = ResendTenantInvitation::run($second, $issued->invitation);
+
+    expect($resent->invitation->fresh()->inviter_id)->toBe($this->platform->id);
+    Event::assertDispatched(TenantInvitationResent::class, fn ($e) => $e->actorId === $second->id);
+});
+
+it('documents that a host Gate::before returning true grants tenant management', function () {
+    $stranger = host_user('stranger');
+    expect(fn () => InviteTenant::run($stranger, 'a@example.test'))->toThrow(AuthorizationException::class);
+
+    Gate::before(fn ($user) => $user->is($stranger) ? true : null);
+    expect(InviteTenant::run($stranger, 'a@example.test')->invitation->isPending())->toBeTrue();
+});
+
+it('does not reveal whether an account exists for tokens that cannot be accepted', function () {
+    host_user('peer');
+    $revoked = invite_tenant('peer@example.test');
+    RevokeTenantInvitation::run($this->platform, $revoked->invitation);
+    $expiring = invite_tenant('peer@example.test');
+    $this->travel(8)->days();
+
+    $states = [
+        InspectTenantInvitation::run(null, 'nope')->state,
+        InspectTenantInvitation::run(null, $revoked->token)->state,
+        InspectTenantInvitation::run(null, $expiring->token)->state,
+    ];
+
+    expect($states)->toBe([InvitationState::Invalid, InvitationState::Revoked, InvitationState::Expired])
+        ->and($states)->not->toContain(InvitationState::SignInRequired, InvitationState::RegisterRequired);
+});

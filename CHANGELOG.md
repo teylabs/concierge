@@ -2,6 +2,14 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## Concierge 0.4.0 - 2026-10-04
+
+Follow-ups from the 0.3.0 review (#4).
+
+- **Behaviour change:** `InviteTenant` now refuses an email whose tenant invitation was already accepted ("That email already has a workspace."), instead of letting a second workspace be provisioned. Set `tenant_invitations.allow_reinvite_after_accept` to `true` for the old behaviour.
+- `ResendTenantInvitation` no longer overwrites `inviter_id`; the resender is `actorId` on `TenantInvitationResent`. The member `ResendInvitation` is unchanged on purpose: its `inviter_id` is the authority re-checked at acceptance, and a resend re-snapshots the grants under the resender.
+- README: a host `Gate::before` returning true also grants `concierge.manage-tenants` (with an opt-out), and `InspectTenantInvitation` revealing account existence to a token holder is documented as accepted. Both are pinned by tests.
+
 ## Concierge 0.3.0 - 2026-10-03
 
 Concierge can now invite a person to a platform rather than into an existing workspace. A platform owner invites an email; accepting provisions that person's own workspace, which they own. Actions: `InviteTenant`, `ResendTenantInvitation`, `RevokeTenantInvitation`, `InspectTenantInvitation`, `AcceptTenantInvitation`.

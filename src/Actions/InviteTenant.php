@@ -43,6 +43,15 @@ class InviteTenant
                 throw ValidationException::withMessages(['email' => __('An invitation is already pending for that email.')]);
             }
 
+            if (! config('concierge.tenant_invitations.allow_reinvite_after_accept', false)
+                && ConciergeModels::tenantInvitation()::query()
+                    ->where('email', $email)
+                    ->where('status', InvitationStatus::Accepted)
+                    ->whereNotNull('workspace_id')
+                    ->exists()) {
+                throw ValidationException::withMessages(['email' => __('That email already has a workspace.')]);
+            }
+
             $pending?->forceFill(['status' => InvitationStatus::Expired, 'pending_key' => null])->save();
 
             $token = InvitationTokens::generate();
