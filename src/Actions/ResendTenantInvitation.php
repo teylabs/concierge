@@ -47,7 +47,6 @@ class ResendTenantInvitation
                 'generation' => $invitation->generation + 1,
                 'rotated_at' => now(),
                 'expires_at' => InvitationTokens::expiry(),
-                'inviter_id' => $actor->getKey(),
             ])->save();
 
             TenantInvitationResent::dispatch($invitation->getKey(), $invitation->generation, $actor->getKey());

@@ -58,6 +58,9 @@ return [
     'tenant_invitations' => [
         'ability' => 'concierge.manage-tenants',
         'platform_owners' => [],
+        // An email whose invitation was already accepted already has a workspace. Set true
+        // to let a platform owner invite it again, which provisions a SECOND workspace.
+        'allow_reinvite_after_accept' => false,
         // Requests per minute for the named limiters the host applies to its routes.
         'throttle' => ['inspect' => 30, 'accept' => 10, 'invite' => 20],
     ],

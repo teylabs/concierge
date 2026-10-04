@@ -95,10 +95,10 @@ Then publish the migration (`concierge-migrations`) and migrate. Like local logi
 
 | Action | Who | What |
 | --- | --- | --- |
-| `InviteTenant::run($actor, $email)` | platform owner | Creates a pending invitation (one per email) and queues delivery. Returns the invitation and the one-time token. |
-| `ResendTenantInvitation::run($actor, $invitation)` | platform owner | Rotates the token (old link dies), renews expiry, honours `invitations.resend_cooldown_seconds`. |
+| `InviteTenant::run($actor, $email)` | platform owner | Creates a pending invitation (one per email) and queues delivery. Returns the invitation and the one-time token. Refuses an email whose invitation was already accepted ("That email already has a workspace.") unless `tenant_invitations.allow_reinvite_after_accept` is true, in which case accepting provisions an additional workspace. |
+| `ResendTenantInvitation::run($actor, $invitation)` | platform owner | Rotates the token (old link dies), renews expiry, honours `invitations.resend_cooldown_seconds`. The original `inviter_id` is kept; the resender is `actorId` on `TenantInvitationResent`. |
 | `RevokeTenantInvitation::run($actor, $invitation)` | platform owner | Revokes a pending invitation. Revoking twice is a no-op; an accepted one cannot be revoked. |
-| `InspectTenantInvitation::run($user, $token)` | anyone | Read-only state for your register / sign-in page: `RegisterRequired`, `SignInRequired`, `Ready`, `WrongAccount`, `Unverified`, `Expired`, `Revoked`, `Accepted`, `AlreadyMember` or `Invalid`. The returned invitation holds the email to lock your register form to. |
+| `InspectTenantInvitation::run($user, $token)` | anyone | Read-only state for your register / sign-in page: `RegisterRequired`, `SignInRequired`, `Ready`, `WrongAccount`, `Unverified`, `Expired`, `Revoked`, `Accepted`, `AlreadyMember` or `Invalid`. The returned invitation holds the email to lock your register form to. `SignInRequired` versus `RegisterRequired` tells a holder of a valid, pending token whether an account exists for the invited address. That is accepted: only the invitee's own address is revealed, only for an acceptable token (invalid, expired, revoked and accepted tokens reveal nothing), and the inspect limiter bounds it. |
 | `AcceptTenantInvitation::run($user, $token)` | the invitee | Provisions the workspace and makes `$user` its owner. Idempotent for the same user. |
 
 Models and queries: `TenantInvitation` with `outstanding()`, `lapsed()`, `accepted()` and `revoked()` scopes, and `workspace` / `inviter` relations, which is enough to build an admin page (tenants, pending, accepted and revoked invitations). `concierge.models.tenant_invitation` swaps the model.
@@ -112,6 +112,12 @@ Platform ownership lives outside workspaces and permission teams. Every mutating
 3. With neither, everyone is denied.
 
 Being a workspace owner or admin grants nothing here.
+
+The check goes through the Gate, so a host `Gate::before` callback that returns `true` (a super-admin bypass, Spatie's included) also grants this ability. If super-admins should not manage tenants, return `null` for it in your callback:
+
+```php
+Gate::before(fn ($user, $ability) => $ability === 'concierge.manage-tenants' ? null : ($user->isSuperAdmin() ?: null));
+```
 
 ### What the host owns
 
