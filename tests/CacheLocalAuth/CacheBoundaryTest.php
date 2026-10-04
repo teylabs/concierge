@@ -1,19 +1,22 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Env;
 use Symfony\Component\Process\Process;
 use Workbench\App\Models\LocalAuth\PlainAccount;
 
 function cache_login_process(string $host, string $command, ?string $environment, string $csrf = 'none', string $session = '{}'): Process
 {
     // false removes inherited APP_ENV even on Windows; no host .env is created.
+    // Laravel resolves these relative to the host; drive-letter paths are not absolute cache prefixes.
     return new Process([PHP_BINARY, __DIR__.'/../Support/LocalAuth/boot.php', $host, $command, $csrf, $session], null, [
         'APP_ENV' => $environment ?? false,
-        'APP_CONFIG_CACHE' => $host.'/bootstrap/cache/config.php',
-        'APP_ROUTES_CACHE' => $host.'/bootstrap/cache/routes.php',
-        'APP_SERVICES_CACHE' => $host.'/bootstrap/cache/services.php',
-        'APP_PACKAGES_CACHE' => $host.'/bootstrap/cache/packages.php',
-        'APP_EVENTS_CACHE' => $host.'/bootstrap/cache/events.php',
+        'APP_CONFIG_CACHE' => 'bootstrap/cache/config.php',
+        'APP_ROUTES_CACHE' => 'bootstrap/cache/routes.php',
+        'APP_SERVICES_CACHE' => 'bootstrap/cache/services.php',
+        'APP_PACKAGES_CACHE' => 'bootstrap/cache/packages.php',
+        'APP_EVENTS_CACHE' => 'bootstrap/cache/events.php',
     ]);
 }
 
@@ -42,6 +45,38 @@ function cache_login_host(string $host): void
     $database = new PDO('sqlite:'.$host.'/database.sqlite');
     $database->exec('CREATE TABLE plain_accounts (id INTEGER PRIMARY KEY, email VARCHAR UNIQUE, name VARCHAR, password VARCHAR, email_verified_at DATETIME, remember_token VARCHAR, created_at DATETIME, updated_at DATETIME)');
 }
+
+it('resolves every fixture cache override inside its host on each path style', function (string $host) {
+    $app = new Application($host);
+    $environment = cache_login_process($host, 'config:cache', 'local')->getEnv();
+    $repository = Env::getRepository();
+
+    foreach ([
+        'APP_CONFIG_CACHE' => ['getCachedConfigPath', 'config.php'],
+        'APP_ROUTES_CACHE' => ['getCachedRoutesPath', 'routes.php'],
+        'APP_SERVICES_CACHE' => ['getCachedServicesPath', 'services.php'],
+        'APP_PACKAGES_CACHE' => ['getCachedPackagesPath', 'packages.php'],
+        'APP_EVENTS_CACHE' => ['getCachedEventsPath', 'events.php'],
+    ] as $key => [$method, $file]) {
+        $original = $repository->get($key);
+        try {
+            $repository->set($key, $environment[$key]);
+            expect(str_replace('\\', '/', $app->$method()))
+                ->toBe(str_replace('\\', '/', $host).'/bootstrap/cache/'.$file);
+        } finally {
+            if ($original === null) {
+                $repository->clear($key);
+            } else {
+                $repository->set($key, $original);
+            }
+        }
+    }
+})->with([
+    'Windows drive with backslashes' => ['C:\\Users\\runner\\AppData\\Local\\Temp/concierge-cache-probe'],
+    'Windows drive with forward slashes' => ['C:/Users/runner/AppData/Local/Temp/concierge-cache-probe'],
+    'Windows UNC' => ['\\\\server\\share\\Temp/concierge-cache-probe'],
+    'POSIX' => ['/tmp/concierge-cache-probe'],
+]);
 
 it('enforces the process boundary after a real local cache build', function (bool $routeCache, ?string $environment, string $csrf) {
     $host = sys_get_temp_dir().'/concierge-cache-'.bin2hex(random_bytes(12));
