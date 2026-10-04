@@ -2,6 +2,13 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## Concierge 0.4.1 - 2026-10-04
+
+Security fix for local login (#6, #7).
+
+- **Local login fails closed when a cached configuration disagrees with the process.** A configuration cache built under `APP_ENV=local` and served by a production process could previously offer and accept passwordless local login. Local login now requires both Laravel's application environment and the uncached process `APP_ENV` to be exactly `local`; a missing value fails closed. Route registration, the login offer and a request-time check (before session and CSRF, so locally cached routes are covered) all use the same predicate.
+- Laravel's application environment and configuration are left unchanged; only local login is affected. A cached local development boot must supply `APP_ENV=local` through the runtime environment.
+
 ## Concierge 0.4.0 - 2026-10-04
 
 Follow-ups from the 0.3.0 review (#4).
