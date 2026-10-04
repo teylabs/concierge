@@ -12,7 +12,8 @@ use Tey\Concierge\LocalAuth\Middleware\EnsureLocalLoginAvailable;
 
 /**
  * One-click local login. Registered by the Concierge provider; it does nothing
- * unless concierge.local_login.enabled is true AND the environment is `local`.
+ * unless concierge.local_login.enabled is true AND both application and raw
+ * process environments are `local`.
  * It needs no workspace, membership or permission setup.
  */
 class LocalAuthServiceProvider extends ServiceProvider
@@ -28,9 +29,7 @@ class LocalAuthServiceProvider extends ServiceProvider
     {
         $this->defineRateLimiter();
 
-        if ($this->app->environment('local')) {
-            $this->registerRoutes();
-        }
+        $this->registerRoutes();
     }
 
     /**
@@ -52,7 +51,7 @@ class LocalAuthServiceProvider extends ServiceProvider
     {
         $this->defineRateLimiter();
 
-        if ($this->app->routesAreCached()) {
+        if (! $this->app->make(LocalLogin::class)->isLocalEnvironment() || $this->app->routesAreCached()) {
             return;
         }
 

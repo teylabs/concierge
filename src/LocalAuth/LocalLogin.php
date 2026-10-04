@@ -11,7 +11,8 @@ use Tey\Concierge\Data\UI\LocalLoginOffer;
  * Both the login page (the button) and the endpoint (the action) ask it, on every
  * request, so neither depends on a route having been registered earlier: a cached
  * route that outlives an environment switch is refused here too. Strictly the
- * `local` environment, enabled in config, and an account configured. No host-name
+ * `local` application AND uncached process environments, enabled in config, and
+ * an account configured. No host-name
  * guessing: a `project.test` Herd site is local because its environment is.
  */
 final class LocalLogin
@@ -20,9 +21,25 @@ final class LocalLogin
 
     public function isAvailable(): bool
     {
-        return app()->environment('local')
+        return $this->isLocalEnvironment()
             && config('concierge.local_login.enabled') === true
             && $this->email() !== '';
+    }
+
+    /**
+     * A local config cache must never enable login in a nonlocal process. Read the
+     * raw value on every call, bypassing Laravel's cached environment repository.
+     * Only an absent process value permits the server fallback; both are strict.
+     */
+    public function isLocalEnvironment(): bool
+    {
+        $environment = getenv('APP_ENV');
+
+        if ($environment === false) {
+            $environment = $_SERVER['APP_ENV'] ?? null;
+        }
+
+        return app()->environment('local') && $environment === 'local';
     }
 
     public function email(): string

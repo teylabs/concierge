@@ -17,6 +17,10 @@ use Workbench\App\Models\LocalAuth\SecondaryAccount;
 use Workbench\App\Models\LocalAuth\SoftAccount;
 use Workbench\App\Models\User;
 
+require_once __DIR__.'/../../Support/LocalAuth/ProcessEnvironment.php';
+
+local_login_preserve_process_environment();
+
 /**
  * One-click local login: it signs in (and, the first time, creates) the configured
  * account in the `local` environment only, and is absent everywhere else.
@@ -33,6 +37,7 @@ const LOCAL_LOGIN_EMAIL = 'local@example.test';
  */
 function local_login_enable(array $config = []): void
 {
+    local_login_process_environment('local');
     app()->detectEnvironment(fn () => 'local');
 
     config(['concierge.local_login' => array_replace_recursive(config('concierge.local_login'), [
@@ -441,3 +446,69 @@ it('defines the rate limiter in every environment, so a locally cached route can
 
     expect(RateLimiter::limiter(LocalAuthServiceProvider::LIMITER))->not->toBeNull();
 })->with(['testing', 'staging', 'production']);
+
+it('requires the exact raw local environment on every offer and request', function (?string $environment) {
+    local_login_enable();
+    local_login_process_environment($environment);
+
+    expect(app()->environment())->toBe('local')
+        ->and(app(LocalLogin::class)->offer())->toBeNull();
+    $this->post('/local-login')->assertNotFound();
+    local_login_click()->assertNotFound();
+    $this->assertGuest();
+    expect(User::count())->toBe(0);
+})->with(['production', 'staging', 'testing', null, '', 'LOCAL', ' local', 'local ']);
+
+it('refuses direct route registration outside either local boundary', function (string $application, ?string $process) {
+    app()->detectEnvironment(fn () => $application);
+    local_login_process_environment($process);
+    config(['concierge.local_login.enabled' => true, 'concierge.local_login.account.email' => LOCAL_LOGIN_EMAIL]);
+
+    app()->getProvider(LocalAuthServiceProvider::class)->registerRoutes();
+    app('router')->getRoutes()->refreshNameLookups();
+
+    expect(Route::has(LocalLogin::ROUTE))->toBeFalse()
+        ->and(app(LocalLogin::class)->isAvailable())->toBeFalse();
+})->with([
+    ['local', 'production'], ['local', null], ['production', 'local'], ['testing', 'local'],
+]);
+
+it('uses server fallback only when the process value is absent and strictly local', function (?string $process, mixed $server, bool $available) {
+    local_login_enable();
+    local_login_process_environment($process);
+    $_SERVER['APP_ENV'] = $server;
+
+    expect(app(LocalLogin::class)->isAvailable())->toBe($available);
+})->with([
+    'server local' => [null, 'local', true],
+    'process wins' => ['production', 'local', false],
+    'empty process wins' => ['', 'local', false],
+    'local process wins' => ['local', 'production', true],
+    'server absent' => [null, null, false],
+    'server case' => [null, 'LOCAL', false],
+    'server whitespace' => [null, 'local ', false],
+    'server integer' => [null, 0, false],
+    'server boolean' => [null, true, false],
+    'server array' => [null, ['local'], false],
+]);
+
+it('denies a raw environment switch before an exhausted throttle', function () {
+    local_login_enable(['throttle' => 1]);
+    local_login_click()->assertRedirect();
+    auth()->logout();
+    local_login_process_environment('production');
+
+    local_login_click()->assertNotFound();
+    $this->assertGuest();
+    expect(User::count())->toBe(1);
+});
+
+it('denies missing raw environment before the signed-in guest redirect', function () {
+    local_login_enable();
+    $other = host_user('other');
+    local_login_process_environment(null);
+
+    $this->actingAs($other)->post('/local-login')->assertNotFound();
+    $this->assertAuthenticatedAs($other);
+    expect(local_login_account())->toBeNull();
+});

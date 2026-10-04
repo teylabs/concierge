@@ -79,7 +79,8 @@ Props:
 - `offer: LocalLoginOffer | null | undefined` (`{ url, email }`). The component
   renders nothing when it is `null` or missing, so pass the server prop straight
   through. The server returns `null` in every environment except an enabled,
-  configured `local` one.
+  configured `local` one with uncached process `APP_ENV=local`. Missing or
+  nonlocal raw `APP_ENV` disables the offer even when configuration is cached.
 - `csrfToken: string`, **required**. Your page supplies the session's CSRF token
   (for Inertia, share it from the server; for Blade, `csrf_token()`). It is sent
   as the hidden `_token` field, never in the URL, and never logged by the

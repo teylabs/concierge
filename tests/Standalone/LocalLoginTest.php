@@ -7,6 +7,10 @@ use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\LocalAuth\LocalLogin;
 use Workbench\App\Models\LocalAuth\PlainAccount;
 
+require_once __DIR__.'/../Support/LocalAuth/ProcessEnvironment.php';
+
+local_login_preserve_process_environment();
+
 /**
  * A host that wants only local login. The membership feature is off, there is a
  * bare authenticatable (no Member contract, no HasRoles), no workspace model and
@@ -14,6 +18,7 @@ use Workbench\App\Models\LocalAuth\PlainAccount;
  */
 function standalone_enable(): void
 {
+    local_login_process_environment('local');
     app()->detectEnvironment(fn () => 'local');
 
     config(['concierge.local_login' => array_replace_recursive(config('concierge.local_login'), [
