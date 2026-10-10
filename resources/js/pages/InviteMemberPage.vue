@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * Invite form. Adapted from cookbook pages/UserManagement/Invite: email plus
- * role checklist, posted to metadata.formUrl. Role choices come only from
- * the server; the server re-validates every grant.
+ * Invite form: email plus role checklist, posted to metadata.formUrl.
+ * Role choices come only from the server; the server re-validates every grant.
  */
 import { computed, reactive, ref } from 'vue';
 import { shouldIntercept } from '../internal/navigation';

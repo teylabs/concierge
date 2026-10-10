@@ -2,7 +2,7 @@
 /**
  * Modal confirmation built on the native <dialog> element: showModal() gives
  * focus containment, Escape to close and an inert background without a
- * headless UI dependency. Replaces cookbook UI/Modal/ConfirmationModal.
+ * headless UI dependency.
  *
  * While busy the dialog cannot be dismissed, so a pending request is never
  * orphaned by a second click or an Escape press.

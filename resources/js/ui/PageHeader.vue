@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Adapted from cookbook UI/Heading/PageHeading.vue. */
 defineProps<{ title: string; description?: string | null }>();
 </script>
 

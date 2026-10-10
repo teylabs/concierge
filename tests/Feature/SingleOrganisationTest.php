@@ -14,7 +14,7 @@ use Workbench\App\Models\Workspace as HostWorkspace;
  */
 it('runs the full lifecycle for a host with exactly one workspace', function () {
     $owner = host_user('owner');
-    $organisation = host_workspace('Cookbook', $owner);
+    $organisation = host_workspace('Acme', $owner);
 
     app()->scoped(WorkspaceContext::class, fn ($app) => new class($app->make(PermissionRegistrar::class), $app['auth']) extends PermissionWorkspaceContext
     {

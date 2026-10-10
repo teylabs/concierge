@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Invitation landing page. Adapted from cookbook pages/UserManagement/
- * Invitation (centred card), but it never creates accounts: sign-in and
- * registration are host (Fortify) links, and acceptance is an explicit POST.
+ * Invitation landing page with a centred card. It never creates accounts:
+ * sign-in and registration are host (Fortify) links, and acceptance is an
+ * explicit POST.
  * Only the "ready" state can accept, and only when the server sends a link.
  */
 import { computed } from 'vue';
