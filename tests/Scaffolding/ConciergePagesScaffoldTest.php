@@ -42,6 +42,20 @@ function mod_list(): array
  * vendor/ is Testbench's link to the real one), so these tests put one there: a symlink to
  * this checkout, as a path repository installs it, or a copy of the pages.
  */
+/** Link this checkout at $path as a path repository does: a symlink, or a junction on Windows. */
+function link_package(string $path): bool
+{
+    if (@symlink(dirname(__DIR__, 2), $path)) {
+        return true;
+    }
+    if (PHP_OS_FAMILY !== 'Windows') {
+        return false;
+    }
+    exec('mklink /J '.escapeshellarg(str_replace('/', '\\', $path)).' '.escapeshellarg(str_replace('/', '\\', dirname(__DIR__, 2))), $unused, $code);
+
+    return $code === 0;
+}
+
 function install_package(bool $symlink): string
 {
     $package = base_path(ConciergeFrontend::PACKAGE_PATH);
@@ -50,8 +64,7 @@ function install_package(bool $symlink): string
     File::ensureDirectoryExists(dirname($package));
 
     if ($symlink) {
-        // Windows only lets some accounts create links.
-        @symlink(dirname(__DIR__, 2), $package) || test()->markTestSkipped('Cannot create a symlink here.');
+        link_package($package) || test()->markTestSkipped('This account cannot create a symlink or junction.');
     } else {
         File::ensureDirectoryExists($package.'/resources/js/pages');
         File::copy(dirname(__DIR__, 2).'/resources/js/pages/MembersPage.vue', $package.'/resources/js/pages/MembersPage.vue');
@@ -63,8 +76,15 @@ function install_package(bool $symlink): string
 
 afterEach(function () {
     $package = base_path(ConciergeFrontend::PACKAGE_PATH);
-    // A Windows directory link is removed with rmdir, not unlink.
-    is_link($package) ? (@unlink($package) || @rmdir($package)) : File::deleteDirectory($package);
+    $isWindows = PHP_OS_FAMILY === 'Windows';
+
+    // Never let deleteDirectory follow a link into this checkout: a Windows directory
+    // link (symlink or junction) is removed with rmdir, a Unix one with unlink.
+    if (is_link($package) || ($isWindows && realpath($package) === realpath(dirname(__DIR__, 2)))) {
+        $isWindows ? rmdir($package) : unlink($package);
+    } else {
+        File::deleteDirectory($package);
+    }
     @rmdir(dirname($package));
 });
 
