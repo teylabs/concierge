@@ -50,7 +50,8 @@ function install_package(bool $symlink): string
     File::ensureDirectoryExists(dirname($package));
 
     if ($symlink) {
-        symlink(dirname(__DIR__, 2), $package);
+        // Windows only lets some accounts create links.
+        @symlink(dirname(__DIR__, 2), $package) || test()->markTestSkipped('Cannot create a symlink here.');
     } else {
         File::ensureDirectoryExists($package.'/resources/js/pages');
         File::copy(dirname(__DIR__, 2).'/resources/js/pages/MembersPage.vue', $package.'/resources/js/pages/MembersPage.vue');
@@ -62,7 +63,8 @@ function install_package(bool $symlink): string
 
 afterEach(function () {
     $package = base_path(ConciergeFrontend::PACKAGE_PATH);
-    is_link($package) ? unlink($package) : File::deleteDirectory($package);
+    // A Windows directory link is removed with rmdir, not unlink.
+    is_link($package) ? (@unlink($package) || @rmdir($package)) : File::deleteDirectory($package);
     @rmdir(dirname($package));
 });
 
