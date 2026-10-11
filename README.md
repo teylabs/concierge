@@ -25,10 +25,7 @@ Local login needs only an Eloquent user model on the guard you sign in with.
 
 ## Installation
 
-Concierge isn't on Packagist yet. Add the `teylabs/concierge` GitHub repository to Composer and require it:
-
 ```bash
-composer config repositories.concierge vcs https://github.com/teylabs/concierge
 composer require tey/concierge
 ```
 
