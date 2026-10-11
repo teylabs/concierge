@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Models\Role;
 use Tey\Concierge\Actions\EstablishWorkspace;
 use Tey\Concierge\Actions\InviteMember;
 use Tey\Concierge\Contracts\MembershipSource;
@@ -148,6 +149,15 @@ it('refuses to import members on the kit engine and names the fix', function () 
     expect($exit)->toBe(1)
         ->and($output['error'])->toContain("engine is 'kit'")
         ->and($output['fix'])->toContain("'engine' => 'concierge'");
+});
+
+it('syncs the configured roles as global Spatie roles with Spatie teams off', function () {
+    expect(Artisan::call('concierge:sync-roles'))->toBe(0)
+        ->and(Role::query()->orderBy('id')->pluck('name')->all())->toBe(['owner', 'admin', 'presenter']);
+
+    Artisan::call('concierge:sync-roles');
+
+    expect(Role::query()->count())->toBe(3);
 });
 
 it('shows the workspace engine in about', function () {

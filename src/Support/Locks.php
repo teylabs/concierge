@@ -28,7 +28,6 @@ final class Locks
     {
         ConciergeModels::assertWorkspaces('use the app-wide actions (InviteUser, ChangeUserRoles, RemoveUser)');
 
-        return ConciergeModels::workspace()::query()->lockForUpdate()->findOrFail($id);
         $workspace = ConciergeModels::workspace()::query()->lockForUpdate()->findOrFail($id);
 
         self::assertManaged($workspace);

@@ -7,6 +7,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
@@ -87,6 +88,15 @@ final class ConciergeModels
         if (Mode::configured() === Mode::App) {
             if (config('permission.teams')) {
                 throw new UnsupportedConfiguration("Concierge app-wide mode requires permission.teams = false; set 'mode' => 'workspaces' to use teams.");
+            }
+
+            return;
+        }
+
+        // A starter kit's teams carry their own roles; Spatie holds only the app-level ones (D7).
+        if (WorkspaceEngine::configured() === WorkspaceEngine::Kit) {
+            if (config('permission.teams')) {
+                throw new UnsupportedConfiguration("concierge.workspaces.engine = 'kit' requires permission.teams = false; the kit's team_members.role holds the team roles.");
             }
 
             return;

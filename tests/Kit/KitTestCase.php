@@ -33,13 +33,17 @@ class KitTestCase extends TestCase
     {
         parent::resolveApplicationConfiguration($app);
 
+        // The provider reads these while it registers, before defineEnvironment().
         $app['config']->set('concierge.workspaces.engine', 'kit');
+        $app['config']->set('concierge.models.workspace', Team::class);
+        $app['config']->set('permission.teams', false);
     }
 
     protected function defineEnvironment($app)
     {
         parent::defineEnvironment($app);
 
+        // Again after the parent's defineEnvironment(), which sets the core suite's values.
         tap($app['config'], function (Repository $config) {
             $config->set('database.default', 'testing');
             $config->set('database.connections.testing.foreign_key_constraints', true);

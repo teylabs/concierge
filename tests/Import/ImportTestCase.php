@@ -25,10 +25,19 @@ class ImportTestCase extends TestCase
         parent::setUp();
     }
 
+    protected function resolveApplicationConfiguration($app)
+    {
+        parent::resolveApplicationConfiguration($app);
+
+        // The provider reads this while it registers, before defineEnvironment().
+        $app['config']->set('concierge.models.workspace', Organisation::class);
+    }
+
     protected function defineEnvironment($app)
     {
         parent::defineEnvironment($app);
 
+        // Again after the parent's defineEnvironment(), which sets the core suite's workspace model.
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing.foreign_key_constraints', true);
         $app['config']->set('concierge.models.workspace', Organisation::class);
