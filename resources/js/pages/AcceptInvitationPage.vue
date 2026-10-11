@@ -15,7 +15,7 @@ import Badge from '../ui/Badge.vue';
 import Button from '../ui/Button.vue';
 import Surface from '../ui/Surface.vue';
 import type { Variant } from '../ui/variants';
-import type { ConciergeLabelKey } from '../labels';
+import { defaultLabels, type ConciergeLabelKey } from '../labels';
 
 const props = defineProps<AcceptInvitationPageProps>();
 
@@ -46,20 +46,43 @@ const knownState = computed<State>(() =>
     props.state in tone ? props.state : 'invalid',
 );
 
+// App-wide invitations have no workspace: the page names the app instead, and
+// falls back to generic wording when the app passes no name.
+const target = computed(
+    () => props.workspace?.name ?? props.metadata.appName ?? null,
+);
+
 const params = computed(() => ({
-    workspace: props.workspace?.name ?? '',
+    workspace: target.value ?? '',
     email: props.email ?? '',
 }));
 
-const title = computed(() =>
-    props.workspace
-        ? t('accept.title', params.value)
-        : t('accept.titleUnknown'),
-);
+const title = computed(() => {
+    if (!props.workspace && knownState.value === 'invalid') {
+        return t('accept.titleUnknown');
+    }
 
-const message = computed(() =>
-    t(`accept.${knownState.value}` as ConciergeLabelKey, params.value),
-);
+    return t(
+        target.value === null ? 'accept.titleGeneric' : 'accept.title',
+        params.value,
+    );
+});
+
+const message = computed(() => {
+    const keys = [
+        ...(target.value === null
+            ? [`accept.generic.${knownState.value}`]
+            : []),
+        ...(!props.workspace ? [`accept.app.${knownState.value}`] : []),
+        `accept.${knownState.value}`,
+    ] as ConciergeLabelKey[];
+
+    return t(
+        keys.find((key) => key in defaultLabels) ??
+            (`accept.${knownState.value}` as ConciergeLabelKey),
+        params.value,
+    );
+});
 
 const links = computed(() => props.metadata.links);
 

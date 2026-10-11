@@ -9,6 +9,10 @@ use Tey\Concierge\Data\UI\InviteMemberLinks;
 use Tey\Concierge\Data\UI\InviteMemberMetadata;
 use Tey\Concierge\Data\UI\InviteMemberPageProps;
 use Tey\Concierge\Data\UI\InviteMemberPayload;
+use Tey\Concierge\Data\UI\InviteUserLinks;
+use Tey\Concierge\Data\UI\InviteUserMetadata;
+use Tey\Concierge\Data\UI\InviteUserPageProps;
+use Tey\Concierge\Data\UI\InviteUserPayload;
 use Tey\Concierge\Data\UI\LocalLoginOffer;
 use Tey\Concierge\Data\UI\MemberGrants;
 use Tey\Concierge\Data\UI\MemberGrantsMetadata;
@@ -25,6 +29,22 @@ use Tey\Concierge\Data\UI\MembersPageProps;
 use Tey\Concierge\Data\UI\Pagination;
 use Tey\Concierge\Data\UI\RoleBadge;
 use Tey\Concierge\Data\UI\RoleOption;
+use Tey\Concierge\Data\UI\UserColumn;
+use Tey\Concierge\Data\UI\UserGrants;
+use Tey\Concierge\Data\UI\UserGrantsMetadata;
+use Tey\Concierge\Data\UI\UserGrantsPayload;
+use Tey\Concierge\Data\UI\UserLinks;
+use Tey\Concierge\Data\UI\UserPageLinks;
+use Tey\Concierge\Data\UI\UserPageMetadata;
+use Tey\Concierge\Data\UI\UserPageProps;
+use Tey\Concierge\Data\UI\UserProfile;
+use Tey\Concierge\Data\UI\UserProfileMetadata;
+use Tey\Concierge\Data\UI\UserProfilePayload;
+use Tey\Concierge\Data\UI\UserRow;
+use Tey\Concierge\Data\UI\UsersAbilities;
+use Tey\Concierge\Data\UI\UsersLinks;
+use Tey\Concierge\Data\UI\UsersMetadata;
+use Tey\Concierge\Data\UI\UsersPageProps;
 use Tey\Concierge\Data\UI\UserSummary;
 use Tey\Concierge\Data\UI\WorkspaceSummary;
 
@@ -76,6 +96,45 @@ function serialization_member_row_array(): array
             'remove' => null,
             'transferOwnership' => null,
         ],
+    ];
+}
+
+function serialization_user_row(): UserRow
+{
+    return new UserRow(
+        id: '11',
+        user: new UserSummary('11', 'Ada Lovelace', 'ada@example.com'),
+        status: 'deactivated',
+        isOwner: false,
+        isSelf: false,
+        isOperator: true,
+        roles: [new RoleBadge('admin', 'Admin', 'info')],
+        joinedAt: '2026-08-12T15:30:00Z',
+        hasActions: true,
+        links: new UserLinks('/users/11', '/users/11', null, '/users/11', null, '/users/11/restore'),
+        columns: ['plan' => 'Pro', 'seats' => 3, 'beta' => false, 'team' => null],
+    );
+}
+
+function serialization_user_row_array(): array
+{
+    return [
+        'id' => '11',
+        'user' => [
+            'id' => '11',
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+            'avatar' => ['url' => null, 'initials' => 'AL', 'colour' => 'sky'],
+        ],
+        'status' => 'deactivated',
+        'isOwner' => false,
+        'isSelf' => false,
+        'isOperator' => true,
+        'roles' => [['value' => 'admin', 'label' => 'Admin', 'variant' => 'info']],
+        'joinedAt' => '2026-08-12T15:30:00Z',
+        'hasActions' => true,
+        'links' => ['show' => '/users/11', 'updateProfile' => '/users/11', 'updateGrants' => null, 'remove' => '/users/11', 'deactivate' => null, 'restore' => '/users/11/restore'],
+        'columns' => ['plan' => 'Pro', 'seats' => 3, 'beta' => false, 'team' => null],
     ];
 }
 
@@ -200,7 +259,7 @@ dataset('page props', [
             workspace: new WorkspaceSummary('7', 'Teylabs'),
             email: 'grace@example.com',
             roles: [new RoleBadge('member', 'Member', 'neutral')],
-            metadata: new AcceptInvitationMetadata(new AcceptInvitationLinks('/accept', null, null, '/logout', null)),
+            metadata: new AcceptInvitationMetadata(new AcceptInvitationLinks('/accept', null, null, '/logout', null), 'Teylabs'),
         ),
         [
             'state' => 'ready',
@@ -209,7 +268,7 @@ dataset('page props', [
             'roles' => [['value' => 'member', 'label' => 'Member', 'variant' => 'neutral']],
             'metadata' => ['links' => [
                 'accept' => '/accept', 'login' => null, 'register' => null, 'logout' => '/logout', 'continue' => null,
-            ]],
+            ], 'appName' => 'Teylabs'],
         ],
     ],
     'accept invitation page without a workspace' => fn () => [
@@ -227,7 +286,101 @@ dataset('page props', [
             'roles' => [],
             'metadata' => ['links' => [
                 'accept' => null, 'login' => null, 'register' => null, 'logout' => null, 'continue' => '/',
-            ]],
+            ], 'appName' => null],
+        ],
+    ],
+    'users page' => fn () => [
+        new UsersPageProps(
+            users: [serialization_user_row()],
+            pagination: new Pagination(1, 1, 25, 1, null, null),
+            metadata: new UsersMetadata(
+                refreshUrl: '/users',
+                search: 'ada',
+                role: 'admin',
+                status: 'deactivated',
+                roleOptions: [new RoleOption('admin', 'Admin', null)],
+                columns: [new UserColumn('plan', 'Plan')],
+                links: new UsersLinks('/users/create'),
+                abilities: new UsersAbilities(true, false),
+            ),
+        ),
+        [
+            'users' => [serialization_user_row_array()],
+            'pagination' => [
+                'currentPage' => 1, 'lastPage' => 1, 'perPage' => 25, 'total' => 1,
+                'previousUrl' => null, 'nextUrl' => null,
+            ],
+            'metadata' => [
+                'refreshUrl' => '/users',
+                'search' => 'ada',
+                'role' => 'admin',
+                'status' => 'deactivated',
+                'roleOptions' => [['value' => 'admin', 'label' => 'Admin', 'description' => null]],
+                'columns' => [['key' => 'plan', 'label' => 'Plan']],
+                'links' => ['invite' => '/users/create'],
+                'abilities' => ['invite' => true, 'manageUsers' => false],
+            ],
+        ],
+    ],
+    'user page with profile and grants' => fn () => [
+        new UserPageProps(
+            user: serialization_user_row(),
+            profile: new UserProfile(
+                payload: new UserProfilePayload('Ada Lovelace', 'ada@example.com'),
+                metadata: new UserProfileMetadata('/users/11'),
+            ),
+            grants: new UserGrants(
+                payload: new UserGrantsPayload(['admin']),
+                metadata: new UserGrantsMetadata('/users/11/roles', [new RoleOption('admin', 'Admin', 'Manages users')]),
+            ),
+            metadata: new UserPageMetadata(new UserPageLinks('/users')),
+        ),
+        [
+            'user' => serialization_user_row_array(),
+            'profile' => [
+                'payload' => ['name' => 'Ada Lovelace', 'email' => 'ada@example.com'],
+                'metadata' => ['formUrl' => '/users/11'],
+            ],
+            'grants' => [
+                'payload' => ['roles' => ['admin']],
+                'metadata' => [
+                    'formUrl' => '/users/11/roles',
+                    'roleOptions' => [['value' => 'admin', 'label' => 'Admin', 'description' => 'Manages users']],
+                ],
+            ],
+            'metadata' => ['links' => ['back' => '/users']],
+        ],
+    ],
+    'user page without profile or grants' => fn () => [
+        new UserPageProps(
+            user: serialization_user_row(),
+            profile: null,
+            grants: null,
+            metadata: new UserPageMetadata(new UserPageLinks('/users')),
+        ),
+        [
+            'user' => serialization_user_row_array(),
+            'profile' => null,
+            'grants' => null,
+            'metadata' => ['links' => ['back' => '/users']],
+        ],
+    ],
+    'invite user page' => fn () => [
+        new InviteUserPageProps(
+            payload: new InviteUserPayload('', []),
+            metadata: new InviteUserMetadata(
+                formUrl: '/users/invitations',
+                roleOptions: [new RoleOption('member', 'Member', null)],
+                links: new InviteUserLinks('/users'),
+            ),
+        ),
+        [
+            'payload' => ['email' => '', 'roles' => []],
+            'metadata' => [
+                'formUrl' => '/users/invitations',
+                'roleOptions' => [['value' => 'member', 'label' => 'Member', 'description' => null]],
+                'links' => ['cancel' => '/users'],
+            ],
         ],
     ],
     'local login offer' => fn () => [

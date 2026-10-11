@@ -7,6 +7,7 @@ continue: string | null,
 };
 export type AcceptInvitationMetadata = {
 links: AcceptInvitationLinks,
+appName: string | null,
 };
 export type AcceptInvitationPageProps = {
 state: 'ready' | 'sign_in_required' | 'register_required' | 'wrong_account' | 'unverified' | 'expired' | 'revoked' | 'invalid' | 'accepted' | 'already_member' | 'suspended' | 'authority_lapsed' | 'workspace_unavailable' | 'grants_changed',
@@ -62,6 +63,22 @@ payload: InviteMemberPayload,
 metadata: InviteMemberMetadata,
 };
 export type InviteMemberPayload = {
+email: string,
+roles: string[],
+};
+export type InviteUserLinks = {
+cancel: string,
+};
+export type InviteUserMetadata = {
+formUrl: string,
+roleOptions: RoleOption[],
+links: InviteUserLinks,
+};
+export type InviteUserPageProps = {
+payload: InviteUserPayload,
+metadata: InviteUserMetadata,
+};
+export type InviteUserPayload = {
 email: string,
 roles: string[],
 };
@@ -179,11 +196,92 @@ url: string | null,
 initials: string,
 colour: string,
 };
+export type UserColumn = {
+key: string,
+label: string,
+};
+export type UserGrants = {
+payload: UserGrantsPayload,
+metadata: UserGrantsMetadata,
+};
+export type UserGrantsMetadata = {
+formUrl: string,
+roleOptions: RoleOption[],
+};
+export type UserGrantsPayload = {
+roles: string[],
+};
+export type UserLinks = {
+show: string | null,
+updateProfile: string | null,
+updateGrants: string | null,
+remove: string | null,
+deactivate: string | null,
+restore: string | null,
+};
+export type UserPageLinks = {
+back: string,
+};
+export type UserPageMetadata = {
+links: UserPageLinks,
+};
+export type UserPageProps = {
+user: UserRow,
+profile: UserProfile | null,
+grants: UserGrants | null,
+metadata: UserPageMetadata,
+};
+export type UserProfile = {
+payload: UserProfilePayload,
+metadata: UserProfileMetadata,
+};
+export type UserProfileMetadata = {
+formUrl: string,
+};
+export type UserProfilePayload = {
+name: string,
+email: string,
+};
+export type UserRow = {
+id: string,
+user: UserSummary,
+status: 'active' | 'deactivated',
+isOwner: boolean,
+isSelf: boolean,
+isOperator: boolean,
+roles: RoleBadge[],
+joinedAt: string | null,
+hasActions: boolean,
+links: UserLinks,
+columns: Record<string, string | number | boolean | null>,
+};
 export type UserSummary = {
 id: string,
 name: string,
 email: string,
 avatar: UserAvatar,
+};
+export type UsersAbilities = {
+invite: boolean,
+manageUsers: boolean,
+};
+export type UsersLinks = {
+invite: string | null,
+};
+export type UsersMetadata = {
+refreshUrl: string,
+search: string,
+role: string | null,
+status: 'active' | 'deactivated' | 'all' | null,
+roleOptions: RoleOption[],
+columns: UserColumn[],
+links: UsersLinks,
+abilities: UsersAbilities,
+};
+export type UsersPageProps = {
+users: UserRow[],
+pagination: Pagination,
+metadata: UsersMetadata,
 };
 export type WorkspaceSummary = {
 id: string,
