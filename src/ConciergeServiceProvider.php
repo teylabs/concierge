@@ -16,6 +16,7 @@ use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
+use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
@@ -69,6 +70,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->register(LocalAuthServiceProvider::class);
+        $this->app->register(RegistrationServiceProvider::class);
 
         if (! static::membershipEnabled()) {
             return;

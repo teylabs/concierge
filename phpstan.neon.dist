@@ -9,3 +9,8 @@ parameters:
         - database
         - workbench/app
     tmpDir: build/phpstan
+    ignoreErrors:
+        # The package config file is published into the app's config directory, where env() is correct.
+        -
+            identifier: larastan.noEnvCallsOutsideOfConfig
+            path: config/concierge.php
