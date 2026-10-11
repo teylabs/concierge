@@ -8,11 +8,13 @@ use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\AcceptanceOutcome;
+use Tey\Concierge\Enums\AccountStatus;
 use Tey\Concierge\Enums\InvitationState;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Events\InvitationAccepted;
 use Tey\Concierge\Exceptions\InvitationRejected;
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\Acceptance;
@@ -22,7 +24,9 @@ use Tey\Concierge\Support\Locks;
 use Tey\Concierge\Support\Roles;
 
 /**
- * Authoritative acceptance. A rejection throws and writes nothing.
+ * Authoritative acceptance. A rejection throws and writes nothing. An
+ * invitation with no workspace_id is app-wide and grants roles to the user's
+ * account instead of creating a membership.
  */
 class AcceptInvitation
 {
@@ -34,8 +38,14 @@ class AcceptInvitation
     {
         $hash = Invitation::hashToken($token);
 
-        $workspaceId = ConciergeModels::invitation()::query()->where('token_hash', $hash)->value('workspace_id')
+        $invitation = ConciergeModels::invitation()::query()->where('token_hash', $hash)->first(['id', 'workspace_id'])
             ?? throw new InvitationRejected(InvitationState::Invalid);
+
+        if ($invitation->isAppWide()) {
+            return $this->acceptAppWide($user, $hash);
+        }
+
+        $workspaceId = $invitation->workspace_id;
 
         return DB::transaction(function () use ($user, $hash, $workspaceId) {
             $workspace = Locks::workspace($workspaceId);
@@ -113,5 +123,56 @@ class AcceptInvitation
         );
 
         return new Acceptance($membership, $outcome);
+    }
+
+    /**
+     * App-wide: the lock root is the user's account row (created here when
+     * missing), then the invitation row. The roles are granted directly, with
+     * Spatie teams off. Already a member only means this same invitation was
+     * accepted by this user before; a user who has an account and roles is
+     * never invited (see InviteUser), so there is nothing else to short-cut.
+     */
+    protected function acceptAppWide(Member $user, string $hash): Acceptance
+    {
+        return DB::transaction(function () use ($user, $hash) {
+            $account = Locks::accounts([(int) $user->getKey()])[(int) $user->getKey()];
+
+            $invitation = ConciergeModels::invitation()::query()
+                ->where('token_hash', $hash)
+                ->whereNull('workspace_id')
+                ->lockForUpdate()
+                ->first() ?? throw new InvitationRejected(InvitationState::Invalid);
+
+            if ($invitation->status === InvitationStatus::Accepted
+                && (int) $invitation->accepted_by_id === (int) $user->getKey()
+                && $account->isActive()) {
+                return new Acceptance(null, AcceptanceOutcome::AlreadyMember, $account);
+            }
+
+            $state = InvitationRules::evaluateAppWide($invitation, $user, $account);
+
+            if ($state !== null) {
+                throw new InvitationRejected($state);
+            }
+
+            $account->forceFill([
+                'status' => AccountStatus::Active,
+                'invitation_id' => $invitation->getKey(),
+                'joined_at' => now(),
+            ])->save();
+
+            $user->syncRoles(Roles::resolve($invitation->roleNames()));
+
+            $invitation->forceFill([
+                'status' => InvitationStatus::Accepted,
+                'pending_key' => null,
+                'accepted_at' => now(),
+                'accepted_by_id' => $user->getKey(),
+            ])->save();
+
+            InvitationAccepted::dispatch(null, $invitation->getKey(), null, (int) $user->getKey(), AcceptanceOutcome::Joined->value);
+
+            return new Acceptance(null, AcceptanceOutcome::Joined, $account);
+        });
     }
 }

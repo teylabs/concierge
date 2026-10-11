@@ -39,14 +39,17 @@ class TestCase extends Orchestra
     }
 
     /**
-     * The package reads its feature switch while the provider registers, before
-     * defineEnvironment() runs, so a test host sets it with the "host config".
+     * The package reads its feature switches and mode while the provider
+     * registers, before defineEnvironment() runs, so a test host sets them with
+     * the "host config".
      */
     protected function resolveApplicationConfiguration($app)
     {
         parent::resolveApplicationConfiguration($app);
 
         $app['config']->set('concierge.features', ['membership' => true, 'tenant_invitations' => true]);
+        $app['config']->set('concierge.mode', 'workspaces');
+        $app['config']->set('concierge.models.workspace', Workspace::class);
     }
 
     protected function defineEnvironment($app)

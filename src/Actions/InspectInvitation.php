@@ -31,8 +31,6 @@ class InspectInvitation
             return new InvitationInspection(InvitationState::Invalid);
         }
 
-        $workspace = $invitation->workspace;
-
         if ($invitation->status === InvitationStatus::Accepted) {
             $state = $user && (int) $invitation->accepted_by_id === (int) $user->getKey()
                 ? InvitationState::AlreadyMember
@@ -52,7 +50,12 @@ class InspectInvitation
             return new InvitationInspection($state, $invitation);
         }
 
-        $state = InvitationRules::evaluate($invitation, $user, $this->concierge->membership($user, $workspace), $workspace);
+        if ($invitation->isAppWide()) {
+            $state = InvitationRules::evaluateAppWide($invitation, $user, $this->concierge->account($user));
+        } else {
+            $workspace = $invitation->workspace;
+            $state = InvitationRules::evaluate($invitation, $user, $this->concierge->membership($user, $workspace), $workspace);
+        }
 
         return new InvitationInspection($state ?? InvitationState::Ready, $invitation);
     }

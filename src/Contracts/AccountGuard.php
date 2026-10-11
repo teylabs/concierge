@@ -14,5 +14,8 @@ interface AccountGuard
 {
     public const FORCE_PASSWORD_RESET = 'force-password-reset';
 
+    /** App-wide mode: changing a user's roles or removing them. The AccountPolicy asks before its rank rules. */
+    public const MANAGE_ACCOUNT = 'manage-account';
+
     public function authorize(string $operation, Member $actor, Member $target): Response;
 }

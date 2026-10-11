@@ -49,7 +49,7 @@ class DeliverInvitation implements ShouldBeEncrypted, ShouldQueue
         }
 
         Notification::route('mail', $invitation->email)->notifyNow(new InvitationNotification(
-            workspaceName: $invitation->workspace->conciergeName(),
+            workspaceName: $invitation->isAppWide() ? (string) config('app.name') : $invitation->workspace->conciergeName(),
             url: $url,
             expiresAt: $invitation->expires_at,
         ));

@@ -15,7 +15,7 @@ use Tey\Concierge\Support\ConciergeModels;
 /**
  * @property int $id
  * @property string $public_id
- * @property int $workspace_id
+ * @property int|null $workspace_id null for an app-wide invitation
  * @property string $email
  * @property string|null $pending_key
  * @property array{roles: array<string, array{id: int, permissions: list<string>}>} $grants
@@ -36,7 +36,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
  * @property-read (Member&Model)|null $inviter
- * @property-read Workspace&Model $workspace
+ * @property-read (Workspace&Model)|null $workspace
  */
 class Invitation extends Model
 {
@@ -93,6 +93,12 @@ class Invitation extends Model
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(ConciergeModels::user(), 'inviter_id');
+    }
+
+    /** An invitation into the whole app rather than one workspace. */
+    public function isAppWide(): bool
+    {
+        return $this->workspace_id === null;
     }
 
     public function isPending(): bool

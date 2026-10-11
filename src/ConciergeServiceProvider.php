@@ -13,20 +13,25 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Tey\Concierge\Commands\PagesCommand;
 use Tey\Concierge\Commands\SyncRolesCommand;
 use Tey\Concierge\Contracts\AccountGuard;
+use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
+use Tey\Concierge\Support\AppScope;
+use Tey\Concierge\Support\ConfiguredAccountPolicy;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
 use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
 use Tey\Concierge\Support\SessionRecentAuthentication;
+use Tey\Concierge\Support\UserDeletionGuard;
 
 class ConciergeServiceProvider extends PackageServiceProvider
 {
@@ -41,7 +46,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $package
             ->name('concierge')
             ->hasConfigFile()
-            ->hasMigrations(['create_concierge_tables']);
+            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table']);
 
         // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {
@@ -83,11 +88,20 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         // Resolved once here so an unknown concierge.mode fails at boot, not on first use.
-        Mode::configured();
+        $mode = Mode::configured();
+
+        // Tenant invitations provision a workspace per invitee, so they need workspaces.
+        if ($mode === Mode::App && static::tenantInvitationsEnabled()) {
+            throw new UnsupportedConfiguration(
+                "concierge.features.tenant_invitations needs concierge.mode = 'workspaces'; the mode is 'app'."
+            );
+        }
 
         $this->app->singleton(Concierge::class);
-        $this->app->scopedIf(WorkspaceContext::class, PermissionWorkspaceContext::class);
+        $this->app->singleton(AppScope::class);
+        $this->app->scopedIf(WorkspaceContext::class, $mode === Mode::App ? AppScope::class : PermissionWorkspaceContext::class);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
+        $this->app->bindIf(AccountPolicy::class, ConfiguredAccountPolicy::class);
         $this->app->bindIf(RecentAuthentication::class, SessionRecentAuthentication::class);
         $this->app->bindIf(AccountGuard::class, OpenAccountGuard::class);
     }
@@ -99,6 +113,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
+        UserDeletionGuard::register();
 
         AboutCommand::add('Concierge', fn () => array_filter([
             'Mode' => Mode::configured()->value,

@@ -23,6 +23,7 @@ class EstablishWorkspace
 
     public function handle(Workspace $workspace, Member $owner): Membership
     {
+        ConciergeModels::assertWorkspaces('use EstablishOwner');
         ConciergeModels::assertModeSupported();
 
         return DB::transaction(function () use ($workspace, $owner) {

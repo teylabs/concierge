@@ -107,6 +107,8 @@ EstablishWorkspace::run($workspace, $owner);
 
 An app that only wants local login sets `'features' => ['membership' => false]` first; then `migrate` needs no workspace or permission setup.
 
+**App-wide mode** is for the app with one organisation: invitations and roles apply to the whole app, there is no workspace model or table, and Spatie teams stay off. Set `'mode' => 'app'`, leave `models.workspace` null, migrate and sync the roles as above, then make the first owner with `EstablishOwner::run($owner)`. The actions are `InviteUser`, `ChangeUserRoles` and `RemoveUser`; `AcceptInvitation` and the `concierge.member` middleware work in both modes. Owner is the top role and several owners are allowed; granting it is how ownership passes on, and the last owner can never be removed or demoted. Your app's own "delete account" keeps working: deleting a user model removes their concierge row first, and the last owner is refused with a validation message on the `password` field. The Users pages, deactivation and the upgrade to workspaces follow in 0.8 ([#19](https://github.com/teylabs/concierge/issues/19)).
+
 ## Usage
 
 ### Membership

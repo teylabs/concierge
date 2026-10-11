@@ -32,6 +32,8 @@ class StandaloneTestCase extends TestCase
         parent::resolveApplicationConfiguration($app);
 
         $app['config']->set('concierge.features.membership', false);
+        $app['config']->set('concierge.mode', null);
+        $app['config']->set('concierge.models.workspace', null);
     }
 
     protected function defineEnvironment($app)

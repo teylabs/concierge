@@ -8,6 +8,7 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
@@ -55,6 +56,12 @@ final class ConciergeModels
         return config('concierge.models.invitation', Invitation::class);
     }
 
+    /** @return class-string<Account> */
+    public static function account(): string
+    {
+        return config('concierge.models.account', Account::class);
+    }
+
     /** @return class-string<TenantInvitation> */
     public static function tenantInvitation(): string
     {
@@ -72,19 +79,40 @@ final class ConciergeModels
     }
 
     /**
-     * Workspace mode runs on Spatie teams. App-wide mode is not implemented yet
-     * (teylabs/concierge#19), so it is refused rather than half-supported.
+     * Each mode has one Spatie teams setting: workspace mode scopes role
+     * assignments by team, app-wide mode has no team to scope by.
      */
     public static function assertModeSupported(): void
     {
         if (Mode::configured() === Mode::App) {
-            throw new UnsupportedConfiguration(
-                "Concierge does not support concierge.mode = 'app' yet (teylabs/concierge#19); set 'mode' => 'workspaces'."
-            );
+            if (config('permission.teams')) {
+                throw new UnsupportedConfiguration("Concierge app-wide mode requires permission.teams = false; set 'mode' => 'workspaces' to use teams.");
+            }
+
+            return;
         }
 
         if (! config('permission.teams')) {
             throw new UnsupportedConfiguration('Concierge workspace mode requires permission.teams = true.');
+        }
+    }
+
+    /**
+     * For code that only makes sense with workspaces: names the app-wide
+     * action to use instead when the mode is app.
+     */
+    public static function assertWorkspaces(string $instead): void
+    {
+        if (Mode::configured() === Mode::App) {
+            throw new UnsupportedConfiguration("concierge.mode = 'app' has no workspaces; {$instead}.");
+        }
+    }
+
+    /** The mirror of assertWorkspaces(), for the app-wide reads and actions. */
+    public static function assertAppWide(string $instead): void
+    {
+        if (Mode::configured() !== Mode::App) {
+            throw new UnsupportedConfiguration("concierge.mode = 'workspaces' scopes roles by workspace; {$instead}.");
         }
     }
 

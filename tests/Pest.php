@@ -3,8 +3,10 @@
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tey\Concierge\Actions\AcceptInvitation;
+use Tey\Concierge\Actions\EstablishOwner;
 use Tey\Concierge\Actions\EstablishWorkspace;
 use Tey\Concierge\Actions\InviteMember;
+use Tey\Concierge\Actions\InviteUser;
 use Tey\Concierge\Actions\SyncRoleDefinitions;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
@@ -12,6 +14,7 @@ use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\IssuedInvitation;
+use Tey\Concierge\Tests\AppMode\AppModeTestCase;
 use Tey\Concierge\Tests\Fortify\FortifyTestCase;
 use Tey\Concierge\Tests\Scaffolding\ModulesScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ReactScaffoldTestCase;
@@ -33,6 +36,8 @@ uses(RefreshDatabase::class)->in('Feature');
 // schema, and this one boots without the tenant migration. It must not touch the database.
 uses(TenantInvitationsOffTestCase::class)->in('TenantOff');
 uses(DatabaseMigrations::class)->in('Concurrency');
+// The app-wide leg: its own schema, so DatabaseMigrations (see AppModeTestCase).
+uses(AppModeTestCase::class, DatabaseMigrations::class)->in('AppMode');
 
 function host_user(string $name, bool $verified = true): User
 {
@@ -82,4 +87,34 @@ function confirm_recent_authentication(bool $confirmed = true): void
             return $this->confirmed;
         }
     });
+}
+
+// App-wide mode (tests/AppMode).
+
+function app_owner(string $name = 'owner'): User
+{
+    SyncRoleDefinitions::run();
+
+    return tap(host_user($name), fn (User $user) => EstablishOwner::run($user));
+}
+
+function invite_user(Member $actor, string $email, array $roles = ['presenter']): IssuedInvitation
+{
+    return InviteUser::run($actor, $email, new GrantSet($roles));
+}
+
+/** Invite first, then the person registers and accepts: the roster is the users table. */
+function join_app(User $actor, string $name, array $roles = ['presenter']): User
+{
+    $issued = invite_user($actor, "{$name}@example.test", $roles);
+    $user = host_user($name);
+
+    AcceptInvitation::run($user, $issued->token);
+
+    return $user;
+}
+
+function app_roles(User $user): array
+{
+    return app(Concierge::class)->roleNames($user->fresh());
 }
