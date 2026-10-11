@@ -3,6 +3,7 @@ export { default as AcceptInvitationPage } from './pages/AcceptInvitationPage.vu
 export { default as InviteMemberPage } from './pages/InviteMemberPage.vue';
 export { default as MemberPage } from './pages/MemberPage.vue';
 export { default as MembersPage } from './pages/MembersPage.vue';
+export { default as Avatar } from './ui/Avatar.vue';
 
 export {
     createConcierge,

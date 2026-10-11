@@ -11,6 +11,7 @@ const screens: [string, string][] = [
     ['accept', 'wrong_account'],
     ['accept', 'unverified'],
     ['members', 'roleless'],
+    ['members', 'photos'],
 ];
 
 for (const [name, fixture] of screens) {

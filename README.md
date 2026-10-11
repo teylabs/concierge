@@ -123,6 +123,17 @@ One click signs in as the account in your configuration, in the `local` environm
 
 Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The PHP code never depends on them. See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup.
 
+Every person on these pages has an avatar: the app's photo when it has one, and otherwise their initials on a colour that stays the same for that person everywhere. Nothing is fetched from an outside service. Build a `UserSummary` with `UserSummary::for($user)` and tell concierge where the photo lives:
+
+```php
+// app/Providers/AppServiceProvider.php
+use Tey\Concierge\Facades\Concierge;
+
+Concierge::avatarUsing(fn ($user) => $user->profile_photo_url); // Jetstream
+```
+
+The `Avatar` component is exported for your own pages, and the eight `--concierge-avatar-*` colours are CSS variables you can override.
+
 ## Configuration
 
 The published `config/concierge.php` lists every key with a comment on each: the models, the roles and who may grant them, invitation expiry, tenant invitations and local login. Each feature page explains the keys it uses.

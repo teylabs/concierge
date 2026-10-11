@@ -53,7 +53,12 @@ function serialization_member_row_array(): array
 {
     return [
         'id' => '2',
-        'user' => ['id' => '11', 'name' => 'Ada Lovelace', 'email' => 'ada@example.com'],
+        'user' => [
+            'id' => '11',
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+            'avatar' => ['url' => null, 'initials' => 'AL', 'colour' => 'sky'],
+        ],
         'status' => 'active',
         'isOwner' => false,
         'isSelf' => true,
