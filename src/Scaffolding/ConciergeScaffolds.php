@@ -8,8 +8,9 @@ use Tey\Mod\Scaffolds\Scaffold;
 
 /**
  * The mod scaffold recipes concierge ships. A host app runs
- * `php artisan mod:concierge-pages Concierge` to write the Inertia wrapper
- * pages into its own `resources/js/pages`, placed by the app's mod layout.
+ * `php artisan concierge:pages` to write the Inertia wrapper pages into its
+ * own `resources/js/pages`, placed by the app's mod layout. Mod also lists the
+ * recipe as mod:concierge-pages, the name it gives every package scaffold.
  *
  * Spike (#17): Vue only. The stubs assume the Vue starter kit's `@/layouts/AppLayout.vue`.
  */

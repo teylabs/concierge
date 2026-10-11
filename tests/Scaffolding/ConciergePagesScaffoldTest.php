@@ -9,7 +9,7 @@ use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
 function run_scaffold(array $options = []): array
 {
     $output = new BufferedOutput;
-    $exit = app(Kernel::class)->call('mod:'.ConciergeScaffolds::PAGES, ['name' => 'Concierge', '--no-interaction' => true] + $options, $output);
+    $exit = app(Kernel::class)->call('concierge:pages', ['--no-interaction' => true] + $options, $output);
 
     return [$exit, $output->fetch()];
 }
@@ -82,4 +82,12 @@ it('needs an Inertia app', function () {
     expect($plan['would_write'])->toBeFalse()
         ->and($plan['files'])->toBe([])
         ->and($plan['warnings'][0]['message'])->toContain('No Inertia app found in package.json');
+});
+
+it('runs the same recipe under mod\'s own name', function () {
+    $output = new BufferedOutput;
+    $exit = app(Kernel::class)->call('mod:'.ConciergeScaffolds::PAGES, ['name' => 'Concierge', '--dry-run' => true, '--json' => true, '--no-interaction' => true], $output);
+
+    expect($exit)->toBe(0)
+        ->and(json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR)['files'])->toHaveCount(4);
 });
