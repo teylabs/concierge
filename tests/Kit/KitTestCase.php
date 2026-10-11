@@ -3,6 +3,7 @@
 namespace Tey\Concierge\Tests\Kit;
 
 use Illuminate\Contracts\Config\Repository;
+use Orchestra\Testbench\Attributes\ResetRefreshDatabaseState;
 use Tey\Concierge\Tests\TestCase;
 use Workbench\App\Kit\Team;
 use Workbench\App\Kit\User;
@@ -17,6 +18,17 @@ use Workbench\App\Kit\User;
  */
 class KitTestCase extends TestCase
 {
+    /**
+     * A class before this one may have migrated the shared PostgreSQL database,
+     * which leaves RefreshDatabase believing this SQLite one is migrated too.
+     */
+    protected function setUp(): void
+    {
+        ResetRefreshDatabaseState::run();
+
+        parent::setUp();
+    }
+
     protected function resolveApplicationConfiguration($app)
     {
         parent::resolveApplicationConfiguration($app);

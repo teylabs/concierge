@@ -2,6 +2,7 @@
 
 namespace Tey\Concierge\Tests\Import;
 
+use Orchestra\Testbench\Attributes\ResetRefreshDatabaseState;
 use Tey\Concierge\Tests\TestCase;
 use Workbench\App\Models\Organisation;
 
@@ -13,6 +14,17 @@ use Workbench\App\Models\Organisation;
  */
 class ImportTestCase extends TestCase
 {
+    /**
+     * A class before this one may have migrated the shared PostgreSQL database,
+     * which leaves RefreshDatabase believing this SQLite one is migrated too.
+     */
+    protected function setUp(): void
+    {
+        ResetRefreshDatabaseState::run();
+
+        parent::setUp();
+    }
+
     protected function defineEnvironment($app)
     {
         parent::defineEnvironment($app);
