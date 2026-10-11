@@ -29,59 +29,77 @@ it('is listed by mod as a scaffold shipped by the package', function () {
         ->and($list['scaffolds']['problems'])->toBe([]);
 });
 
-/**
- * The provider declares the pages and wiring only for a copy of the package inside the
- * app, where Composer puts it. The skeleton has none (and its vendor/ is Testbench's
- * symlink to the real one), so the tests register a copy under packages/ themselves.
- */
-function install_package_copy(): string
+function mod_list(): array
 {
-    $package = base_path('packages/concierge');
-    File::ensureDirectoryExists($package.'/resources/js/pages');
-    File::copy(dirname(__DIR__, 2).'/resources/js/pages/MembersPage.vue', $package.'/resources/js/pages/MembersPage.vue');
-    ConciergeFrontend::register(base_path(), $package);
+    $output = new BufferedOutput;
+    app(Kernel::class)->call('mod:list', ['--json' => true], $output);
+
+    return json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
+}
+
+/**
+ * Composer installs the package at vendor/tey/concierge. The skeleton has no copy (and its
+ * vendor/ is Testbench's link to the real one), so these tests put one there: a symlink to
+ * this checkout, as a path repository installs it, or a copy of the pages.
+ */
+function install_package(bool $symlink): string
+{
+    $package = base_path(ConciergeFrontend::PACKAGE_PATH);
+    expect(file_exists($package) || is_link($package))->toBeFalse();
+
+    File::ensureDirectoryExists(dirname($package));
+
+    if ($symlink) {
+        symlink(dirname(__DIR__, 2), $package);
+    } else {
+        File::ensureDirectoryExists($package.'/resources/js/pages');
+        File::copy(dirname(__DIR__, 2).'/resources/js/pages/MembersPage.vue', $package.'/resources/js/pages/MembersPage.vue');
+    }
+    ConciergeFrontend::register(base_path());
 
     return $package;
 }
 
-afterEach(fn () => File::deleteDirectory(base_path('packages')));
-
-it('declares its pages and the wiring a host needs to mod', function () {
-    install_package_copy();
-    $output = new BufferedOutput;
-    app(Kernel::class)->call('mod:list', ['--json' => true], $output);
-    $list = json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
-
-    expect($list['package_pages'])->toBe([['namespace' => 'concierge', 'path' => 'packages/concierge/resources/js/pages']])
-        ->and($list['frontend_wiring'])->toHaveCount(1)
-        ->and($list['frontend_wiring'][0])->toMatchArray(['alias' => '@tey/concierge', 'root' => 'packages/concierge/resources/js'])
-        ->and(Mod::pageEntry('concierge::MembersPage', 'vue'))->toBe('packages/concierge/resources/js/pages/MembersPage.vue');
+afterEach(function () {
+    $package = base_path(ConciergeFrontend::PACKAGE_PATH);
+    is_link($package) ? unlink($package) : File::deleteDirectory($package);
+    @rmdir(dirname($package));
 });
 
-it('plans the alias, TypeScript paths and Tailwind source for mod:install inertia', function () {
-    install_package_copy();
+it('boots without a vendor copy and reports the declarations mod cannot use', function () {
+    $list = mod_list();
+
+    // Wiring may name directories that will exist later, so only the pages are refused.
+    expect($list['package_pages'])->toBe([])
+        ->and($list['frontend_wiring'])->toHaveCount(1)
+        ->and(collect($list['frontend_notices'])->pluck('code')->unique()->values()->all())
+        ->toBe(['frontend_path_unavailable'])
+        ->and(collect($list['frontend_notices'])->pluck('path')->implode("\n"))->toContain('vendor/tey/concierge/resources/js/pages');
+});
+
+it('declares its pages and the wiring a host needs to mod', function (bool $symlink) {
+    install_package($symlink);
+    $list = mod_list();
+
+    expect($list['package_pages'])->toBe([['namespace' => 'concierge', 'path' => 'vendor/tey/concierge/resources/js/pages']])
+        ->and($list['frontend_wiring'])->toHaveCount(1)
+        ->and($list['frontend_wiring'][0])->toMatchArray(['alias' => '@tey/concierge', 'root' => 'vendor/tey/concierge/resources/js'])
+        ->and($list['frontend_notices'])->toBe([])
+        ->and(Mod::pageEntry('concierge::MembersPage', 'vue'))->toBe('vendor/tey/concierge/resources/js/pages/MembersPage.vue');
+})->with(['symlinked path repository' => true, 'copied install' => false]);
+
+it('plans the alias, TypeScript paths and Tailwind source for mod:install inertia', function (bool $symlink) {
+    install_package($symlink);
     $output = new BufferedOutput;
     app(Kernel::class)->call('mod:install', ['stack' => 'inertia', '--dry-run' => true, '--json' => true, '--no-interaction' => true], $output);
     $plan = json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
     $instructions = implode("\n", array_column($plan['warnings'], 'message'));
 
     // The skeleton has no Vite config, tsconfig paths or CSS entry, so mod spells the edits out.
-    expect($instructions)->toContain("fileURLToPath(new URL('./packages/concierge/resources/js', import.meta.url)) to resolve.alias")
-        ->and($instructions)->toContain('["./packages/concierge/resources/js/*"] to compilerOptions.paths')
-        ->and($instructions)->toContain("@source '../../packages/concierge/resources/js';");
-});
-
-it('declares nothing for a package outside the app, including through a symlink', function () {
-    expect(ConciergeFrontend::installedInside(base_path(), dirname(__DIR__, 2)))->toBeNull();
-
-    $package = install_package_copy();
-    $link = base_path('packages/linked');
-    symlink(dirname(__DIR__, 2), $link);
-
-    expect(ConciergeFrontend::installedInside(base_path(), $package))->toBe('packages/concierge')
-        ->and(ConciergeFrontend::installedInside(base_path(), $link))->toBeNull()
-        ->and(ConciergeFrontend::installedInside(base_path(), base_path('packages/missing')))->toBeNull();
-});
+    expect($instructions)->toContain("fileURLToPath(new URL('./vendor/tey/concierge/resources/js', import.meta.url)) to resolve.alias")
+        ->and($instructions)->toContain('["./vendor/tey/concierge/resources/js/*"] to compilerOptions.paths')
+        ->and($instructions)->toContain("@source '../../vendor/tey/concierge/resources/js';");
+})->with(['symlinked path repository' => true, 'copied install' => false]);
 
 it('previews the four Vue wrapper pages as a JSON plan without writing', function () {
     [$exit, $json] = run_scaffold(['--dry-run' => true, '--json' => true]);
