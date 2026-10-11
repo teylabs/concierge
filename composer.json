@@ -1,6 +1,6 @@
 {
     "name": "tey/concierge",
-    "description": "Invitations, membership, and access administration for Laravel.",
+    "description": "A standard suite of essentials for every Laravel app you build.",
     "keywords": [
         "tey",
         "laravel",
