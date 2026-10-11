@@ -5,6 +5,7 @@ namespace Workbench\App\Models;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Tey\Concierge\Concerns\InteractsWithMemberships;
 use Tey\Concierge\Contracts\Member;
@@ -18,7 +19,7 @@ use Tey\Concierge\Contracts\Member;
  */
 class User extends Authenticatable implements Member
 {
-    use HasRoles, InteractsWithMemberships, Notifiable;
+    use HasApiTokens, HasRoles, InteractsWithMemberships, Notifiable;
 
     protected $guarded = [];
 

@@ -2,10 +2,12 @@
 
 namespace Tey\Concierge;
 
+use Illuminate\Auth\Events\Validated;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
@@ -23,9 +25,11 @@ use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
+use Tey\Concierge\Http\Middleware\EnsureAccountActive;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\Kit\KitMembershipSource;
 use Tey\Concierge\Kit\KitWorkspaceContext;
+use Tey\Concierge\Listeners\RefuseDeactivatedUser;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
@@ -137,6 +141,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
+        $this->app->make(Router::class)->aliasMiddleware('concierge.active', EnsureAccountActive::class);
+        Event::listen(Validated::class, RefuseDeactivatedUser::class);
         UserDeletionGuard::register();
 
         AboutCommand::add('Concierge', fn () => array_filter([

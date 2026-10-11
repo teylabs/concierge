@@ -8,7 +8,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Contracts\Auth\PasswordBrokerFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -24,6 +23,7 @@ use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\ForcedPasswordReset;
 use Tey\Concierge\Support\ManagedMembership;
+use Tey\Concierge\Support\UserSessions;
 
 /**
  * Locks an account down when it may be compromised: the password is replaced
@@ -88,13 +88,11 @@ class ForcePasswordReset
                 ...array_fill_keys($twoFactorColumns, null),
             ]);
 
-            if ($user->getRememberTokenName()) {
-                $user->setRememberToken(Str::random(60));
-            }
+            UserSessions::cycleRememberToken($user);
 
             $user->save();
 
-            $sessionsEnded = $this->endDatabaseSessions($user);
+            $sessionsEnded = UserSessions::endDatabaseSessions($user);
 
             $broker = $this->brokers->broker(config('concierge.forced_password_reset.broker'));
 
@@ -138,21 +136,5 @@ class ForcePasswordReset
         }
 
         return $columns;
-    }
-
-    /**
-     * Delete the user's rows from the sessions table when sessions live in the
-     * database; null otherwise, since other drivers cannot list a user's sessions.
-     */
-    protected function endDatabaseSessions(Authenticatable $user): ?int
-    {
-        if (config('session.driver') !== 'database') {
-            return null;
-        }
-
-        return DB::connection(config('session.connection'))
-            ->table(config('session.table', 'sessions'))
-            ->where('user_id', $user->getAuthIdentifier())
-            ->delete();
     }
 }
