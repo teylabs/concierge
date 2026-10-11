@@ -6,6 +6,14 @@ use Tey\Concierge\Models\Ownership;
 use Tey\Concierge\Models\TenantInvitation;
 
 return [
+    /*
+     * 'app' (invitations and roles apply to the whole app) or 'workspaces' (they
+     * apply per workspace). Set it here, never from .env: it describes the schema.
+     * Null means 'app', except that a config without the key and with a
+     * models.workspace is read as 'workspaces' until 1.0.
+     */
+    'mode' => null,
+
     'features' => [
         // Set to false for an app that only wants the local-login feature:
         // no membership bindings, middleware alias, commands or automatic migration.

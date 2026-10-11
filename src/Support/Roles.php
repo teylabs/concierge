@@ -8,8 +8,8 @@ use Spatie\Permission\PermissionRegistrar;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 
 /**
- * Concierge roles are global (team NULL) Spatie role rows, looked up exactly
- * so a same-named workspace role can never be substituted.
+ * Concierge roles are global Spatie role rows (team NULL when teams are on),
+ * looked up exactly so a same-named workspace role can never be substituted.
  */
 final class Roles
 {
@@ -61,7 +61,7 @@ final class Roles
         $registrar = app(PermissionRegistrar::class);
 
         return $registrar->getRoleClass()::query()
-            ->whereNull($registrar->teamsKey)
+            ->when($registrar->teams, fn ($query) => $query->whereNull($registrar->teamsKey))
             ->where('name', $name)
             ->where('guard_name', self::guard())
             ->when($id !== null, fn ($query) => $query->whereKey($id))

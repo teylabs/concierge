@@ -3,6 +3,7 @@
 namespace Tey\Concierge;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +17,7 @@ use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Contracts\WorkspaceContext;
+use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
@@ -80,6 +82,9 @@ class ConciergeServiceProvider extends PackageServiceProvider
             return;
         }
 
+        // Resolved once here so an unknown concierge.mode fails at boot, not on first use.
+        Mode::configured();
+
         $this->app->singleton(Concierge::class);
         $this->app->scopedIf(WorkspaceContext::class, PermissionWorkspaceContext::class);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
@@ -94,6 +99,13 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
+
+        AboutCommand::add('Concierge', fn () => array_filter([
+            'Mode' => Mode::configured()->value,
+            'Deprecated' => Mode::inferred()
+                ? "<fg=yellow;options=bold>Mode inferred from models.workspace; set 'mode' => 'workspaces' in config/concierge.php before 1.0</>"
+                : null,
+        ]));
 
         if (static::tenantInvitationsEnabled()) {
             $this->bootTenantInvitations();

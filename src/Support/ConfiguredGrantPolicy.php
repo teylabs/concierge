@@ -32,13 +32,7 @@ class ConfiguredGrantPolicy implements BatchesMembershipReads, GrantPolicy
             return [];
         }
 
-        $held = $this->roleNames($workspace, $membership);
-
-        return array_values(array_filter(
-            Roles::configured(),
-            fn (string $role) => $role !== Roles::owner()
-                && array_intersect(config("concierge.roles.{$role}.grantable_by", []), $held) !== [],
-        ));
+        return RankRules::grantable($this->roleNames($workspace, $membership));
     }
 
     public function authorizeManagement(Member $actor, Workspace $workspace, ?Membership $target = null): Response
@@ -51,7 +45,7 @@ class ConfiguredGrantPolicy implements BatchesMembershipReads, GrantPolicy
 
         $held = $this->roleNames($workspace, $membership);
 
-        if (array_intersect(config('concierge.managers', []), $held) === []) {
+        if (! RankRules::manages($held)) {
             return Response::deny('You cannot manage members of this workspace.', 'not_manager');
         }
 
@@ -71,10 +65,7 @@ class ConfiguredGrantPolicy implements BatchesMembershipReads, GrantPolicy
             return Response::deny('The workspace owner cannot be managed.', 'owner_protected');
         }
 
-        $targetRank = Roles::highestRank($this->roleNames($workspace, $target));
-        $actorRank = Roles::highestRank($held);
-
-        if ($targetRank !== null && ($actorRank === null || $targetRank <= $actorRank)) {
+        if (! RankRules::outranks($held, $this->roleNames($workspace, $target))) {
             return Response::deny('You cannot manage a member of equal or higher rank.', 'rank');
         }
 

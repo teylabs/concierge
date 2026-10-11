@@ -23,7 +23,7 @@ class EstablishWorkspace
 
     public function handle(Workspace $workspace, Member $owner): Membership
     {
-        ConciergeModels::assertTeamsEnabled();
+        ConciergeModels::assertModeSupported();
 
         return DB::transaction(function () use ($workspace, $owner) {
             $workspace = Locks::workspace($workspace->getKey());

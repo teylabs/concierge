@@ -26,7 +26,7 @@ class PermissionWorkspaceContext implements WorkspaceContext
 
     public function run(Workspace $workspace, Closure $callback, iterable $refresh = []): mixed
     {
-        ConciergeModels::assertTeamsEnabled();
+        ConciergeModels::assertModeSupported();
 
         $refresh = [...$refresh];
         $previous = $this->current;
