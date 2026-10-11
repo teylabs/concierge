@@ -11,6 +11,7 @@ import { formatDate } from '../internal/format';
 import { shouldIntercept } from '../internal/navigation';
 import { useConcierge } from '../plugin';
 import type { MemberRow, MembersPageProps } from '../types';
+import Avatar from '../ui/Avatar.vue';
 import Badge from '../ui/Badge.vue';
 import Button from '../ui/Button.vue';
 import EmptyState from '../ui/EmptyState.vue';
@@ -243,27 +244,44 @@ function statusVariant(member: MemberRow): string {
                             class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4 md:table-row md:px-0 md:py-0"
                         >
                             <td class="w-full md:w-auto md:px-6 md:py-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <a
-                                        v-if="member.links.show"
-                                        :href="member.links.show"
-                                        class="font-medium text-(--concierge-text) underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-(--concierge-focus)"
-                                        @click="open(member.links.show, $event)"
-                                        >{{ member.user.name }}</a
-                                    >
-                                    <span
-                                        v-else
-                                        class="font-medium text-(--concierge-text)"
-                                        >{{ member.user.name }}</span
-                                    >
-                                    <Badge
-                                        v-if="member.isSelf"
-                                        :label="t('members.you')"
-                                        variant="info"
+                                <div class="flex items-center gap-3">
+                                    <Avatar
+                                        :avatar="member.user.avatar"
+                                        size="sm"
                                     />
-                                </div>
-                                <div class="text-(--concierge-text-muted)">
-                                    {{ member.user.email }}
+                                    <div class="min-w-0">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2"
+                                        >
+                                            <a
+                                                v-if="member.links.show"
+                                                :href="member.links.show"
+                                                class="font-medium text-(--concierge-text) underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-(--concierge-focus)"
+                                                @click="
+                                                    open(
+                                                        member.links.show,
+                                                        $event,
+                                                    )
+                                                "
+                                                >{{ member.user.name }}</a
+                                            >
+                                            <span
+                                                v-else
+                                                class="font-medium text-(--concierge-text)"
+                                                >{{ member.user.name }}</span
+                                            >
+                                            <Badge
+                                                v-if="member.isSelf"
+                                                :label="t('members.you')"
+                                                variant="info"
+                                            />
+                                        </div>
+                                        <div
+                                            class="text-(--concierge-text-muted)"
+                                        >
+                                            {{ member.user.email }}
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="md:px-3 md:py-3">

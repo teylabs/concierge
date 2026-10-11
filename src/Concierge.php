@@ -10,6 +10,7 @@ use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
+use Tey\Concierge\Data\UI\UserAvatar;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\TenantInvitation;
@@ -27,6 +28,9 @@ class Concierge
 
     /** @var (Closure(Member, TenantInvitation): mixed)|null */
     protected ?Closure $workspaceProvisioner = null;
+
+    /** @var (Closure(Member): ?string)|null */
+    protected ?Closure $avatarUrl = null;
 
     public function context(): WorkspaceContext
     {
@@ -155,5 +159,26 @@ class Concierge
     public function workspaceProvisioner(): ?Closure
     {
         return $this->workspaceProvisioner;
+    }
+
+    /**
+     * Where the host keeps a user's photo, for the avatar on the people pages.
+     * Return null for a user without one and the initials are shown instead.
+     * Concierge never asks an outside service such as Gravatar.
+     *
+     * @param  (Closure(Member): ?string)|null  $callback
+     */
+    public function avatarUsing(?Closure $callback): static
+    {
+        $this->avatarUrl = $callback;
+
+        return $this;
+    }
+
+    public function avatar(Member $user): UserAvatar
+    {
+        $url = $this->avatarUrl ? ($this->avatarUrl)($user) : null;
+
+        return UserAvatar::of($user->getKey(), $user->conciergeDisplayName(), $user->conciergeEmail(), $url);
     }
 }

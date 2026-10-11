@@ -13,10 +13,36 @@ import type {
     MemberRow,
     MembersPageProps,
     RoleOption,
+    UserSummary,
     WorkspaceSummary,
 } from '../resources/js/types';
 
 export const workspace: WorkspaceSummary = { id: '7', name: 'Teylabs' };
+
+/** A 1x1 teal square, so a "photo" needs no network. */
+export const photo =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230f766e'/%3E%3C/svg%3E";
+
+const users = {
+    jasper: {
+        id: '10',
+        name: 'Jasper Tey',
+        email: 'jasper@teylabs.com',
+        avatar: { url: null, initials: 'JT', colour: 'indigo' },
+    },
+    ada: {
+        id: '11',
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        avatar: { url: null, initials: 'AL', colour: 'sky' },
+    },
+    grace: {
+        id: '12',
+        name: 'Grace Hopper',
+        email: 'grace@example.com',
+        avatar: { url: null, initials: 'GH', colour: 'emerald' },
+    },
+} satisfies Record<string, UserSummary>;
 
 const roleOptions: RoleOption[] = [
     {
@@ -42,7 +68,7 @@ const noLinks = {
 
 export const owner: MemberRow = {
     id: '1',
-    user: { id: '10', name: 'Jasper Tey', email: 'jasper@teylabs.com' },
+    user: users.jasper,
     status: 'active',
     isOwner: true,
     isSelf: true,
@@ -55,7 +81,7 @@ export const owner: MemberRow = {
 
 export const admin: MemberRow = {
     id: '2',
-    user: { id: '11', name: 'Ada Lovelace', email: 'ada@example.com' },
+    user: users.ada,
     status: 'active',
     isOwner: false,
     isSelf: false,
@@ -74,7 +100,7 @@ export const admin: MemberRow = {
 
 export const suspended: MemberRow = {
     id: '3',
-    user: { id: '12', name: 'Grace Hopper', email: 'grace@example.com' },
+    user: users.grace,
     status: 'suspended',
     isOwner: false,
     isSelf: false,
@@ -181,6 +207,31 @@ export const fixtures = {
         roleless: {
             ...membersBase,
             members: [owner, { ...admin, roles: [] }],
+        },
+        /** The app supplies photos: one that loads and one that does not. */
+        photos: {
+            ...membersBase,
+            members: [
+                {
+                    ...owner,
+                    user: {
+                        ...users.jasper,
+                        avatar: { ...users.jasper.avatar, url: photo },
+                    },
+                },
+                {
+                    ...admin,
+                    user: {
+                        ...users.ada,
+                        avatar: {
+                            ...users.ada.avatar,
+                            url: '/photos/missing.png',
+                        },
+                    },
+                },
+                suspended,
+            ],
+            invitations: [],
         },
         empty: {
             ...membersBase,

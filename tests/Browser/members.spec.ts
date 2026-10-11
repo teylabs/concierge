@@ -387,3 +387,37 @@ test.describe('owner role display', () => {
         await expect(rolelessRow.locator('td').nth(1)).toHaveText('No roles');
     });
 });
+
+test.describe('avatars', () => {
+    test('shows initials on a stable colour beside every member', async ({
+        page,
+    }) => {
+        const external: string[] = [];
+        page.on('request', (request) => {
+            if (!request.url().startsWith('http://127.0.0.1:8152')) {
+                external.push(request.url());
+            }
+        });
+        await openHarness(page, 'members');
+        const avatars = page.locator('tbody [data-concierge-avatar]');
+
+        await expect(avatars).toHaveText(['JT', 'AL', 'GH']);
+        await expect(avatars.nth(0)).toHaveClass(/concierge-avatar-indigo/);
+        await expect(avatars.nth(1)).toHaveClass(/concierge-avatar-sky/);
+        await expect(avatars.nth(0)).toHaveAttribute('aria-hidden', 'true');
+        expect(external).toEqual([]);
+    });
+
+    test('shows a photo when the app supplies one and falls back to initials when it fails to load', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'photos');
+        const avatars = page.locator('tbody [data-concierge-avatar]');
+
+        await expect(avatars.nth(0).locator('img')).toBeVisible();
+        await expect(avatars.nth(0)).toHaveText('');
+        await expect(avatars.nth(1)).toHaveText('AL');
+        await expect(avatars.nth(1).locator('img')).toHaveCount(0);
+        await expect(avatars.nth(2)).toHaveText('GH');
+    });
+});

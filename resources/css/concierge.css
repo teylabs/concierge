@@ -64,6 +64,24 @@
         --concierge-muted-pale: #f1f5f9;
         --concierge-muted-pale-fg: #334155;
         --concierge-muted-outline: #cbd5e1;
+
+        /* Initials avatars: a pale disc with dark text, picked per person by the server. */
+        --concierge-avatar-slate: #f1f5f9;
+        --concierge-avatar-slate-fg: #334155;
+        --concierge-avatar-indigo: #eef2ff;
+        --concierge-avatar-indigo-fg: #3730a3;
+        --concierge-avatar-violet: #f5f3ff;
+        --concierge-avatar-violet-fg: #5b21b6;
+        --concierge-avatar-rose: #fff1f2;
+        --concierge-avatar-rose-fg: #9f1239;
+        --concierge-avatar-amber: #fffbeb;
+        --concierge-avatar-amber-fg: #92400e;
+        --concierge-avatar-emerald: #ecfdf5;
+        --concierge-avatar-emerald-fg: #065f46;
+        --concierge-avatar-teal: #f0fdfa;
+        --concierge-avatar-teal-fg: #115e59;
+        --concierge-avatar-sky: #f0f9ff;
+        --concierge-avatar-sky-fg: #075985;
     }
 }
 

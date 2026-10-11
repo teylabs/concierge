@@ -12,6 +12,7 @@ import { useSubmit } from '../internal/useSubmit';
 import { useConcierge } from '../plugin';
 import type { MemberPageProps } from '../types';
 import Alert from '../ui/Alert.vue';
+import Avatar from '../ui/Avatar.vue';
 import Badge from '../ui/Badge.vue';
 import Button from '../ui/Button.vue';
 import FormField from '../ui/FormField.vue';
@@ -93,6 +94,9 @@ function back(event: MouseEvent) {
                 :title="member.user.name"
                 :description="member.user.email"
             >
+                <template #leading>
+                    <Avatar :avatar="member.user.avatar" size="lg" />
+                </template>
                 <template #breadcrumbs>
                     <slot name="breadcrumbs">
                         <a

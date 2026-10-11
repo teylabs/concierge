@@ -174,10 +174,16 @@ value: string,
 label: string,
 description: string | null,
 };
+export type UserAvatar = {
+url: string | null,
+initials: string,
+colour: string,
+};
 export type UserSummary = {
 id: string,
 name: string,
 email: string,
+avatar: UserAvatar,
 };
 export type WorkspaceSummary = {
 id: string,

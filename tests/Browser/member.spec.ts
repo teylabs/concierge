@@ -112,3 +112,13 @@ test('lists the owner under Roles rather than "No roles"', async ({ page }) => {
     await expect(details).not.toContainText('No roles');
     await expect(details.locator('dd').nth(0)).not.toContainText('Owner');
 });
+
+test('shows the avatar beside the name in the header', async ({ page }) => {
+    await openHarness(page, 'member');
+    const header = page.locator('header').first();
+
+    await expect(header.locator('[data-concierge-avatar]')).toHaveText('AL');
+    await expect(
+        header.getByRole('heading', { name: 'Ada Lovelace', level: 1 }),
+    ).toBeVisible();
+});
