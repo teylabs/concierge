@@ -12,6 +12,15 @@ const screens: [string, string][] = [
     ['accept', 'unverified'],
     ['members', 'roleless'],
     ['members', 'photos'],
+    ['users', 'default'],
+    ['users', 'columns'],
+    ['users', 'filtered'],
+    ['users', 'readOnly'],
+    ['users', 'noResults'],
+    ['user', 'default'],
+    ['user', 'readOnly'],
+    ['inviteUser', 'default'],
+    ['acceptApp', 'ready'],
 ];
 
 for (const [name, fixture] of screens) {

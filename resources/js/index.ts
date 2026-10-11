@@ -3,6 +3,9 @@ export { default as AcceptInvitationPage } from './pages/AcceptInvitationPage.vu
 export { default as InviteMemberPage } from './pages/InviteMemberPage.vue';
 export { default as MemberPage } from './pages/MemberPage.vue';
 export { default as MembersPage } from './pages/MembersPage.vue';
+export { default as InviteUserPage } from './pages/InviteUserPage.vue';
+export { default as UserPage } from './pages/UserPage.vue';
+export { default as UsersPage } from './pages/UsersPage.vue';
 export { default as Avatar } from './ui/Avatar.vue';
 
 export {

@@ -3,8 +3,11 @@ import {
     AcceptInvitationPage,
     createConcierge,
     InviteMemberPage,
+    InviteUserPage,
     MemberPage,
     MembersPage,
+    UserPage,
+    UsersPage,
 } from '../resources/js';
 import { createFakeAdapter } from './fakeAdapter';
 import { fixtures } from './fixtures';
@@ -15,6 +18,10 @@ const pages: Record<keyof typeof fixtures, Component> = {
     invite: InviteMemberPage,
     member: MemberPage,
     accept: AcceptInvitationPage,
+    users: UsersPage,
+    inviteUser: InviteUserPage,
+    user: UserPage,
+    acceptApp: AcceptInvitationPage,
 };
 
 const query = new URLSearchParams(window.location.search);

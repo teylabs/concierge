@@ -11,8 +11,12 @@ import type {
     InviteMemberPageProps,
     MemberPageProps,
     MemberRow,
+    InviteUserPageProps,
     MembersPageProps,
     RoleOption,
+    UserPageProps,
+    UserRow,
+    UsersPageProps,
     UserSummary,
     WorkspaceSummary,
 } from '../resources/js/types';
@@ -191,6 +195,96 @@ const membersReadOnly: MembersPageProps = {
     },
 };
 
+const noUserLinks = {
+    show: null,
+    updateProfile: null,
+    updateGrants: null,
+    remove: null,
+};
+
+export const appOwner: UserRow = {
+    id: '10',
+    user: users.jasper,
+    status: 'active',
+    isOwner: true,
+    isSelf: true,
+    isOperator: false,
+    roles: [],
+    joinedAt: '2026-08-01T09:00:00Z',
+    hasActions: false,
+    links: { ...noUserLinks, show: '/users/10' },
+    columns: { plan: 'Team', seats: 5 },
+};
+
+export const appAdmin: UserRow = {
+    id: '11',
+    user: users.ada,
+    status: 'active',
+    isOwner: false,
+    isSelf: false,
+    isOperator: false,
+    roles: [{ value: 'admin', label: 'Admin', variant: 'info' }],
+    joinedAt: '2026-08-12T15:30:00Z',
+    hasActions: true,
+    links: {
+        show: '/users/11',
+        updateProfile: '/users/11',
+        updateGrants: '/users/11/roles',
+        remove: '/users/11',
+    },
+    columns: { plan: 'Pro', seats: 2 },
+};
+
+export const deactivated: UserRow = {
+    id: '12',
+    user: users.grace,
+    status: 'deactivated',
+    isOwner: false,
+    isSelf: false,
+    isOperator: false,
+    roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
+    joinedAt: '2026-09-01T12:00:00Z',
+    hasActions: true,
+    links: {
+        ...noUserLinks,
+        show: '/users/12',
+        remove: '/users/12',
+    },
+    columns: { plan: null, seats: 0 },
+};
+
+const usersBase: UsersPageProps = {
+    users: [appOwner, appAdmin, deactivated],
+    pagination: {
+        currentPage: 1,
+        lastPage: 2,
+        perPage: 3,
+        total: 5,
+        previousUrl: null,
+        nextUrl: '/users?page=2',
+    },
+    metadata: {
+        refreshUrl: '/users',
+        search: '',
+        role: null,
+        status: null,
+        roleOptions,
+        columns: [],
+        links: { invite: '/users/create' },
+        abilities: { invite: true, manageUsers: true },
+    },
+};
+
+const userGrants: NonNullable<UserPageProps['grants']> = {
+    payload: { roles: ['admin'] },
+    metadata: { formUrl: '/users/11/roles', roleOptions },
+};
+
+const userProfile: NonNullable<UserPageProps['profile']> = {
+    payload: { name: 'Ada Lovelace', email: 'ada@example.com' },
+    metadata: { formUrl: '/users/11' },
+};
+
 const singlePage = {
     currentPage: 1,
     lastPage: 1,
@@ -288,6 +382,102 @@ export const fixtures = {
         },
     } satisfies Record<string, MemberPageProps>,
     accept: acceptFixtures(),
+    users: {
+        default: usersBase,
+        /** Viewer is a presenter: every action link is null. */
+        readOnly: {
+            ...usersBase,
+            users: usersBase.users.map((user) => ({
+                ...user,
+                hasActions: false,
+                links: { ...noUserLinks },
+            })),
+            metadata: {
+                ...usersBase.metadata,
+                links: { invite: null },
+                abilities: { invite: false, manageUsers: false },
+            },
+        },
+        /** A shielded account, such as a platform operator. */
+        operator: {
+            ...usersBase,
+            users: [
+                {
+                    ...appAdmin,
+                    isOperator: true,
+                    hasActions: false,
+                    links: { ...noUserLinks, show: '/users/11' },
+                },
+                appOwner,
+            ],
+        },
+        /** The app added its own columns through Concierge::userColumns(). */
+        columns: {
+            ...usersBase,
+            metadata: {
+                ...usersBase.metadata,
+                columns: [
+                    { key: 'plan', label: 'Plan' },
+                    { key: 'seats', label: 'Seats' },
+                ],
+            },
+        },
+        filtered: {
+            ...usersBase,
+            users: [deactivated],
+            pagination: { ...singlePage, total: 1 },
+            metadata: {
+                ...usersBase.metadata,
+                role: 'presenter',
+                status: 'deactivated',
+            },
+        },
+        empty: {
+            ...usersBase,
+            users: [],
+            pagination: singlePage,
+        },
+        noResults: {
+            ...usersBase,
+            users: [],
+            pagination: singlePage,
+            metadata: { ...usersBase.metadata, search: 'nobody' },
+        },
+    } satisfies Record<string, UsersPageProps>,
+    inviteUser: {
+        default: {
+            payload: { email: '', roles: [] },
+            metadata: {
+                formUrl: '/users/invitations',
+                roleOptions,
+                links: { cancel: '/users' },
+            },
+        },
+        noGrantableRoles: {
+            payload: { email: '', roles: [] },
+            metadata: {
+                formUrl: '/users/invitations',
+                roleOptions: [],
+                links: { cancel: '/users' },
+            },
+        },
+    } satisfies Record<string, InviteUserPageProps>,
+    user: {
+        default: {
+            user: appAdmin,
+            profile: userProfile,
+            grants: userGrants,
+            metadata: { links: { back: '/users' } },
+        },
+        readOnly: {
+            user: { ...appOwner, isSelf: false },
+            profile: null,
+            grants: null,
+            metadata: { links: { back: '/users' } },
+        },
+    } satisfies Record<string, UserPageProps>,
+    /** App-wide invitations: no workspace, so the page names the app. */
+    acceptApp: acceptAppFixtures(),
 };
 
 function acceptFixtures(): Record<
@@ -313,7 +503,7 @@ function acceptFixtures(): Record<
     ): AcceptInvitationPageProps => ({
         ...base,
         state,
-        metadata: { links: { ...noAcceptLinks, ...links } },
+        metadata: { links: { ...noAcceptLinks, ...links }, appName: 'Teylabs' },
         ...overrides,
     });
 
@@ -352,5 +542,52 @@ function acceptFixtures(): Record<
             continue: '/',
             accept: '/invitations/opaque-token/accept',
         }),
+    };
+}
+
+function acceptAppFixtures(): Record<
+    'ready' | 'expired' | 'invalid',
+    AcceptInvitationPageProps
+> {
+    const links = {
+        accept: null,
+        login: null,
+        register: null,
+        logout: null,
+        continue: null,
+    };
+    const base = {
+        workspace: null,
+        email: 'linus@example.com',
+        roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
+    };
+
+    return {
+        ready: {
+            ...base,
+            state: 'ready',
+            metadata: {
+                links: { ...links, accept: '/invitations/opaque-token/accept' },
+                appName: 'Teylabs',
+            },
+        },
+        expired: {
+            ...base,
+            state: 'expired',
+            metadata: {
+                links: { ...links, continue: '/' },
+                appName: 'Teylabs',
+            },
+        },
+        invalid: {
+            ...base,
+            state: 'invalid',
+            email: null,
+            roles: [],
+            metadata: {
+                links: { ...links, continue: '/' },
+                appName: 'Teylabs',
+            },
+        },
     };
 }

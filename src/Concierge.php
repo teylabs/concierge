@@ -11,6 +11,7 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Data\UI\UserAvatar;
+use Tey\Concierge\Data\UI\UserColumn;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
@@ -34,6 +35,12 @@ class Concierge
 
     /** @var (Closure(Member): ?string)|null */
     protected ?Closure $avatarUrl = null;
+
+    /** @var array<string, string> */
+    protected array $userColumnLabels = [];
+
+    /** @var (Closure(Member): array<string, string|int|float|bool|null>)|null */
+    protected ?Closure $userColumnValues = null;
 
     /** The configured mode: App (roles apply to the whole app) or Workspaces. */
     public function mode(): Mode
@@ -220,5 +227,51 @@ class Concierge
         $url = $this->avatarUrl ? ($this->avatarUrl)($user) : null;
 
         return UserAvatar::of($user->getKey(), $user->conciergeDisplayName(), $user->conciergeEmail(), $url);
+    }
+
+    /**
+     * Adds the app's own fields to each row of the Users page. The labels name
+     * the columns, keyed by field; the callback returns the values for a user,
+     * keyed the same way. Keys it leaves out render empty, and keys it adds
+     * beyond the labels are not sent.
+     *
+     * @param  array<string, string>  $labels
+     * @param  Closure(Member): array<string, string|int|float|bool|null>  $values
+     */
+    public function userColumns(array $labels, Closure $values): static
+    {
+        $this->userColumnLabels = $labels;
+        $this->userColumnValues = $values;
+
+        return $this;
+    }
+
+    /** @return list<UserColumn> */
+    public function userColumnDefinitions(): array
+    {
+        return array_map(
+            static fn (string $key, string $label) => new UserColumn($key, $label),
+            array_keys($this->userColumnLabels),
+            array_values($this->userColumnLabels),
+        );
+    }
+
+    /**
+     * The values of the app's columns for one user, for UserRow::$columns.
+     *
+     * @return array<string, string|int|float|bool|null>
+     */
+    public function userColumnValues(Member $user): array
+    {
+        if ($this->userColumnValues === null) {
+            return [];
+        }
+
+        $values = ($this->userColumnValues)($user);
+
+        return array_map(
+            static fn (string $key) => $values[$key] ?? null,
+            array_combine(array_keys($this->userColumnLabels), array_keys($this->userColumnLabels)),
+        );
     }
 }

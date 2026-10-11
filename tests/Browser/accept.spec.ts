@@ -152,3 +152,42 @@ test.describe('action order', () => {
         });
     }
 });
+
+test('names the app when an app-wide invitation has no workspace', async ({
+    page,
+}) => {
+    await openHarness(page, 'acceptApp', 'ready');
+
+    await expect(
+        page.getByRole('heading', { name: 'Join Teylabs' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Accept the invitation to join Teylabs.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Accept invitation' }).click();
+
+    expect(await requests(page)).toEqual([
+        { method: 'post', url: '/invitations/opaque-token/accept' },
+    ]);
+});
+
+test('asks an admin, not a workspace admin, for a new app-wide invitation', async ({
+    page,
+}) => {
+    await openHarness(page, 'acceptApp', 'expired');
+
+    await expect(
+        page.getByText('Ask an admin to send a new one.'),
+    ).toBeVisible();
+    await expect(page.locator('.concierge')).not.toContainText(/workspace/i);
+});
+
+test('keeps the plain title for an unknown app-wide invitation', async ({
+    page,
+}) => {
+    await openHarness(page, 'acceptApp', 'invalid');
+
+    await expect(
+        page.getByRole('heading', { name: 'Invitation' }),
+    ).toBeVisible();
+});
