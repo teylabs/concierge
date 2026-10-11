@@ -31,6 +31,7 @@ use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
 use Tey\Concierge\Support\SessionRecentAuthentication;
+use Tey\Concierge\Support\UserDeletionGuard;
 
 class ConciergeServiceProvider extends PackageServiceProvider
 {
@@ -112,6 +113,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
+        UserDeletionGuard::register();
 
         AboutCommand::add('Concierge', fn () => array_filter([
             'Mode' => Mode::configured()->value,

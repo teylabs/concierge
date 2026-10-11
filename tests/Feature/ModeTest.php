@@ -12,12 +12,15 @@ use Tey\Concierge\Actions\SyncRoleDefinitions;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\Contracts\WorkspaceContext;
+use Tey\Concierge\Enums\AccountStatus;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\RankRules;
 use Tey\Concierge\Support\Roles;
+use Workbench\App\Models\User;
 use Workbench\App\Models\Workspace;
 
 /** @return list<string> */
@@ -140,6 +143,16 @@ it('keeps the workspace-mode schema as it was before app-wide mode', function ()
         'indexes' => ['id unique', 'public_id unique', 'token_hash unique', 'workspace_id,email', 'workspace_id,pending_key unique', 'workspace_id,status'],
         'foreign' => ['accepted_by_id -> users(id) set null', 'accepted_membership_id -> concierge_memberships(id) set null', 'inviter_id -> users(id) set null', 'revoked_by_id -> users(id) set null', 'workspace_id -> workspaces(id) restrict'],
     ])->and(Schema::hasTable('concierge_accounts'))->toBeTrue();
+});
+
+it('deletes a user\'s accounts row with the user in workspace mode, with no last-owner rule', function () {
+    $owner = host_user('owner');
+    Account::query()->create(['user_id' => $owner->id, 'status' => AccountStatus::Active]);
+
+    $owner->delete();
+
+    expect(User::query()->find($owner->id))->toBeNull()
+        ->and(Account::query()->find($owner->id))->toBeNull();
 });
 
 it('refuses the app-wide reads and actions in workspace mode, naming the workspace ones', function () {
