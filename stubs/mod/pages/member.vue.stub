@@ -1,0 +1,12 @@
+<script setup lang="ts">
+import AppLayout from '@/layouts/AppLayout.vue';
+import { MemberPage, type MemberPageProps } from '@tey/concierge';
+
+const props = defineProps<MemberPageProps>();
+</script>
+
+<template>
+    <AppLayout>
+        <MemberPage v-bind="props" />
+    </AppLayout>
+</template>

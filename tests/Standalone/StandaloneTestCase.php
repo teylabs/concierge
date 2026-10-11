@@ -5,6 +5,7 @@ namespace Tey\Concierge\Tests\Standalone;
 use Illuminate\Contracts\Config\Repository;
 use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\Tests\TestCase;
+use Tey\Mod\ModServiceProvider;
 use Workbench\App\Models\LocalAuth\PlainAccount;
 
 /**
@@ -18,7 +19,7 @@ class StandaloneTestCase extends TestCase
 {
     protected function getPackageProviders($app)
     {
-        return [ConciergeServiceProvider::class];
+        return [ModServiceProvider::class, ConciergeServiceProvider::class];
     }
 
     /**

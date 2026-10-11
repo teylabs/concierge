@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spatie\Permission\PermissionServiceProvider;
 use Tey\Concierge\ConciergeServiceProvider;
+use Tey\Mod\ModServiceProvider;
 use Workbench\App\Models\User;
 use Workbench\App\Models\Workspace;
 
@@ -23,7 +24,10 @@ class TestCase extends Orchestra
 
     protected function getPackageProviders($app)
     {
+        // Testbench ignores vendor package discovery, so mod's provider is listed here as
+        // Laravel's discovery would register it in a real app.
         return [
+            ModServiceProvider::class,
             PermissionServiceProvider::class,
             ConciergeServiceProvider::class,
         ];

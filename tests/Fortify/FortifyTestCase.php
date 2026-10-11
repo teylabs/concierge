@@ -7,6 +7,7 @@ use Laravel\Fortify\FortifyServiceProvider;
 use Spatie\Permission\PermissionServiceProvider;
 use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\Tests\TestCase;
+use Tey\Mod\ModServiceProvider;
 use Workbench\App\Providers\FortifyServiceProvider as HostFortifyServiceProvider;
 
 /**
@@ -19,6 +20,7 @@ class FortifyTestCase extends TestCase
     protected function getPackageProviders($app)
     {
         return [
+            ModServiceProvider::class,
             PermissionServiceProvider::class,
             FortifyServiceProvider::class,
             ConciergeServiceProvider::class,
