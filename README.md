@@ -125,6 +125,8 @@ Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptIn
 
 The published `config/concierge.php` lists every key with a comment on each: the models, the roles and who may grant them, invitation expiry, tenant invitations and local login. Each feature page explains the keys it uses.
 
+Who may register is one setting, `CONCIERGE_REGISTRATION` (`open` by default, `domains`, `invitation` or `closed`), enforced in Fortify's registration with no app code. See [Registration](https://concierge.teylabs.com/features/registration).
+
 ## FAQ
 
 ### How Is This Different from spatie/laravel-permission, Starter-Kit Teams or an Admin Panel?

@@ -12,6 +12,7 @@ use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\IssuedInvitation;
+use Tey\Concierge\Tests\Fortify\FortifyTestCase;
 use Tey\Concierge\Tests\Standalone\StandaloneTestCase;
 use Tey\Concierge\Tests\TenantOff\TenantInvitationsOffTestCase;
 use Tey\Concierge\Tests\TestCase;
@@ -20,6 +21,7 @@ use Workbench\App\Models\Workspace;
 
 uses(TestCase::class)->in('ArchTest.php', 'ConciergeServiceProviderTest.php', 'Concurrency', 'Data', 'Feature');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
+uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify');
 uses(RefreshDatabase::class)->in('Feature');
 // No RefreshDatabase: on a shared PostgreSQL database whichever class migrates first decides the
 // schema, and this one boots without the tenant migration. It must not touch the database.
