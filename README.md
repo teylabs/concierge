@@ -161,22 +161,16 @@ One click signs in as an account named in configuration, creating it on the firs
 
 It is available only when **all** of these hold, checked on every request:
 
-- the application environment is exactly `local`
-- uncached process `APP_ENV` is exactly `local` (`getenv`, with `$_SERVER` fallback only when the process value is absent)
-- `concierge.local_login.enabled` is `true`
-- an account email is configured
+| Check | Must be | Read from |
+| --- | --- | --- |
+| Laravel's environment | exactly `local` | the configuration cache if there is one, otherwise `.env` or the process |
+| `APP_ENV` of the process serving the request | exactly `local` | `getenv`, then `$_SERVER` only when the process has none; never `$_ENV` or a cache |
+| `concierge.local_login.enabled` | `true` | configuration |
+| `concierge.local_login.account.email` | not empty | configuration |
 
-A locally generated configuration cache is not proof that the running process is local.
-When configuration is cached, supply `APP_ENV=local` in the development process
-environment; Laravel skips loading `.env` on cached boots. Missing raw `APP_ENV`
-disables local login. An explicit nonlocal process value takes precedence over
-`$_SERVER`, and Concierge never changes the application's environment.
+Exact means exact: `Local`, ` local ` and an empty value all fail. When any check fails there is no offer, and `POST /local-login` answers 404 before the session starts and before CSRF verification, the guest check and the throttle, even when the route came from a cache built in `local`. The route is registered only when both environments are `local`. This holds under php-fpm, `php artisan serve`, long-lived workers such as Octane (the check runs per request, not per boot) and the console.
 
-Otherwise:
-
-- outside either local environment boundary, the route is not registered and there is no offer
-- with both environments `local` but disabled or without an account email, the route is registered but answers 404, and there is no offer
-- a route cached in `local` and served with nonlocal or missing raw `APP_ENV` also answers 404, before CSRF verification, the guest check and the throttle
+**Developing with cached configuration** (`config:cache` or `optimize`): Laravel stops reading `.env`, so a local configuration cache alone is not enough. Set `APP_ENV=local` in the environment of the process that serves requests, such as your shell for `php artisan serve` or `env[APP_ENV]` in a php-fpm pool. Without it local login is off. A non-local process value always wins over `$_SERVER`, and Concierge never changes the application's environment.
 
 What it does and does not do:
 
