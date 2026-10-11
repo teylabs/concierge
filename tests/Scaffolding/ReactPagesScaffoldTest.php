@@ -7,15 +7,14 @@ use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
 
 /**
- * Mod picks the page extension from the app's stack, but a stub
- * variant a package registers is keyed by "<type>.<variant>" with no extension.
- * Concierge therefore registers its Vue variants only for a Vue app, and a React
- * app is told which stub to supply instead of receiving Vue code in a .tsx file
- * (teylabs/mod#90).
+ * Mod picks the page extension from the app's stack and asks for the stub
+ * variant registered under it ("page.<variant>.tsx"). Concierge ships Vue
+ * variants only, so a React app is told which stub to supply instead of
+ * receiving Vue code in a .tsx file.
  */
 it('plans .tsx pages in a React app and refuses without a React variant', function () {
     $output = new BufferedOutput;
-    $exit = app(Kernel::class)->call('mod:'.ConciergeScaffolds::PAGES, ['name' => 'Concierge', '--no-interaction' => true, '--dry-run' => true, '--json' => true], $output);
+    $exit = app(Kernel::class)->call('mod:'.ConciergeScaffolds::id(), ['name' => 'Concierge', '--no-interaction' => true, '--dry-run' => true, '--json' => true], $output);
     $plan = json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
 
     expect($exit)->toBe(0)
