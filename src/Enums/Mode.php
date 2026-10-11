@@ -15,7 +15,7 @@ enum Mode: string
     case Workspaces = 'workspaces';
 
     /**
-     * A missing (or null) key means app-wide, except for the 0.7 transition rule:
+     * A missing (or null) key means app-wide, except for the transition rule (removed at 1.0):
      * a host that predates the key and names a workspace model is in workspace mode.
      */
     public static function configured(): self
@@ -34,7 +34,7 @@ enum Mode: string
     }
 
     /**
-     * Whether the mode comes from the 0.7 transition rule rather than the key.
+     * Whether the mode comes from the transition rule rather than the key.
      * Deprecated with the rule itself, which is removed at 1.0.
      */
     public static function inferred(): bool
