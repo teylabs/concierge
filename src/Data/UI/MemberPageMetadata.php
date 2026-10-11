@@ -2,9 +2,11 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MemberPageMetadata extends Data
+#[TypeScript]
+readonly class MemberPageMetadata extends Props
 {
     public function __construct(
         public MemberPageLinks $links,

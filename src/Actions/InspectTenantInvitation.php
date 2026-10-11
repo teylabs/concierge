@@ -2,8 +2,8 @@
 
 namespace Tey\Concierge\Actions;
 
-use Lorisleiva\Actions\Concerns\AsAction;
 use SensitiveParameter;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationState;
 use Tey\Concierge\Models\TenantInvitation;
@@ -16,7 +16,7 @@ use Tey\Concierge\Support\TenantInvitationInspection;
  */
 class InspectTenantInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function handle(?Member $user, #[SensitiveParameter] string $token): TenantInvitationInspection
     {

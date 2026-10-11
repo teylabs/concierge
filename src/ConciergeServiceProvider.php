@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Tey\Concierge\Actions\SyncRoleDefinitions;
+use Tey\Concierge\Commands\SyncRolesCommand;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
@@ -93,7 +93,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([SyncRoleDefinitions::class]);
+            $this->commands([SyncRolesCommand::class]);
         }
     }
 

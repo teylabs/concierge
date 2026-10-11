@@ -4,7 +4,6 @@ namespace Tey\Concierge\Tests;
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Lorisleiva\Actions\ActionServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spatie\Permission\PermissionServiceProvider;
 use Tey\Concierge\ConciergeServiceProvider;
@@ -26,7 +25,6 @@ class TestCase extends Orchestra
     {
         return [
             PermissionServiceProvider::class,
-            ActionServiceProvider::class,
             ConciergeServiceProvider::class,
         ];
     }

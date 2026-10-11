@@ -4,7 +4,7 @@ namespace Tey\Concierge\Actions;
 
 use Illuminate\Auth\Access\Response;
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
@@ -15,7 +15,7 @@ use Tey\Concierge\Support\Roles;
 
 class TransferOwnership
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected Concierge $concierge, protected RecentAuthentication $recentAuthentication) {}
 

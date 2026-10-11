@@ -2,18 +2,14 @@
 
 namespace Tey\Concierge\Actions;
 
-use Lorisleiva\Actions\Concerns\AsAction;
 use Spatie\Permission\PermissionRegistrar;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\Roles;
 
 class SyncRoleDefinitions
 {
-    use AsAction;
-
-    public string $commandSignature = 'concierge:sync-roles';
-
-    public string $commandDescription = 'Ensure the configured Concierge roles exist as global Spatie roles.';
+    use Runnable;
 
     public function handle(): void
     {
@@ -32,10 +28,5 @@ class SyncRoleDefinitions
         }
 
         $registrar->forgetCachedPermissions();
-    }
-
-    public function asCommand(): void
-    {
-        $this->handle();
     }
 }

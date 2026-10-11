@@ -4,7 +4,7 @@ namespace Tey\Concierge\Actions;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationStatus;
@@ -15,7 +15,7 @@ use Tey\Concierge\Support\Locks;
 
 class RevokeInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected GrantPolicy $policy) {}
 
