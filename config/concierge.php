@@ -1,5 +1,6 @@
 <?php
 
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
@@ -7,10 +8,11 @@ use Tey\Concierge\Models\TenantInvitation;
 
 return [
     /*
-     * 'app' (invitations and roles apply to the whole app) or 'workspaces' (they
-     * apply per workspace). Set it here, never from .env: it describes the schema.
-     * Null means 'app', except that a config without the key and with a
-     * models.workspace is read as 'workspaces' until 1.0.
+     * 'app' (invitations and roles apply to the whole app; Spatie teams off; no
+     * workspace model or table) or 'workspaces' (they apply per workspace; Spatie
+     * teams on). Set it here, never from .env: it describes the schema. Null means
+     * 'app', except that a config without the key and with a models.workspace is
+     * read as 'workspaces' until 1.0.
      */
     'mode' => null,
 
@@ -22,6 +24,7 @@ return [
         // Platform-level tenant invitations: a platform owner invites an email and
         // accepting provisions that person's OWN workspace. Off by default: no table,
         // limiter or Gate definition until true. Set it before publishing migrations.
+        // Workspace mode only: with 'mode' => 'app' it fails at boot.
         'tenant_invitations' => false,
     ],
 
@@ -32,13 +35,16 @@ return [
         'ownership' => Ownership::class,
         'invitation' => Invitation::class,
         'tenant_invitation' => TenantInvitation::class,
+        'account' => Account::class,
     ],
 
     'guard' => null,
 
     /*
-     * Ordered highest rank first. Each role is a global Spatie role row
-     * (team NULL); assignments are always scoped to a workspace.
+     * Ordered highest rank first. Each role is a global Spatie role row (team
+     * NULL in workspace mode). In workspace mode assignments are scoped to a
+     * workspace; in app mode they apply to the whole app and the owner role is
+     * the top role, held by one or several owners.
      */
     'roles' => [
         'owner' => ['label' => 'Owner', 'grantable_by' => []],

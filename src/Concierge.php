@@ -11,9 +11,12 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Data\UI\UserAvatar;
+use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\TenantInvitation;
+use Tey\Concierge\Support\AppScope;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\MembershipDirectory;
 use Tey\Concierge\Support\Roles;
@@ -32,9 +35,24 @@ class Concierge
     /** @var (Closure(Member): ?string)|null */
     protected ?Closure $avatarUrl = null;
 
+    /** The configured mode: App (roles apply to the whole app) or Workspaces. */
+    public function mode(): Mode
+    {
+        return Mode::configured();
+    }
+
     public function context(): WorkspaceContext
     {
         return app(WorkspaceContext::class);
+    }
+
+    /**
+     * The user's per-account state, in both modes. Unsaved and active when
+     * the user has no row yet.
+     */
+    public function account(Member $user): Account
+    {
+        return app(AppScope::class)->account($user);
     }
 
     public function membership(Member $user, Workspace $workspace): ?Membership
@@ -63,17 +81,39 @@ class Concierge
         return $ownership ? ConciergeModels::membership()::query()->find($ownership->membership_id) : null;
     }
 
-    public function isOwner(Membership $membership): bool
+    /**
+     * Workspace mode: whether the membership holds its workspace's ownership
+     * row. App-wide mode: whether the user holds the owner role.
+     */
+    public function isOwner(Membership|Member $subject): bool
     {
+        if ($subject instanceof Member) {
+            ConciergeModels::assertAppWide('isOwner() takes a Membership in workspace mode');
+
+            return app(AppScope::class)->isOwner($subject);
+        }
+
         return ConciergeModels::ownership()::query()
-            ->whereKey($membership->workspace_id)
-            ->where('membership_id', $membership->getKey())
+            ->whereKey($subject->workspace_id)
+            ->where('membership_id', $subject->getKey())
             ->exists();
     }
 
-    /** @return list<string> */
-    public function roleNames(Membership $membership): array
+    /**
+     * Workspace mode: the roles a membership holds in its workspace. App-wide
+     * mode: the roles a user holds in the app.
+     *
+     * @return list<string>
+     */
+    public function roleNames(Membership|Member $subject): array
     {
+        if ($subject instanceof Member) {
+            ConciergeModels::assertAppWide('roleNames() takes a Membership in workspace mode');
+
+            return app(AppScope::class)->roleNames($subject);
+        }
+
+        $membership = $subject;
         $user = $membership->user;
 
         return $this->context()->run(

@@ -1,8 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\PermissionRegistrar;
+use Tey\Concierge\Actions\ChangeUserRoles;
+use Tey\Concierge\Actions\EstablishOwner;
 use Tey\Concierge\Actions\EstablishWorkspace;
+use Tey\Concierge\Actions\InviteUser;
+use Tey\Concierge\Actions\RemoveUser;
 use Tey\Concierge\Actions\SyncRoleDefinitions;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\ConciergeServiceProvider;
@@ -10,6 +15,7 @@ use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\RankRules;
 use Tey\Concierge\Support\Roles;
 use Workbench\App\Models\Workspace;
@@ -96,17 +102,54 @@ it('shows a deprecation line in about when the mode is inferred', function () {
         ->assertSuccessful();
 });
 
-it('refuses app-wide mode until it is implemented, naming the issue', function () {
+it('requires Spatie teams to match the mode', function () {
     $owner = host_user('owner');
     $workspace = host_workspace();
     config()->set('concierge.mode', 'app');
 
-    $refusal = "Concierge does not support concierge.mode = 'app' yet (teylabs/concierge#19)";
+    $refusal = 'Concierge app-wide mode requires permission.teams = false';
 
     expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, $refusal)
         ->and(fn () => SyncRoleDefinitions::run())->toThrow(UnsupportedConfiguration::class, $refusal)
-        ->and(fn () => EstablishWorkspace::run($workspace, $owner))->toThrow(UnsupportedConfiguration::class, $refusal)
+        ->and(fn () => EstablishWorkspace::run($workspace, $owner))->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces; use EstablishOwner.")
         ->and(fn () => app(WorkspaceContext::class)->run($workspace, fn () => null))->toThrow(UnsupportedConfiguration::class, $refusal);
+
+    config()->set('concierge.mode', 'workspaces');
+    config()->set('permission.teams', false);
+
+    expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, 'requires permission.teams = true');
+});
+
+it('keeps the workspace-mode schema as it was before app-wide mode', function () {
+    $shape = fn (string $table) => [
+        'columns' => collect(Schema::getColumns($table))->map(fn (array $c) => $c['name'].':'.($c['nullable'] ? 'null' : 'not null'))->all(),
+        'indexes' => collect(Schema::getIndexes($table))->map(fn (array $i) => implode(',', $i['columns']).($i['unique'] ? ' unique' : ''))->sort()->values()->all(),
+        'foreign' => collect(Schema::getForeignKeys($table))->map(fn (array $f) => implode(',', $f['columns']).' -> '.$f['foreign_table'].'('.implode(',', $f['foreign_columns']).') '.$f['on_delete'])->sort()->values()->all(),
+    ];
+
+    expect($shape('concierge_memberships'))->toBe([
+        'columns' => ['id:not null', 'workspace_id:not null', 'user_id:not null', 'status:not null', 'invitation_id:null', 'joined_at:null', 'suspended_at:null', 'suspended_by_id:null', 'suspension_reason:null', 'removed_at:null', 'removed_by_id:null', 'created_at:null', 'updated_at:null'],
+        'indexes' => ['id unique', 'user_id,status', 'workspace_id,id unique', 'workspace_id,user_id unique'],
+        'foreign' => ['invitation_id -> concierge_invitations(id) set null', 'removed_by_id -> users(id) set null', 'suspended_by_id -> users(id) set null', 'user_id -> users(id) restrict', 'workspace_id -> workspaces(id) restrict'],
+    ])->and($shape('concierge_ownerships'))->toBe([
+        'columns' => ['workspace_id:not null', 'membership_id:not null', 'previous_membership_id:null', 'transferred_at:null', 'created_at:null', 'updated_at:null'],
+        'indexes' => ['membership_id unique', 'workspace_id unique'],
+        'foreign' => ['previous_membership_id -> concierge_memberships(id) set null', 'workspace_id -> workspaces(id) restrict', 'workspace_id,membership_id -> concierge_memberships(workspace_id,id) restrict'],
+    ])->and($shape('concierge_invitations'))->toBe([
+        'columns' => ['id:not null', 'public_id:not null', 'workspace_id:not null', 'email:not null', 'pending_key:null', 'grants:not null', 'grants_fingerprint:not null', 'inviter_id:null', 'token_hash:not null', 'generation:not null', 'rotated_at:null', 'status:not null', 'expires_at:not null', 'last_sent_at:null', 'send_count:not null', 'accepted_at:null', 'accepted_by_id:null', 'accepted_membership_id:null', 'revoked_at:null', 'revoked_by_id:null', 'created_at:null', 'updated_at:null'],
+        'indexes' => ['id unique', 'public_id unique', 'token_hash unique', 'workspace_id,email', 'workspace_id,pending_key unique', 'workspace_id,status'],
+        'foreign' => ['accepted_by_id -> users(id) set null', 'accepted_membership_id -> concierge_memberships(id) set null', 'inviter_id -> users(id) set null', 'revoked_by_id -> users(id) set null', 'workspace_id -> workspaces(id) restrict'],
+    ])->and(Schema::hasTable('concierge_accounts'))->toBeTrue();
+});
+
+it('refuses the app-wide reads and actions in workspace mode, naming the workspace ones', function () {
+    $owner = host_user('owner');
+
+    expect(fn () => app(Concierge::class)->isOwner($owner))->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'workspaces' scopes roles by workspace; isOwner() takes a Membership in workspace mode.")
+        ->and(fn () => InviteUser::run($owner, 'a@example.test', new GrantSet(['presenter'])))->toThrow(UnsupportedConfiguration::class, 'use InviteMember')
+        ->and(fn () => EstablishOwner::run($owner))->toThrow(UnsupportedConfiguration::class, 'use EstablishWorkspace')
+        ->and(fn () => ChangeUserRoles::run($owner, $owner, new GrantSet([])))->toThrow(UnsupportedConfiguration::class, 'use ChangeMemberRoles')
+        ->and(fn () => RemoveUser::run($owner, $owner))->toThrow(UnsupportedConfiguration::class, 'use RemoveMembership');
 });
 
 it('reads roles without the teams key when Spatie teams are off', function () {

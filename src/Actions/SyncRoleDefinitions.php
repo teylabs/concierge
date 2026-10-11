@@ -19,10 +19,11 @@ class SyncRoleDefinitions
 
         foreach (Roles::configured() as $name) {
             if (! Roles::find($name)) {
+                // With Spatie teams off there is no team column to write.
                 $registrar->getRoleClass()::create([
                     'name' => $name,
                     'guard_name' => Roles::guard(),
-                    $registrar->teamsKey => null,
+                    ...($registrar->teams ? [$registrar->teamsKey => null] : []),
                 ]);
             }
         }

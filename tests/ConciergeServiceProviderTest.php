@@ -27,7 +27,7 @@ it('publishes only the config file and the package migrations', function () {
         ->values()
         ->all();
 
-    expect($published)->toBe(['concierge.php', 'create_concierge_tables.php', 'create_concierge_tenant_invitations_table.php']);
+    expect($published)->toBe(['concierge.php', 'create_concierge_tables.php', 'create_concierge_tenant_invitations_table.php', 'create_concierge_user_accounts_table.php']);
 });
 
 it('publishes the package defaults under the concierge-config tag', function () {
