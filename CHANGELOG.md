@@ -2,6 +2,27 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## Concierge 0.5.0 - 2026-10-11
+
+Concierge is now public, on Packagist, and documented at https://concierge.teylabs.com.
+
+### Install
+
+```bash
+composer require tey/concierge
+
+```
+Apps that added this GitHub repository to Composer can remove that `repositories` entry.
+
+### Changes
+
+- Local login is tested across the full environment matrix: caches, every source of `APP_ENV`, exact values, php-fpm, `php artisan serve` and long-lived workers. It is offered only when both Laravel's environment and the serving process's `APP_ENV` are exactly `local`. No behaviour change from 0.4.1. (#53, closes #9)
+- New README and documentation site, including configuration and actions-and-events reference pages. (#59, closes #10, #11, #12, #14)
+- `composer lint` runs Pint in test mode. (#56)
+- Updated a development-only build dependency, source-map-js 1.2.2. (#54)
+
+No changes to package behaviour or the public API.
+
 ## Concierge 0.4.1 - 2026-10-04
 
 Security fix for local login (#6, #7).
