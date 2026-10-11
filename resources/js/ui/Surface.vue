@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Elevated panel. Adapted from cookbook UI/Card/Surface.vue: the only element
+ * Elevated panel: the only element
  * that declares background, ring, shadow and radius for a panel.
  */
 withDefaults(

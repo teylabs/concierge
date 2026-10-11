@@ -138,8 +138,3 @@ session error bag under `local_login`, and displaying them is the host's choice.
 - `npm run test:browser` runs Playwright against the Vite harness on port 8152.
   It covers desktop and phone, and writes screenshots to `build/screenshots`.
 - `npm run consumer:proof` runs the clean host install, type-check and build.
-
-The primitives in `ui/` are adapted from the cookbook UI kit
-(`resources/js/UI`: Surface, Button, Badge/StatusBadge, FormGroup,
-OptionsCheckbox, ConfirmationModal, Paginator, EmptyState). Each file notes
-its provenance.

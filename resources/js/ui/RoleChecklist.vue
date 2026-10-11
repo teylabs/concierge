@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Role picker: one checkbox card per server-provided option. Adapted from
- * cookbook UI/Form/OptionsCheckbox with its label/description slot pattern.
+ * Role picker: one checkbox card per server-provided option with a
+ * label/description slot pattern.
  * No direct permission editing in the pilot.
  */
 import type { RoleOption } from '../types';

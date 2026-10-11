@@ -2,9 +2,7 @@
 /**
  * Workspace members index: search/status filter, paginated members with
  * server-authorised row actions, and pending/expired invitations.
- * Adapted from cookbook pages/UserManagement/Index (search filter, row
- * actions, invitation list) with membership semantics and no global
- * account controls.
+ * Uses membership semantics with no global account controls.
  */
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InvitationItem from '../internal/InvitationItem.vue';

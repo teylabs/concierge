@@ -1,7 +1,7 @@
 /**
- * Literal class maps per semantic variant, adapted from the cookbook kit
- * (resources/js/UI/variants.js). Class strings stay literal so Tailwind can
- * see them; never build them at runtime. Unknown variants fall back to muted.
+ * Literal class maps per semantic variant. Class strings stay literal so
+ * Tailwind can see them; never build them at runtime. Unknown variants fall
+ * back to muted.
  */
 export const variantNames = [
     'primary',
@@ -95,8 +95,8 @@ export function normalizeVariant(value: string | null | undefined): Variant {
 }
 
 /**
- * Badge variants from the server may carry a tier suffix, following the
- * cookbook badge convention: "danger", "danger-solid", "danger-outline".
+ * Badge variants from the server may carry a tier suffix:
+ * "danger", "danger-solid", "danger-outline".
  */
 export function badgeClasses(value: string | null | undefined): string {
     const [base, suffix] = splitTier(value ?? '');

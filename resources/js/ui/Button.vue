@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Adapted from cookbook UI/Button (variant × tier × size). Renders an anchor
+ * Button with variant × tier × size options. Renders an anchor
  * when href is given so hosts keep native link behaviour (open in new tab);
  * plain clicks are intercepted by the caller through the adapter.
  */

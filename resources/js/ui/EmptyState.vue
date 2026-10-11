@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/** Adapted from cookbook UI/EmptyState.vue. */
 defineProps<{ title: string }>();
 </script>
 

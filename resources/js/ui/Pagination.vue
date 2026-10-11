@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * Previous/next pager over server-provided URLs, adapted from cookbook
- * UI/Table/Paginator.vue. Links are real anchors; the page intercepts plain
- * clicks through the adapter.
+ * Previous/next pager over server-provided URLs. Links are real anchors;
+ * the page intercepts plain clicks through the adapter.
  */
 import type { Pagination } from '../types';
 import Button from './Button.vue';

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * Label, hint and error wiring for one control. Adapted from cookbook
- * UI/Form/FormGroup + FormLabel + FormError. The slot receives the ids a
+ * Label, hint and error wiring for one control. The slot receives the ids a
  * control needs for aria-describedby / aria-invalid.
  */
 import { computed, useId } from 'vue';

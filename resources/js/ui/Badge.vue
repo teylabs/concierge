@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Adapted from cookbook UI/Badge/StatusBadge.vue: pale tier plus ring. */
+/** Status badge with a pale tier plus ring. */
 import { computed } from 'vue';
 import { badgeClasses } from './variants';
 

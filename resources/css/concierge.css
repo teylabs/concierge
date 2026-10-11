@@ -6,8 +6,7 @@
  * Components use Tailwind utilities that read the --concierge-* variables
  * below, so hosts restyle Concierge by overriding variables rather than
  * classes. Defaults are layered so any unlayered host :root rule wins.
- * Palette and tier structure adapted from the cookbook UI kit
- * (resources/css/variants.css: pale / solid / outline tiers).
+ * Palette variants use pale / solid / outline tiers.
  */
 @source '../js';
 

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * Member detail. Adapted from cookbook pages/UserManagement/Edit section
- * composition: Membership summary, Roles (omitted to read-only when the
- * server sends grants: null) and Access actions. No global profile,
+ * Member detail sections: Membership summary, Roles (omitted to read-only
+ * when the server sends grants: null) and Access actions. No global profile,
  * password, deactivation or impersonation controls.
  */
 import { computed, reactive, ref, watch } from 'vue';
