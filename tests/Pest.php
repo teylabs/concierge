@@ -16,6 +16,8 @@ use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Tests\AppMode\AppModeTestCase;
 use Tey\Concierge\Tests\Fortify\FortifyTestCase;
+use Tey\Concierge\Tests\Import\ImportTestCase;
+use Tey\Concierge\Tests\Kit\KitTestCase;
 use Tey\Concierge\Tests\Scaffolding\ModulesScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ReactScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
@@ -31,6 +33,8 @@ uses(ReactScaffoldTestCase::class)->in('Scaffolding/ReactPagesScaffoldTest.php')
 uses(ModulesScaffoldTestCase::class)->in('Scaffolding/ModulesPagesScaffoldTest.php');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
 uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify');
+uses(KitTestCase::class, RefreshDatabase::class)->in('Kit');
+uses(ImportTestCase::class, RefreshDatabase::class)->in('Import');
 uses(RefreshDatabase::class)->in('Feature');
 // No RefreshDatabase: on a shared PostgreSQL database whichever class migrates first decides the
 // schema, and this one boots without the tenant migration. It must not touch the database.

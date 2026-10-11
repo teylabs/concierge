@@ -10,21 +10,27 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Tey\Concierge\Commands\ImportMembersCommand;
 use Tey\Concierge\Commands\PagesCommand;
 use Tey\Concierge\Commands\SyncRolesCommand;
 use Tey\Concierge\Contracts\AccountGuard;
 use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
+use Tey\Concierge\Contracts\MembershipSource;
 use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
+use Tey\Concierge\Kit\KitMembershipSource;
+use Tey\Concierge\Kit\KitWorkspaceContext;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 use Tey\Concierge\Support\AppScope;
+use Tey\Concierge\Support\ConciergeMembershipSource;
 use Tey\Concierge\Support\ConfiguredAccountPolicy;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
 use Tey\Concierge\Support\OpenAccountGuard;
@@ -99,11 +105,28 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(Concierge::class);
         $this->app->singleton(AppScope::class);
-        $this->app->scopedIf(WorkspaceContext::class, $mode === Mode::App ? AppScope::class : PermissionWorkspaceContext::class);
+        $this->registerWorkspaceEngine($mode);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
         $this->app->bindIf(AccountPolicy::class, ConfiguredAccountPolicy::class);
         $this->app->bindIf(RecentAuthentication::class, SessionRecentAuthentication::class);
         $this->app->bindIf(AccountGuard::class, OpenAccountGuard::class);
+    }
+
+    /**
+     * App mode has no workspace to run in. In workspace mode a starter kit's teams
+     * are read through the kit adapter, and concierge's own engine keeps the
+     * Spatie-teams context. Hosts may still bind their own.
+     */
+    protected function registerWorkspaceEngine(Mode $mode): void
+    {
+        $kit = $mode === Mode::Workspaces && WorkspaceEngine::configured() === WorkspaceEngine::Kit;
+
+        $this->app->scopedIf(WorkspaceContext::class, match (true) {
+            $mode === Mode::App => AppScope::class,
+            $kit => KitWorkspaceContext::class,
+            default => PermissionWorkspaceContext::class,
+        });
+        $this->app->bindIf(MembershipSource::class, $kit ? KitMembershipSource::class : ConciergeMembershipSource::class);
     }
 
     public function packageBooted(): void
@@ -117,6 +140,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
         AboutCommand::add('Concierge', fn () => array_filter([
             'Mode' => Mode::configured()->value,
+            'Workspace engine' => Mode::configured() === Mode::Workspaces ? WorkspaceEngine::configured()->value : null,
             'Deprecated' => Mode::inferred()
                 ? "<fg=yellow;options=bold>Mode inferred from models.workspace; set 'mode' => 'workspaces' in config/concierge.php before 1.0</>"
                 : null,
@@ -127,7 +151,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PagesCommand::class, SyncRolesCommand::class]);
+            $this->commands([ImportMembersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register($this->app->basePath());
         }
     }

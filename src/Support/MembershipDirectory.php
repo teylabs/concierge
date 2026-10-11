@@ -112,7 +112,7 @@ final class MembershipDirectory
      * @param  list<int>  $userIds
      * @return array<int, list<string>>
      */
-    private static function rolesFor(int $workspaceId, array $userIds): array
+    public static function rolesFor(int $workspaceId, array $userIds): array
     {
         $pivot = Config::modelHasRolesTable();
         $roles = Config::rolesTable();
