@@ -2,7 +2,7 @@
 
 Invitations, membership, and access administration for Laravel.
 
-Concierge is a private Teylabs package with two independent features:
+Concierge is a private Tey Labs package with two independent features:
 
 - **Membership**: invitations, memberships, ownership and role grants scoped to a workspace. On by default.
 - **Local login**: one-click sign-in as a configured account in the `local` environment only. Off by default, and it works without the membership feature.
