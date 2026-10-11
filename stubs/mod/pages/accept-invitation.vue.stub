@@ -1,0 +1,9 @@
+<script setup lang="ts">
+import { AcceptInvitationPage, type AcceptInvitationPageProps } from '@tey/concierge';
+
+const props = defineProps<AcceptInvitationPageProps>();
+</script>
+
+<template>
+    <AcceptInvitationPage v-bind="props" />
+</template>

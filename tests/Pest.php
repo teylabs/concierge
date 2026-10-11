@@ -13,6 +13,8 @@ use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Tests\Fortify\FortifyTestCase;
+use Tey\Concierge\Tests\Scaffolding\ReactScaffoldTestCase;
+use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
 use Tey\Concierge\Tests\Standalone\StandaloneTestCase;
 use Tey\Concierge\Tests\TenantOff\TenantInvitationsOffTestCase;
 use Tey\Concierge\Tests\TestCase;
@@ -20,6 +22,8 @@ use Workbench\App\Models\User;
 use Workbench\App\Models\Workspace;
 
 uses(TestCase::class)->in('ArchTest.php', 'ConciergeServiceProviderTest.php', 'Concurrency', 'Data', 'Feature');
+uses(ScaffoldTestCase::class)->in('Scaffolding/ConciergePagesScaffoldTest.php');
+uses(ReactScaffoldTestCase::class)->in('Scaffolding/ReactPagesScaffoldTest.php');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
 uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify');
 uses(RefreshDatabase::class)->in('Feature');

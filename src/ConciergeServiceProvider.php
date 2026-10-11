@@ -18,6 +18,7 @@ use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
+use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
 use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
@@ -99,6 +100,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([SyncRolesCommand::class]);
+            ConciergeScaffolds::register($this->app->basePath());
         }
     }
 
