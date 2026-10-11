@@ -191,3 +191,23 @@ test('keeps the plain title for an unknown app-wide invitation', async ({
         page.getByRole('heading', { name: 'Invitation' }),
     ).toBeVisible();
 });
+
+test('falls back to generic wording when the app passes no name', async ({
+    page,
+}) => {
+    await openHarness(page, 'acceptApp', 'readyNoName');
+
+    await expect(page.getByRole('heading', { name: 'Join' })).toBeVisible();
+    await expect(
+        page.getByText('Accept the invitation to join.'),
+    ).toBeVisible();
+    await expect(page.locator('.concierge')).not.toContainText(
+        /undefined|null/,
+    );
+
+    await openHarness(page, 'acceptApp', 'expiredNoName');
+    await expect(page.getByRole('heading', { name: 'Join' })).toBeVisible();
+    await expect(
+        page.getByText('Ask an admin to send a new one.'),
+    ).toBeVisible();
+});

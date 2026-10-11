@@ -13,5 +13,7 @@ readonly class UserLinks extends Props
         public ?string $updateProfile,
         public ?string $updateGrants,
         public ?string $remove,
+        public ?string $deactivate,
+        public ?string $restore,
     ) {}
 }

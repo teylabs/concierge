@@ -111,7 +111,7 @@ function serialization_user_row(): UserRow
         roles: [new RoleBadge('admin', 'Admin', 'info')],
         joinedAt: '2026-08-12T15:30:00Z',
         hasActions: true,
-        links: new UserLinks('/users/11', '/users/11', null, '/users/11'),
+        links: new UserLinks('/users/11', '/users/11', null, '/users/11', null, '/users/11/restore'),
         columns: ['plan' => 'Pro', 'seats' => 3, 'beta' => false, 'team' => null],
     );
 }
@@ -133,7 +133,7 @@ function serialization_user_row_array(): array
         'roles' => [['value' => 'admin', 'label' => 'Admin', 'variant' => 'info']],
         'joinedAt' => '2026-08-12T15:30:00Z',
         'hasActions' => true,
-        'links' => ['show' => '/users/11', 'updateProfile' => '/users/11', 'updateGrants' => null, 'remove' => '/users/11'],
+        'links' => ['show' => '/users/11', 'updateProfile' => '/users/11', 'updateGrants' => null, 'remove' => '/users/11', 'deactivate' => null, 'restore' => '/users/11/restore'],
         'columns' => ['plan' => 'Pro', 'seats' => 3, 'beta' => false, 'team' => null],
     ];
 }
@@ -277,7 +277,7 @@ dataset('page props', [
             workspace: null,
             email: null,
             roles: [],
-            metadata: new AcceptInvitationMetadata(new AcceptInvitationLinks(null, null, null, null, '/'), 'Teylabs'),
+            metadata: new AcceptInvitationMetadata(new AcceptInvitationLinks(null, null, null, null, '/')),
         ),
         [
             'state' => 'invalid',
@@ -286,7 +286,7 @@ dataset('page props', [
             'roles' => [],
             'metadata' => ['links' => [
                 'accept' => null, 'login' => null, 'register' => null, 'logout' => null, 'continue' => '/',
-            ], 'appName' => 'Teylabs'],
+            ], 'appName' => null],
         ],
     ],
     'users page' => fn () => [

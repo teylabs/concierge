@@ -46,27 +46,40 @@ const knownState = computed<State>(() =>
     props.state in tone ? props.state : 'invalid',
 );
 
-// App-wide invitations have no workspace: the page names the app instead.
-const target = computed(() => props.workspace?.name ?? props.metadata.appName);
+// App-wide invitations have no workspace: the page names the app instead, and
+// falls back to generic wording when the app passes no name.
+const target = computed(
+    () => props.workspace?.name ?? props.metadata.appName ?? null,
+);
 
 const params = computed(() => ({
-    workspace: target.value,
+    workspace: target.value ?? '',
     email: props.email ?? '',
 }));
 
-const title = computed(() =>
-    props.workspace || knownState.value !== 'invalid'
-        ? t('accept.title', params.value)
-        : t('accept.titleUnknown'),
-);
-
-const message = computed(() => {
-    const app = `accept.app.${knownState.value}` as ConciergeLabelKey;
+const title = computed(() => {
+    if (!props.workspace && knownState.value === 'invalid') {
+        return t('accept.titleUnknown');
+    }
 
     return t(
-        !props.workspace && app in defaultLabels
-            ? app
-            : (`accept.${knownState.value}` as ConciergeLabelKey),
+        target.value === null ? 'accept.titleGeneric' : 'accept.title',
+        params.value,
+    );
+});
+
+const message = computed(() => {
+    const keys = [
+        ...(target.value === null
+            ? [`accept.generic.${knownState.value}`]
+            : []),
+        ...(!props.workspace ? [`accept.app.${knownState.value}`] : []),
+        `accept.${knownState.value}`,
+    ] as ConciergeLabelKey[];
+
+    return t(
+        keys.find((key) => key in defaultLabels) ??
+            (`accept.${knownState.value}` as ConciergeLabelKey),
         params.value,
     );
 });

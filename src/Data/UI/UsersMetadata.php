@@ -13,7 +13,8 @@ readonly class UsersMetadata extends Props
         public string $refreshUrl,
         public string $search,
         public ?string $role,
-        #[LiteralTypeScriptType("'active' | 'deactivated' | null")]
+        #[LiteralTypeScriptType("'active' | 'deactivated' | 'all' | null")]
+        /** Null shows active users only, like 'active'; 'all' adds the deactivated. */
         public ?string $status,
         /** @var list<RoleOption> */
         public array $roleOptions,

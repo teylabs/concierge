@@ -99,8 +99,8 @@ export const defaultLabels = {
     'users.role': 'Role',
     'users.role.all': 'All roles',
     'users.status': 'Status',
-    'users.status.all': 'All statuses',
     'users.status.active': 'Active',
+    'users.status.all': 'Active and deactivated',
     'users.status.deactivated': 'Deactivated',
     'users.clearFilters': 'Clear filters',
     'users.column.user': 'User',
@@ -136,8 +136,18 @@ export const defaultLabels = {
     'user.saveRoles': 'Save roles',
     'user.rolesSaved': 'Roles saved.',
     'user.access': 'Access',
-    'user.accessDescription': 'Removing a user deletes their account.',
+    'user.accessDescription':
+        'Deactivating a user takes their access away and keeps their history. Removing a user deletes their account.',
     'user.noActions': 'There are no actions available for this user.',
+    'userActions.deactivate': 'Deactivate',
+    'userActions.deactivate.title': 'Deactivate {name}?',
+    'userActions.deactivate.body':
+        'They can no longer sign in and are signed out on their next request. Their roles and history are kept, and you can restore them later.',
+    'userActions.deactivate.reason': 'Reason (optional)',
+    'userActions.restore': 'Restore',
+    'userActions.restore.title': 'Restore {name}?',
+    'userActions.restore.body':
+        'They can sign in again with the roles they had. No invitation is sent.',
     'userActions.remove': 'Remove',
     'userActions.remove.title': 'Remove {name}?',
     'userActions.remove.body':
@@ -151,6 +161,7 @@ export const defaultLabels = {
     'inviteUser.noRoles': 'You are not allowed to grant any roles.',
     'inviteUser.submit': 'Send invitation',
     'accept.title': 'Join {workspace}',
+    'accept.titleGeneric': 'Join',
     'accept.titleUnknown': 'Invitation',
     'accept.invitedAs': 'This invitation is for {email}.',
     'accept.roles': 'You will join with these roles:',
@@ -186,6 +197,8 @@ export const defaultLabels = {
         'This invitation is no longer valid. Ask an admin for a new one.',
     'accept.app.grants_changed':
         'The access this invitation offered has changed since it was sent. Ask an admin to send a new invitation.',
+    'accept.generic.ready': 'Accept the invitation to join.',
+    'accept.generic.accepted': 'You have joined.',
     'accept.signIn': 'Sign in',
     'accept.register': 'Create account',
     'accept.signOut': 'Sign out',

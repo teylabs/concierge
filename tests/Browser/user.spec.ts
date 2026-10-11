@@ -133,15 +133,54 @@ test('removes through the access section', async ({ page }) => {
         .toEqual([{ method: 'delete', url: '/users/11' }]);
 });
 
-test('says users, never workspace, and offers no deactivation', async ({
-    page,
-}) => {
+test('says users, never workspace', async ({ page }) => {
     await openHarness(page, 'user');
 
     await expect(page.locator('.concierge')).not.toContainText(/workspace/i);
-    await expect(
-        page.getByText(/deactivate|password reset|impersonat/i),
-    ).toHaveCount(0);
+    await expect(page.getByText(/password reset|impersonat/i)).toHaveCount(0);
+});
+
+test('offers deactivate, not restore, for an active user', async ({ page }) => {
+    await openHarness(page, 'user');
+
+    await expect(page.getByRole('button', { name: 'Restore' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Deactivate' }).click();
+    const dialog = page.getByRole('dialog', {
+        name: 'Deactivate Ada Lovelace?',
+    });
+
+    await dialog.getByLabel('Reason (optional)').fill('Left the company');
+    await dialog.getByRole('button', { name: 'Deactivate' }).click();
+
+    await expect
+        .poll(() => requests(page))
+        .toEqual([
+            {
+                method: 'post',
+                url: '/users/11/deactivate',
+                data: { reason: 'Left the company' },
+            },
+        ]);
+});
+
+test('offers restore, not deactivate, for a deactivated user', async ({
+    page,
+}) => {
+    await openHarness(page, 'user', 'deactivated');
+
+    await expect(page.getByText('Deactivated').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Deactivate' })).toHaveCount(
+        0,
+    );
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await page
+        .getByRole('dialog', { name: 'Restore Grace Hopper?' })
+        .getByRole('button', { name: 'Restore' })
+        .click();
+
+    await expect
+        .poll(() => requests(page))
+        .toEqual([{ method: 'post', url: '/users/12/restore' }]);
 });
 
 test('navigates back through the server-provided link', async ({ page }) => {

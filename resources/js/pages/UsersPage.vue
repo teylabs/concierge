@@ -26,17 +26,17 @@ const { adapter, t, locale } = useConcierge();
 
 const search = ref(props.metadata.search);
 const role = ref(props.metadata.role ?? '');
-const status = ref(props.metadata.status ?? '');
+const status = ref(props.metadata.status ?? 'active');
 const loading = ref(false);
 let timer: ReturnType<typeof setTimeout> | undefined;
 
-const statuses = ['active', 'deactivated'] as const;
+const statuses = ['active', 'deactivated', 'all'] as const;
 
 const filtered = computed(
     () =>
         props.metadata.search !== '' ||
         props.metadata.role !== null ||
-        props.metadata.status !== null,
+        !['active', null].includes(props.metadata.status),
 );
 
 watch(
@@ -50,7 +50,7 @@ watch(
         if (timer === undefined) {
             search.value = nextSearch;
             role.value = nextRole ?? '';
-            status.value = nextStatus ?? '';
+            status.value = nextStatus ?? 'active';
         }
     },
 );
@@ -70,7 +70,7 @@ function refresh() {
         data.role = role.value;
     }
 
-    if (status.value !== '') {
+    if (status.value !== 'active') {
         data.status = status.value;
     }
 
@@ -94,7 +94,7 @@ function onSearchInput() {
 function clearFilters() {
     search.value = '';
     role.value = '';
-    status.value = '';
+    status.value = 'active';
     refresh();
 }
 
@@ -205,7 +205,6 @@ function statusVariant(row: UserRow): string {
                         :class="controlClasses"
                         @change="refresh"
                     >
-                        <option value="">{{ t('users.status.all') }}</option>
                         <option
                             v-for="value in statuses"
                             :key="value"

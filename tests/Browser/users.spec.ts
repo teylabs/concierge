@@ -5,7 +5,7 @@ test.describe('users index', () => {
     test('renders users, roles, ownership and status without workspace wording', async ({
         page,
     }) => {
-        await openHarness(page, 'users');
+        await openHarness(page, 'users', 'withDeactivated');
 
         await expect(
             page.getByRole('heading', { name: 'Users', level: 1 }),
@@ -24,18 +24,34 @@ test.describe('users index', () => {
         );
     });
 
-    test('renders only remove, and only where the server provided a link', async ({
+    test('hides deactivated users by default and lists Active first', async ({
         page,
     }) => {
         await openHarness(page, 'users');
+
+        await expect(page.locator('tbody tr')).toHaveCount(2);
+        await expect(page.locator('tbody')).not.toContainText('Deactivated');
+        await expect(page.getByLabel('Status')).toHaveValue('active');
+        await expect(
+            page.getByRole('button', { name: 'Clear filters' }),
+        ).toHaveCount(0);
+    });
+
+    test('renders actions only where the server provided a link', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users', 'withDeactivated');
         const rows = page.locator('tbody tr');
 
         await expect(rows.nth(0).getByRole('button')).toHaveCount(0);
-        await expect(rows.nth(1).getByRole('button')).toHaveText(['Remove']);
-        await expect(rows.nth(2).getByRole('button')).toHaveText(['Remove']);
-        await expect(
-            page.getByRole('button', { name: /deactivate|reactivate/i }),
-        ).toHaveCount(0);
+        await expect(rows.nth(1).getByRole('button')).toHaveText([
+            'Deactivate',
+            'Remove',
+        ]);
+        await expect(rows.nth(2).getByRole('button')).toHaveText([
+            'Restore',
+            'Remove',
+        ]);
     });
 
     test('shows no management controls to a read-only viewer', async ({
@@ -105,15 +121,34 @@ test.describe('users index', () => {
             ]);
     });
 
-    test('offers exactly the active and deactivated statuses', async ({
+    test('omits the status from the visit when going back to Active', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users', 'filtered');
+
+        await page.getByLabel('Status').selectOption('active');
+
+        await expect
+            .poll(() => visits(page))
+            .toEqual([
+                expect.objectContaining({
+                    url: '/users',
+                    options: expect.objectContaining({
+                        data: { role: 'presenter' },
+                    }),
+                }),
+            ]);
+    });
+
+    test('offers the active, deactivated and all statuses', async ({
         page,
     }) => {
         await openHarness(page, 'users');
 
         await expect(page.getByLabel('Status').locator('option')).toHaveText([
-            'All statuses',
             'Active',
             'Deactivated',
+            'Active and deactivated',
         ]);
         await expect(page.getByLabel('Role').locator('option')).toHaveText([
             'All roles',
@@ -204,7 +239,7 @@ test.describe('user actions', () => {
     test('removes through a confirmation dialog with a DELETE', async ({
         page,
     }) => {
-        await openHarness(page, 'users');
+        await openHarness(page, 'users', 'withDeactivated');
         await page
             .locator('tbody tr')
             .nth(2)
@@ -258,5 +293,110 @@ test.describe('user actions', () => {
 
         await expect(dialog).toBeHidden();
         expect(await requests(page)).toHaveLength(2);
+    });
+
+    test('deactivates with an optional reason through a POST', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users');
+        await page
+            .locator('tbody tr')
+            .nth(1)
+            .getByRole('button', { name: 'Deactivate' })
+            .click();
+        const dialog = page.getByRole('dialog', {
+            name: 'Deactivate Ada Lovelace?',
+        });
+
+        await expect(dialog).not.toContainText(/workspace/i);
+        await dialog
+            .getByLabel('Reason (optional)')
+            .fill('  Left the company ');
+        expect(await requests(page)).toEqual([]);
+        await dialog.getByRole('button', { name: 'Deactivate' }).click();
+
+        await expect(dialog).toBeHidden();
+        expect(await requests(page)).toEqual([
+            {
+                method: 'post',
+                url: '/users/11/deactivate',
+                data: { reason: 'Left the company' },
+            },
+        ]);
+    });
+
+    test('deactivates without a reason by sending no data', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users');
+        await page
+            .locator('tbody tr')
+            .nth(1)
+            .getByRole('button', { name: 'Deactivate' })
+            .click();
+        await page
+            .getByRole('dialog')
+            .getByRole('button', { name: 'Deactivate' })
+            .click();
+
+        expect(await requests(page)).toEqual([
+            { method: 'post', url: '/users/11/deactivate' },
+        ]);
+    });
+
+    test('restores a deactivated user through a POST', async ({ page }) => {
+        await openHarness(page, 'users', 'withDeactivated');
+        await page
+            .locator('tbody tr')
+            .nth(2)
+            .getByRole('button', { name: 'Restore' })
+            .click();
+        const dialog = page.getByRole('dialog', {
+            name: 'Restore Grace Hopper?',
+        });
+
+        await expect(dialog.getByRole('textbox')).toHaveCount(0);
+        await dialog.getByRole('button', { name: 'Restore' }).click();
+
+        await expect(dialog).toBeHidden();
+        expect(await requests(page)).toEqual([
+            { method: 'post', url: '/users/12/restore' },
+        ]);
+    });
+
+    test('shows a failed deactivation and retries it', async ({ page }) => {
+        await openHarness(page, 'users');
+        await page.evaluate(() =>
+            window.concierge.respond({ ok: false, failure: 'forbidden' }),
+        );
+        await page
+            .locator('tbody tr')
+            .nth(1)
+            .getByRole('button', { name: 'Deactivate' })
+            .click();
+        const dialog = page.getByRole('dialog');
+
+        await dialog.getByRole('button', { name: 'Deactivate' }).click();
+        await expect(dialog.getByRole('alert')).toHaveText(
+            'You are not allowed to do that.',
+        );
+        await dialog.getByRole('button', { name: 'Try again' }).click();
+
+        await expect(dialog).toBeHidden();
+        expect(await requests(page)).toHaveLength(2);
+    });
+
+    test('hides deactivate and restore for a read-only viewer and an operator', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users', 'readOnly');
+        await expect(
+            page.getByRole('button', { name: /deactivate|restore/i }),
+        ).toHaveCount(0);
+
+        await openHarness(page, 'users', 'operator');
+        await expect(
+            page.getByRole('button', { name: /deactivate|restore/i }),
+        ).toHaveCount(0);
     });
 });

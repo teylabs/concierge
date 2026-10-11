@@ -200,6 +200,8 @@ const noUserLinks = {
     updateProfile: null,
     updateGrants: null,
     remove: null,
+    deactivate: null,
+    restore: null,
 };
 
 export const appOwner: UserRow = {
@@ -231,6 +233,8 @@ export const appAdmin: UserRow = {
         updateProfile: '/users/11',
         updateGrants: '/users/11/roles',
         remove: '/users/11',
+        deactivate: '/users/11/deactivate',
+        restore: null,
     },
     columns: { plan: 'Pro', seats: 2 },
 };
@@ -249,12 +253,13 @@ export const deactivated: UserRow = {
         ...noUserLinks,
         show: '/users/12',
         remove: '/users/12',
+        restore: '/users/12/restore',
     },
     columns: { plan: null, seats: 0 },
 };
 
 const usersBase: UsersPageProps = {
-    users: [appOwner, appAdmin, deactivated],
+    users: [appOwner, appAdmin],
     pagination: {
         currentPage: 1,
         lastPage: 2,
@@ -384,6 +389,12 @@ export const fixtures = {
     accept: acceptFixtures(),
     users: {
         default: usersBase,
+        /** The status filter is on "all": deactivated users show too. */
+        withDeactivated: {
+            ...usersBase,
+            users: [appOwner, appAdmin, deactivated],
+            metadata: { ...usersBase.metadata, status: 'all' },
+        },
         /** Viewer is a presenter: every action link is null. */
         readOnly: {
             ...usersBase,
@@ -414,6 +425,7 @@ export const fixtures = {
         /** The app added its own columns through Concierge::userColumns(). */
         columns: {
             ...usersBase,
+            users: [appOwner, appAdmin, deactivated],
             metadata: {
                 ...usersBase.metadata,
                 columns: [
@@ -465,6 +477,13 @@ export const fixtures = {
     user: {
         default: {
             user: appAdmin,
+            profile: userProfile,
+            grants: userGrants,
+            metadata: { links: { back: '/users' } },
+        },
+        /** A deactivated user, with a restore link and no deactivate link. */
+        deactivated: {
+            user: deactivated,
             profile: userProfile,
             grants: userGrants,
             metadata: { links: { back: '/users' } },
@@ -546,7 +565,7 @@ function acceptFixtures(): Record<
 }
 
 function acceptAppFixtures(): Record<
-    'ready' | 'expired' | 'invalid',
+    'ready' | 'expired' | 'invalid' | 'readyNoName' | 'expiredNoName',
     AcceptInvitationPageProps
 > {
     const links = {
@@ -578,6 +597,20 @@ function acceptAppFixtures(): Record<
                 links: { ...links, continue: '/' },
                 appName: 'Teylabs',
             },
+        },
+        /** An app that does not pass `appName`: generic wording. */
+        readyNoName: {
+            ...base,
+            state: 'ready',
+            metadata: {
+                links: { ...links, accept: '/invitations/opaque-token/accept' },
+                appName: null,
+            },
+        },
+        expiredNoName: {
+            ...base,
+            state: 'expired',
+            metadata: { links: { ...links, continue: '/' }, appName: null },
         },
         invalid: {
             ...base,

@@ -7,7 +7,7 @@ continue: string | null,
 };
 export type AcceptInvitationMetadata = {
 links: AcceptInvitationLinks,
-appName: string,
+appName: string | null,
 };
 export type AcceptInvitationPageProps = {
 state: 'ready' | 'sign_in_required' | 'register_required' | 'wrong_account' | 'unverified' | 'expired' | 'revoked' | 'invalid' | 'accepted' | 'already_member' | 'suspended' | 'authority_lapsed' | 'workspace_unavailable' | 'grants_changed',
@@ -216,6 +216,8 @@ show: string | null,
 updateProfile: string | null,
 updateGrants: string | null,
 remove: string | null,
+deactivate: string | null,
+restore: string | null,
 };
 export type UserPageLinks = {
 back: string,
@@ -270,7 +272,7 @@ export type UsersMetadata = {
 refreshUrl: string,
 search: string,
 role: string | null,
-status: 'active' | 'deactivated' | null,
+status: 'active' | 'deactivated' | 'all' | null,
 roleOptions: RoleOption[],
 columns: UserColumn[],
 links: UsersLinks,
