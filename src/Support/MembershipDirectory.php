@@ -105,8 +105,9 @@ final class MembershipDirectory
     }
 
     /**
-     * Mirrors Spatie HasRoles::roles() with teams: pivot scoped to the
+     * Mirrors Spatie HasRoles::roles(). With teams: pivot scoped to the
      * workspace, role rows global (team NULL) or owned by the workspace.
+     * Without teams there is no team column to filter on.
      *
      * @param  list<int>  $userIds
      * @return array<int, list<string>>
@@ -120,10 +121,11 @@ final class MembershipDirectory
 
         $rows = DB::table($pivot)
             ->join($roles, "{$roles}.id", '=', "{$pivot}.".app(PermissionRegistrar::class)->pivotRole)
-            ->where("{$pivot}.{$team}", $workspaceId)
             ->where("{$pivot}.model_type", (new (ConciergeModels::user()))->getMorphClass())
             ->whereIn("{$pivot}.{$morphKey}", $userIds)
-            ->where(fn ($query) => $query->whereNull("{$roles}.{$team}")->orWhere("{$roles}.{$team}", $workspaceId))
+            ->when(Config::teamsEnabled(), fn ($query) => $query
+                ->where("{$pivot}.{$team}", $workspaceId)
+                ->where(fn ($query) => $query->whereNull("{$roles}.{$team}")->orWhere("{$roles}.{$team}", $workspaceId)))
             ->get(["{$pivot}.{$morphKey} as user_id", "{$roles}.name"]);
 
         $byUser = [];

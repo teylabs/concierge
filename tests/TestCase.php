@@ -74,6 +74,7 @@ class TestCase extends Orchestra
             $config->set('auth.providers.users.model', User::class);
             $config->set('permission.teams', true);
             $config->set('permission.column_names.team_foreign_key', 'workspace_id');
+            $config->set('concierge.mode', 'workspaces');
             $config->set('concierge.models.user', User::class);
             $config->set('concierge.models.workspace', Workspace::class);
             $config->set('concierge.tenant_invitations.platform_owners', ['platform@example.test']);

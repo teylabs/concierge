@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Traits\HasRoles;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
+use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
@@ -70,10 +71,20 @@ final class ConciergeModels
         return (new (self::workspace()))->getTable();
     }
 
-    public static function assertTeamsEnabled(): void
+    /**
+     * Workspace mode runs on Spatie teams. App-wide mode is not implemented yet
+     * (teylabs/concierge#19), so it is refused rather than half-supported.
+     */
+    public static function assertModeSupported(): void
     {
+        if (Mode::configured() === Mode::App) {
+            throw new UnsupportedConfiguration(
+                "Concierge does not support concierge.mode = 'app' yet (teylabs/concierge#19); set 'mode' => 'workspaces'."
+            );
+        }
+
         if (! config('permission.teams')) {
-            throw new UnsupportedConfiguration('Concierge requires permission.teams = true.');
+            throw new UnsupportedConfiguration('Concierge workspace mode requires permission.teams = true.');
         }
     }
 

@@ -72,9 +72,11 @@ Membership is on by default, and its migration reads your user and workspace mod
 
 1. Implement `Tey\Concierge\Contracts\Member` on your user model (with Spatie's `HasRoles`) and `Tey\Concierge\Contracts\Workspace` on your workspace model. Both tables need incrementing integer keys.
 2. Publish the [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) config and migrations, and set `permission.teams` to `true`.
-3. Set the two models in `config/concierge.php`:
+3. Set workspace mode and the two models in `config/concierge.php`:
 
     ```php
+    'mode' => 'workspaces',
+
     'models' => [
         'user' => App\Models\User::class,
         'workspace' => App\Models\Workspace::class,

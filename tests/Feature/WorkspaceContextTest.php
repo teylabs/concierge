@@ -85,7 +85,7 @@ it('fails closed in middleware: 404 without context, 403 unless active', functio
 
 it('refuses unsupported configuration', function () {
     config()->set('permission.teams', false);
-    expect(fn () => ConciergeModels::assertTeamsEnabled())->toThrow(UnsupportedConfiguration::class);
+    expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, 'requires permission.teams = true');
 
     config()->set('concierge.models.workspace', UuidWorkspace::class);
     expect(fn () => ConciergeModels::workspace())->toThrow(UnsupportedConfiguration::class, 'incrementing integer key');

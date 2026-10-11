@@ -13,7 +13,7 @@ class SyncRoleDefinitions
 
     public function handle(): void
     {
-        ConciergeModels::assertTeamsEnabled();
+        ConciergeModels::assertModeSupported();
 
         $registrar = app(PermissionRegistrar::class);
 
