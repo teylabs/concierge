@@ -107,7 +107,9 @@ An app that only wants local login sets `'features' => ['membership' => false]` 
 
 ### Membership
 
-Every operation is an action class in `Tey\Concierge\Actions`, called with `::run()`: invite, resend, revoke and accept invitations; change roles; suspend, reinstate and remove members; transfer ownership. Actions check the grant rules in `config/concierge.php` and dispatch events. Your app keeps its routes, controllers, policies and authentication, and protects routes with the `concierge.member` middleware. See [Membership](https://concierge.teylabs.com/features/membership).
+Every operation is an action class in `Tey\Concierge\Actions`, called with `::run()`: invite, resend, revoke and accept invitations; change roles; suspend, reinstate and remove members; transfer ownership; force a password reset. Actions check the grant rules in `config/concierge.php` and dispatch events. Your app keeps its routes, controllers, policies and authentication, and protects routes with the `concierge.member` middleware. See [Membership](https://concierge.teylabs.com/features/membership).
+
+`ForcePasswordReset::run($actor, $membership, resetTwoFactor: true)` locks an account down when it may be compromised: the password becomes one nobody knows, the remember-me token is cycled, two-factor is cleared when asked, and the person receives a reset link through your password broker. The same manager and rank rules apply as for suspending, and never to yourself. With the `database` session driver the person's sessions are deleted; with any other driver, add Laravel's `AuthenticateSession` middleware so their sessions end when the password hash changes. API tokens are untouched; listen to `PasswordResetForced`.
 
 ### Tenant Invitations
 

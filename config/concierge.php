@@ -85,6 +85,20 @@ return [
     ],
 
     /*
+     * ForcePasswordReset: a manager locks an account down and the owner receives a
+     * reset link. With the `database` session driver the user's session rows are
+     * deleted; other drivers rely on Laravel's AuthenticateSession middleware.
+     */
+    'forced_password_reset' => [
+        // The password broker (auth.passwords) that issues the reset link; null means the default.
+        'broker' => null,
+        // Columns set to null when a reset asks for two-factor to be reset. Fortify's by
+        // default; only those present on the user table are cleared, and asking with none
+        // present is an error rather than a silent no-op.
+        'two_factor_columns' => ['two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at'],
+    ],
+
+    /*
      * One-click sign-in as a configured account, for local development only.
      * Off by default; both the application and uncached process APP_ENV must be
      * exactly `local`. Missing APP_ENV fails closed, even with cached config. It signs the

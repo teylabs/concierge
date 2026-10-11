@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Tey\Concierge\Commands\SyncRolesCommand;
+use Tey\Concierge\Contracts\AccountGuard;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
@@ -18,6 +19,7 @@ use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
+use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
 use Tey\Concierge\Support\SessionRecentAuthentication;
@@ -80,6 +82,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $this->app->scopedIf(WorkspaceContext::class, PermissionWorkspaceContext::class);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
         $this->app->bindIf(RecentAuthentication::class, SessionRecentAuthentication::class);
+        $this->app->bindIf(AccountGuard::class, OpenAccountGuard::class);
     }
 
     public function packageBooted(): void
