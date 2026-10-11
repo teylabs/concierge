@@ -50,6 +50,8 @@ Concierge requires PHP 8.4 or 8.5 and Laravel 13.
 composer require tey/concierge
 ```
 
+Composer also installs [tey/mod](https://github.com/teylabs/mod), which concierge uses to write files into your app. Your app needs no setup for it and no `config/mod.php`: it gains the `mod:*` Artisan commands, and `php artisan optimize` caches mod's discovery.
+
 The service provider is registered through package discovery. Publish the configuration to choose features and models:
 
 ```bash
@@ -121,7 +123,7 @@ One click signs in as the account in your configuration, in the `local` environm
 
 ### Vue Pages
 
-Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The PHP code never depends on them. See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup.
+Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The PHP code never depends on them. In a Vue starter kit app, `php artisan concierge:pages` writes the four wrapper pages into your own `resources/js/pages/Concierge`, ready to edit (`--dry-run` previews them). See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup.
 
 Every person on these pages has an avatar: the app's photo when it has one, and otherwise their initials on a colour that stays the same for that person everywhere. Nothing is fetched from an outside service. Build a `UserSummary` with `UserSummary::for($user)` and tell concierge where the photo lives:
 
