@@ -25,13 +25,24 @@ function registration_errors(array $data, ?MayRegister $rule = null): array
 beforeEach(function () {
     $this->owner = host_user('owner');
     $this->workspace = host_workspace('Acme', $this->owner);
+
+    // Most of these tests exercise the invitation gate.
+    registration_mode('invitation');
 });
 
-it('defaults to invitation mode with no domains', function () {
-    expect(config('concierge.registration'))->toBe(['mode' => 'invitation', 'domains' => ''])
-        ->and(Registration::mode())->toBe(RegistrationMode::Invitation)
+it('defaults to open mode with no domains, so an upgrade keeps registration open', function () {
+    config()->set('concierge.registration', (require __DIR__.'/../../../config/concierge.php')['registration']);
+
+    expect(config('concierge.registration'))->toBe(['mode' => 'open', 'domains' => ''])
+        ->and(Registration::mode())->toBe(RegistrationMode::Open)
         ->and(Registration::domains())->toBe([])
-        ->and(Registration::open())->toBeFalse();
+        ->and(Registration::open())->toBeTrue();
+});
+
+it('is open when the mode is not configured at all', function () {
+    config()->set('concierge.registration', []);
+
+    expect(Registration::mode())->toBe(RegistrationMode::Open);
 });
 
 it('lets anyone register in open mode', function () {

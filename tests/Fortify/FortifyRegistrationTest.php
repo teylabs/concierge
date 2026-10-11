@@ -25,6 +25,9 @@ function register(array $overrides = []): TestResponse
 beforeEach(function () {
     $this->owner = host_user('owner');
     $this->workspace = host_workspace('Acme', $this->owner);
+
+    // Most of these tests exercise the invitation gate.
+    config()->set('concierge.registration.mode', 'invitation');
 });
 
 it('wraps the host CreateNewUser and register view with no app code', function () {
@@ -43,7 +46,15 @@ it('registers anyone in open mode', function () {
     expect(User::query()->where('email', 'alice@example.test')->exists())->toBeTrue();
 });
 
-it('refuses registration without an invitation by default, on the email field', function () {
+it('registers anyone by default, so an upgrade keeps registration open', function () {
+    config()->set('concierge.registration', (require __DIR__.'/../../config/concierge.php')['registration']);
+
+    register()->assertRedirect('/home');
+
+    $this->assertAuthenticated();
+});
+
+it('refuses registration without an invitation in invitation mode, on the email field', function () {
     register()->assertSessionHasErrors(['email' => 'Registration is by invitation. Use the link in your invitation.']);
 
     $this->assertGuest();

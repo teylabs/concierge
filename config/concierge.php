@@ -71,13 +71,14 @@ return [
      * Who may create an account through the app's registration form. Modes:
      * open (anyone), domains (an email on one of the domains, or a valid
      * invitation), invitation (a valid invitation for that email) or closed
-     * (no one; the register page is a 404). Any other value counts as closed,
+     * (no one; the register page is a 404). The default is open, so an app that
+     * upgrades keeps the registration it had. Any other value counts as closed,
      * and so does domains mode with no domains. With Fortify installed this
      * takes effect on its own; otherwise add the Tey\Concierge\Rules\MayRegister
      * rule to the email field where the app validates registration.
      */
     'registration' => [
-        'mode' => env('CONCIERGE_REGISTRATION', 'invitation'),
+        'mode' => env('CONCIERGE_REGISTRATION', 'open'),
         // Comma-separated. Compared case-insensitively on the part after the last "@";
         // a subdomain matches only when it is listed itself.
         'domains' => env('CONCIERGE_REGISTRATION_DOMAINS', ''),

@@ -20,12 +20,13 @@ enum RegistrationMode: string
     case Closed = 'closed';
 
     /**
-     * Reads concierge.registration.mode. An unknown value fails closed: a typo
-     * in an env file must never open registration.
+     * Reads concierge.registration.mode, open when unset so an upgrade keeps
+     * the registration the app had. An unknown value fails closed: a typo in
+     * an env file must never open registration.
      */
     public static function configured(): self
     {
-        $value = config('concierge.registration.mode', self::Invitation->value);
+        $value = config('concierge.registration.mode', self::Open->value);
 
         return self::tryFrom(is_string($value) ? strtolower(trim($value)) : '') ?? self::Closed;
     }
