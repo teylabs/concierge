@@ -91,7 +91,9 @@ it('rechecks a putenv made at runtime, after the application booted', function (
         $result = local_login_attempt($host, $booted, ['putenv' => $value]);
 
         // Removing the process value falls back to $_SERVER, which still holds the boot value.
-        $raw = $value ?? $booted;
+        // Windows can't hold an empty variable: putenv('APP_ENV=') removes it, so it falls back too.
+        $removed = $value === null || ($value === '' && PHP_OS_FAMILY === 'Windows');
+        $raw = $removed ? $booted : $value;
         local_login_expect($result, route: $booted === 'local', open: $booted === 'local' && $raw === 'local');
     });
 })->with(['local', 'production'])->with(local_login_matrix_values());
@@ -170,9 +172,11 @@ it('rechecks every request in a long-lived worker (the Octane case)', function (
 
         // Booted local: open, then shut the moment the process value changes, and open again.
         // Removing it falls back to $_SERVER, which holds the value the worker started with.
+        // Windows can't hold an empty variable, so the empty step is a removal there too.
+        $empty = PHP_OS_FAMILY === 'Windows';
         $local = cache_login_json(cache_login_process($host, 'worker', 'local', options: ['steps' => $steps]));
-        expect(array_column($local['results'], 'status'))->toBe([302, 404, 404, 404, 404, 302, 302])
-            ->and(array_column($local['results'], 'offer'))->toBe([true, false, false, false, false, true, true]);
+        expect(array_column($local['results'], 'status'))->toBe([302, 404, $empty ? 302 : 404, 404, 404, 302, 302])
+            ->and(array_column($local['results'], 'offer'))->toBe([true, false, $empty, false, false, true, true]);
 
         // Booted production: uncached, Laravel's environment stays production and nothing opens.
         // Optimized locally, Laravel's is `local` from the cache, so only the steps where the
