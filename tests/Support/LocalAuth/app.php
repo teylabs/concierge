@@ -5,7 +5,7 @@ use Tey\Concierge\ConciergeServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([ConciergeServiceProvider::class])
-    ->withRouting(web: dirname(__DIR__).'/routes/web.php')
+    ->withRouting(web: dirname(__DIR__).'/routes/web.php', commands: dirname(__DIR__).'/routes/console.php')
     ->withMiddleware()
     ->withExceptions()
     ->create();

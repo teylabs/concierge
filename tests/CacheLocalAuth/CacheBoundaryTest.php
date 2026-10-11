@@ -3,48 +3,8 @@
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Env;
-use Symfony\Component\Process\Process;
-use Workbench\App\Models\LocalAuth\PlainAccount;
 
-function cache_login_process(string $host, string $command, ?string $environment, string $csrf = 'none', string $session = '{}'): Process
-{
-    // false removes inherited APP_ENV even on Windows; no host .env is created.
-    // Laravel resolves these relative to the host; drive-letter paths are not absolute cache prefixes.
-    return new Process([PHP_BINARY, __DIR__.'/../Support/LocalAuth/boot.php', $host, $command, $csrf, $session], null, [
-        'APP_ENV' => $environment ?? false,
-        'APP_CONFIG_CACHE' => 'bootstrap/cache/config.php',
-        'APP_ROUTES_CACHE' => 'bootstrap/cache/routes.php',
-        'APP_SERVICES_CACHE' => 'bootstrap/cache/services.php',
-        'APP_PACKAGES_CACHE' => 'bootstrap/cache/packages.php',
-        'APP_EVENTS_CACHE' => 'bootstrap/cache/events.php',
-    ]);
-}
-
-function cache_login_host(string $host): void
-{
-    $files = new Filesystem;
-    foreach (['bootstrap/cache', 'config', 'routes', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs'] as $path) {
-        $files->makeDirectory($host.'/'.$path, 0755, true);
-    }
-    $files->copy(__DIR__.'/../Support/LocalAuth/app.php', $host.'/bootstrap/app.php');
-    $files->put($host.'/composer.json', '{"autoload":{"psr-4":{"App\\\\":"app/"}}}');
-    $files->put($host.'/bootstrap/providers.php', '<?php return [];');
-    $files->copy(__DIR__.'/../Support/LocalAuth/routes.php', $host.'/routes/web.php');
-    $files->put($host.'/config/app.php', "<?php return ['env' => env('APP_ENV', 'production'), 'key' => 'base64:".base64_encode(str_repeat('k', 32))."', 'cipher' => 'AES-256-CBC', 'url' => 'http://localhost'];");
-    $configs = [
-        'auth' => ['defaults' => ['guard' => 'web', 'passwords' => 'users'], 'guards' => ['web' => ['driver' => 'session', 'provider' => 'users']], 'providers' => ['users' => ['driver' => 'eloquent', 'model' => PlainAccount::class]]],
-        'database' => ['default' => 'sqlite', 'connections' => ['sqlite' => ['driver' => 'sqlite', 'database' => $host.'/database.sqlite', 'prefix' => '']]],
-        'session' => ['driver' => 'file', 'files' => $host.'/storage/framework/sessions', 'cookie' => 'cache_probe_session', 'lifetime' => 120, 'lottery' => [0, 100], 'path' => '/', 'http_only' => true, 'same_site' => 'lax'],
-        'cache' => ['default' => 'array', 'stores' => ['array' => ['driver' => 'array']]],
-        'logging' => ['default' => 'single', 'channels' => ['single' => ['driver' => 'single', 'path' => $host.'/storage/logs/laravel.log']]],
-        'concierge' => ['features' => ['membership' => false], 'local_login' => ['enabled' => true, 'account' => ['email' => 'cache@example.test', 'name' => 'Cache probe'], 'throttle' => 10]],
-    ];
-    foreach ($configs as $name => $config) {
-        $files->put($host.'/config/'.$name.'.php', '<?php return '.var_export($config, true).';');
-    }
-    $database = new PDO('sqlite:'.$host.'/database.sqlite');
-    $database->exec('CREATE TABLE plain_accounts (id INTEGER PRIMARY KEY, email VARCHAR UNIQUE, name VARCHAR, password VARCHAR, email_verified_at DATETIME, remember_token VARCHAR, created_at DATETIME, updated_at DATETIME)');
-}
+require_once __DIR__.'/../Support/LocalAuth/host.php';
 
 it('resolves every fixture cache override inside its host on each path style', function (string $host) {
     $app = new Application($host);
