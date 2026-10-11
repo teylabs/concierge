@@ -30,6 +30,7 @@ use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 use Tey\Concierge\Support\AppScope;
+use Tey\Concierge\Support\ConciergeFrontend;
 use Tey\Concierge\Support\ConciergeMembershipSource;
 use Tey\Concierge\Support\ConfiguredAccountPolicy;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
@@ -150,9 +151,11 @@ class ConciergeServiceProvider extends PackageServiceProvider
             $this->bootTenantInvitations();
         }
 
+        ConciergeFrontend::register($this->app->basePath());
+
         if ($this->app->runningInConsole()) {
             $this->commands([ImportMembersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
-            ConciergeScaffolds::register($this->app->basePath());
+            ConciergeScaffolds::register();
         }
     }
 

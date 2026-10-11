@@ -6,9 +6,11 @@ use Illuminate\Console\Command;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 
 /**
- * Writes concierge's Inertia pages into the app. Mod does the work; mod names a
- * package's scaffold command mod:<recipe>, so this is the concierge:* name for it
- * until a package can name its own (teylabs/mod#95).
+ * Writes concierge's Inertia pages into the app. Mod does the work under
+ * mod:concierge/pages. Mod 0.6 lets a package name its scaffold command, but a
+ * scaffold's name argument is required there, and this command's default
+ * (`Concierge`) is what lets `php artisan concierge:pages` run bare. So the
+ * concierge:* name stays a thin wrapper that supplies the default.
  */
 class PagesCommand extends Command
 {
@@ -33,6 +35,6 @@ class PagesCommand extends Command
             '--no-interaction' => ! $this->input->isInteractive(),
         ]);
 
-        return $this->call('mod:'.ConciergeScaffolds::PAGES, ['name' => $this->argument('name')] + $options);
+        return $this->call('mod:'.ConciergeScaffolds::id(), ['name' => $this->argument('name')] + $options);
     }
 }

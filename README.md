@@ -134,7 +134,7 @@ One click signs in as the account in your configuration, in the `local` environm
 
 ### Vue Pages
 
-Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The PHP code never depends on them. In a Vue starter kit app, `php artisan concierge:pages` writes the four wrapper pages into your own `resources/js/pages/Concierge`, ready to edit (`--dry-run` previews them). See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup.
+Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The PHP code never depends on them. In a Vue starter kit app, `php artisan concierge:pages` writes the four wrapper pages into your own `resources/js/pages/Concierge`, ready to edit (`--dry-run` previews them; mod lists the same recipe as `mod:concierge/pages`). Concierge declares the `@tey/concierge` alias, its TypeScript paths and its Tailwind source to [mod](https://mod.teylabs.com), so `php artisan mod:install inertia --dry-run` shows the wiring and `mod:install inertia` applies it to a starter kit app. See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup by hand.
 
 Every person on these pages has an avatar: the app's photo when it has one, and otherwise their initials on a colour that stays the same for that person everywhere. Nothing is fetched from an outside service. Build a `UserSummary` with `UserSummary::for($user)` and tell concierge where the photo lives:
 
