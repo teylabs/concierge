@@ -3,8 +3,11 @@
 namespace Tey\Concierge\Support;
 
 use Illuminate\Database\Eloquent\Model;
+use Tey\Concierge\Contracts\MembershipSource;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\AccountStatus;
+use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Exceptions\WorkspaceNotManaged;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\Ownership;
@@ -15,12 +18,32 @@ use Tey\Concierge\Models\Ownership;
  */
 final class Locks
 {
-    /** @return Model&Workspace */
+    /**
+     * Every write starts here, so this is also where a workspace whose members
+     * concierge only reads (a starter kit team) is refused.
+     *
+     * @return Model&Workspace
+     */
     public static function workspace(int $id): Workspace
     {
         ConciergeModels::assertWorkspaces('use the app-wide actions (InviteUser, ChangeUserRoles, RemoveUser)');
 
         return ConciergeModels::workspace()::query()->lockForUpdate()->findOrFail($id);
+        $workspace = ConciergeModels::workspace()::query()->lockForUpdate()->findOrFail($id);
+
+        self::assertManaged($workspace);
+
+        return $workspace;
+    }
+
+    /**
+     * Workspace mode only: app mode is refused on its own, and has no kit teams.
+     */
+    public static function assertManaged(Workspace $workspace): void
+    {
+        if (Mode::configured() === Mode::Workspaces && ! app(MembershipSource::class)->managesMembers($workspace)) {
+            throw WorkspaceNotManaged::kitTeam($workspace);
+        }
     }
 
     public static function ownership(int $workspaceId): ?Ownership

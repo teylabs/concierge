@@ -16,6 +16,16 @@ return [
      */
     'mode' => null,
 
+    'workspaces' => [
+        /*
+         * Read in workspace mode only. 'concierge' keeps members in concierge's own
+         * tables, on Spatie teams. 'kit' reads a Laravel starter kit's teams (its
+         * team_members pivot and role column) and never writes them; Spatie teams
+         * stays off. Set it here, never from .env.
+         */
+        'engine' => 'concierge',
+    ],
+
     'features' => [
         // Set to false for an app that only wants the local-login feature:
         // no membership bindings, middleware alias, commands or automatic migration.

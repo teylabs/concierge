@@ -121,6 +121,13 @@ Every operation is an action class in `Tey\Concierge\Actions`, called with `::ru
 
 For an invite-only app: a platform owner invites an email, and accepting creates that person's own workspace, which they own. It is off by default and ships no routes; your app provides the workspace factory, the link and the register-or-sign-in pages. See [Tenant invitations](https://concierge.teylabs.com/features/tenant-invitations).
 
+### Existing Teams
+
+An app that already has a team or organisation model can use it as the workspace. Add `implements Workspace` and the `ActsAsWorkspace` trait (the name comes from a `name` column, and the workspace accepts members unless it is soft-deleted).
+
+- **A starter kit's teams** (`laravel new --teams`): set `'workspaces' => ['engine' => 'kit']` and point `models.workspace` at the kit's `Team`. Concierge reads each team's members and their `team_members.role`, resolves the current team from `{current_team}` or `users.current_team_id`, and never writes the kit's tables. Spatie teams stays off. On the user model, `HasRoles` and the kit's `HasTeams` both define `teams()`, so keep the kit's: `use HasRoles, HasTeams { HasTeams::teams insteadof HasRoles; }`. Concierge's own write actions refuse a kit team for now ([#57](https://github.com/teylabs/concierge/issues/57)).
+- **Any other model with a pivot** stays on concierge's own engine (add `HasMembers` too, with Spatie teams on). Copy its members in once with `php artisan concierge:import-members --pivot=organisation_user --role-column=role --dry-run --json`. The command picks an owner, in this order: the role column's owner, the model's `owner_id`, then the earliest member. It never changes the pivot, and running it again finds nothing to do.
+
 ### Local Login
 
 One click signs in as the account in your configuration, in the `local` environment only, checked on every request. It works without membership. See [Local login](https://concierge.teylabs.com/features/local-login) for the exact rules, including cached configuration.
