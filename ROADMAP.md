@@ -1,0 +1,22 @@
+# Roadmap
+
+At 1.0, Concierge gives any Laravel app, fresh or existing, with or without a starter kit, the essentials every app needs beyond sign-in. That covers inviting people, roles and ownership, user administration, deactivation, a safe first owner in production, and local sign-in for development. All of it is set up with one command, and it works the same way in every app you build. It builds on the packages you'd choose anyway, such as spatie/laravel-permission and your starter kit's own sign-in and teams, and it adds tested glue with the decisions already made. Every capability is reachable from the terminal and by coding agents, not only through a browser.
+
+**Versions are milestones, not dates.**
+
+## Shipped
+
+- [x] **[v0.2 — Local login](https://github.com/teylabs/concierge/releases/tag/v0.2.0).** One-click sign-in as a configured account in the local environment, with idempotent account creation and an optional Vue login button, guarded on every request. Membership can be switched off for apps that only want local login.
+- [x] **[v0.3 — Tenant invitations](https://github.com/teylabs/concierge/releases/tag/v0.3.0).** A platform owner invites an email, and accepting gives that person their own new workspace, which they own. Off by default, and nothing is registered until it is switched on.
+- [x] **[v0.4 — Tenant invitation follow-ups](https://github.com/teylabs/concierge/releases/tag/v0.4.0).** Re-inviting an email that already has a workspace is refused by default, and resending keeps the original inviter. 0.4.1 made local login fail closed when a cached configuration disagrees with the running process.
+- [x] **[v0.5 — Ready for everyone](https://github.com/teylabs/concierge/milestone/1?closed=1).** Concierge is public and installable with `composer require tey/concierge`. It has a README written for newcomers and a documentation site at [concierge.teylabs.com](https://concierge.teylabs.com) with configuration and actions-and-events reference pages. Local login's fail-closed environment check is tested across the full matrix of caches, environment sources and servers.
+- [x] **[v0.6 — Essentials beyond membership](https://github.com/teylabs/concierge/milestone/8?closed=1).** Registration gating (open, allowed email domains, invitation only or closed), an admin-forced password reset that locks an account down and sends a reset link, and initials avatars with no outside requests. Concierge no longer depends on laravel-actions or laravel-data: actions and page props are plain PHP classes, and the TypeScript contract is unchanged.
+
+## The countdown to 1.0
+
+- [ ] **[v0.7 — Built on mod](https://github.com/teylabs/concierge/milestone/2).** Concierge's routes, pages and providers run through [mod](https://github.com/teylabs/mod), and `php artisan concierge:pages` writes concierge's pages into your app for you to own and edit.
+- [ ] **[v0.8 — Meets any app where it's at](https://github.com/teylabs/concierge/milestone/3).** It works with or without workspaces (app-wide roles, or your starter kit's own teams), and with or without existing sign-in. It adds the user administration every app needs: a users list, roles, deactivation, forced password reset, impersonation and a protected operator account.
+- [ ] **[v0.9 — Install and go](https://github.com/teylabs/concierge/milestone/4).** One `concierge:install` command detects the app, asks only what it can't detect, and sets everything up, including the first owner, safely on every deploy. Every command runs without prompts and offers `--json`, and Laravel Boost guidelines and MCP tools let agents do the same.
+- [ ] **[v0.10 — Every frontend](https://github.com/teylabs/concierge/milestone/5).** Native pages are scaffolded into each official starter kit (Vue, React, Svelte and Livewire). There are also packaged components, a standalone portal with a "return to app" link for apps without a kit, a browser setup wizard for local use, and headless use.
+- [ ] **[1.0 — A stable promise](https://github.com/teylabs/concierge/milestone/6).** A frozen PHP API and TypeScript contract, a versioning and support policy, complete documentation with an upgrade guide, and a release candidate.
+- [ ] **[1.x — After 1.0](https://github.com/teylabs/concierge/milestone/7).** In no particular order: UUID and ULID keys, and magic-link sign-in.

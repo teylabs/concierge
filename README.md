@@ -40,7 +40,7 @@ With `LocalLoginButton` on that page, it shows **Sign in as dev@example.test**. 
 - [Local login](https://concierge.teylabs.com/features/local-login): one-click sign-in as a configured account, in the `local` environment only
 - [Vue pages](https://concierge.teylabs.com/features/vue-pages): optional Vue 3 pages for members and invitations, and the local-login button
 
-The full documentation is at [concierge.teylabs.com](https://concierge.teylabs.com). What is planned on the way to 1.0 is on [What concierge covers](https://concierge.teylabs.com/roadmap).
+The full documentation is at [concierge.teylabs.com](https://concierge.teylabs.com). What is planned on the way to 1.0 is in [ROADMAP.md](ROADMAP.md).
 
 ## Installation
 
