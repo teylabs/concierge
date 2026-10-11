@@ -2,6 +2,45 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## Concierge 0.6.0 - 2026-10-11
+
+Three essentials beyond membership, and two fewer dependencies.
+
+### New
+
+- **Registration gating** (#45). One setting decides who may create an account: `CONCIERGE_REGISTRATION` set to `open`, `domains`, `invitation` or `closed`, plus `CONCIERGE_REGISTRATION_DOMAINS` for `domains` mode.
+  - In `invitation` and `domains` modes, someone holding a valid invitation can register with the email it was sent to. Expired, revoked, already accepted and forged invitations are refused with a message saying what to do. So are invitations for another email.
+  - It fails closed: an unknown or empty mode counts as `closed`, and so does `domains` mode with no domains. `closed` turns the register page into a 404.
+  - With Fortify it works with no app code. Otherwise, add the `Tey\Concierge\Rules\MayRegister` rule to the email field.
+  
+- **Admin-forced password reset** (part of #47).
+  - `ForcePasswordReset::run($actor, $membership, resetTwoFactor: false)` locks an account down: it replaces the password with an unknown random hash, cycles the remember token, and ends the user's sessions when sessions are stored in the database. It then sends a reset link through the user's own reset notification.
+  - It follows the same manager, rank, owner and recent-authentication rules as suspending a member. A new `AccountGuard` contract lets the app veto it for particular accounts.
+  - It fires `PasswordResetForced`. The settings are under `forced_password_reset` in `config/concierge.php`.
+  
+- **Initials avatars** (#48).
+  - `UserSummary` carries an `avatar`: a photo URL when the app has one, and otherwise initials and a stable palette colour. Nothing is fetched from an outside service.
+  - Tell concierge where photos live with `Concierge::avatarUsing(fn ($user) => $user->profile_photo_url)`.
+  - The Vue kit exports an `Avatar` component, and the members and member pages use it.
+  
+
+### Changed
+
+- **Concierge no longer requires `lorisleiva/laravel-actions` or `spatie/laravel-data`** (#51).
+  - Actions are plain classes. `EstablishWorkspace::run(...)` and every other documented `::run(...)` call still work.
+  - Page props are plain `readonly` classes with `toArray()` and JSON serialization, and their output is unchanged.
+  - The generated TypeScript contract, `types.ts`, is byte-identical apart from the new avatar fields.
+  
+
+### Upgrading
+
+`composer update tey/concierge`. No migrations.
+
+- **Registration:** the default mode is `open`, so an app that upgrades keeps the registration it had. Set `CONCIERGE_REGISTRATION=invitation` (or another mode) to restrict it.
+- **Dependencies:** if your app uses laravel-actions or laravel-data itself and only had them because concierge required them, add them to your own `composer.json` before updating.
+- **Page props:** page-prop classes are now `readonly`. Code that changed a prop object after building it, or extended one as a non-readonly class, needs to change. Building and passing them as documented is unaffected.
+- **Avatars:** `UserSummary` takes an optional fourth argument, so existing constructor calls keep working. The TypeScript `UserSummary` gains `avatar`.
+
 ## Concierge 0.5.0 - 2026-10-11
 
 Concierge is now public, on Packagist, and documented at https://concierge.teylabs.com.
@@ -10,6 +49,7 @@ Concierge is now public, on Packagist, and documented at https://concierge.teyla
 
 ```bash
 composer require tey/concierge
+
 
 ```
 Apps that added this GitHub repository to Composer can remove that `repositories` entry.
