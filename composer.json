@@ -2,13 +2,22 @@
     "name": "tey/concierge",
     "description": "A standard suite of essentials for every Laravel app you build.",
     "keywords": [
-        "tey",
         "laravel",
-        "concierge",
+        "user-management",
         "invitations",
-        "membership"
+        "membership",
+        "roles",
+        "permissions",
+        "teams",
+        "workspaces",
+        "multi-tenancy",
+        "local-login",
+        "spatie-laravel-permission",
+        "starter-kit",
+        "inertia",
+        "vue"
     ],
-    "homepage": "https://github.com/teylabs/concierge",
+    "homepage": "https://concierge.teylabs.com",
     "license": "MIT",
     "authors": [
         {
