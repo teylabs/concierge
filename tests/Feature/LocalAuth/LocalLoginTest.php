@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
-use Spatie\LaravelData\LaravelDataServiceProvider;
 use Tey\Concierge\Data\UI\LocalLoginOffer;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\LocalAuth\LocalLogin;
@@ -99,7 +98,6 @@ it('refuses when disabled or without an account, even in local with the route re
 ]);
 
 it('offers a server-supplied url and the configured address', function () {
-    $this->app->register(LaravelDataServiceProvider::class);
     local_login_enable();
 
     $offer = app(LocalLogin::class)->offer();

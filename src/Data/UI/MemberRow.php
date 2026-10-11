@@ -2,10 +2,12 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MemberRow extends Data
+#[TypeScript]
+readonly class MemberRow extends Props
 {
     public function __construct(
         public string $id,

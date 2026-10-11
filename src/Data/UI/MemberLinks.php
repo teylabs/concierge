@@ -2,9 +2,11 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MemberLinks extends Data
+#[TypeScript]
+readonly class MemberLinks extends Props
 {
     public function __construct(
         public ?string $show,

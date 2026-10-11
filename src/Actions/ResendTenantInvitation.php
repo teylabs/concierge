@@ -5,7 +5,7 @@ namespace Tey\Concierge\Actions;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Events\TenantInvitationResent;
 use Tey\Concierge\Jobs\DeliverTenantInvitation;
@@ -21,7 +21,7 @@ use Tey\Concierge\Support\PlatformOwners;
  */
 class ResendTenantInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function handle(Member $actor, TenantInvitation $invitation): IssuedTenantInvitation
     {

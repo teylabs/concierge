@@ -2,9 +2,11 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MembersMetadata extends Data
+#[TypeScript]
+readonly class MembersMetadata extends Props
 {
     public function __construct(
         public string $refreshUrl,

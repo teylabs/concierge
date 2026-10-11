@@ -5,7 +5,7 @@ namespace Tey\Concierge\Actions;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Events\TenantInvited;
@@ -21,7 +21,7 @@ use Tey\Concierge\Support\PlatformOwners;
  */
 class InviteTenant
 {
-    use AsAction;
+    use Runnable;
 
     public function handle(Member $actor, string $email): IssuedTenantInvitation
     {

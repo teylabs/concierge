@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\File;
-use Spatie\LaravelData\LaravelDataServiceProvider;
 use Spatie\LaravelTypeScriptTransformer\TypeScriptTransformerServiceProvider as PackageTransformerServiceProvider;
 use Workbench\App\Providers\TypeScriptTransformerServiceProvider;
 
@@ -15,7 +14,6 @@ it('keeps resources/js/types.ts in sync with the UI Data classes', function () {
     TypeScriptTransformerServiceProvider::$outputDirectory = $scratch;
 
     try {
-        $this->app->register(LaravelDataServiceProvider::class);
         $this->app->register(PackageTransformerServiceProvider::class);
         $this->app->register(TypeScriptTransformerServiceProvider::class, force: true);
         $this->artisan('typescript:transform')->assertSuccessful();

@@ -2,9 +2,11 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MembersAbilities extends Data
+#[TypeScript]
+readonly class MembersAbilities extends Props
 {
     public function __construct(
         public bool $invite,

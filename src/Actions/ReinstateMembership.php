@@ -3,7 +3,7 @@
 namespace Tey\Concierge\Actions;
 
 use Illuminate\Auth\Access\Response;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
@@ -18,7 +18,7 @@ use Tey\Concierge\Support\ManagedMembership;
  */
 class ReinstateMembership
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected GrantPolicy $policy) {}
 

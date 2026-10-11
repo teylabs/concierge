@@ -2,8 +2,8 @@
 
 namespace Tey\Concierge\Actions;
 
-use Lorisleiva\Actions\Concerns\AsAction;
 use SensitiveParameter;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationState;
@@ -19,7 +19,7 @@ use Tey\Concierge\Support\InvitationRules;
  */
 class InspectInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected Concierge $concierge) {}
 

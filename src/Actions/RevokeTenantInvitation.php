@@ -4,7 +4,7 @@ namespace Tey\Concierge\Actions;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lorisleiva\Actions\Concerns\AsAction;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Events\TenantInvitationRevoked;
@@ -14,7 +14,7 @@ use Tey\Concierge\Support\PlatformOwners;
 
 class RevokeTenantInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function handle(Member $actor, TenantInvitation $invitation): TenantInvitation
     {

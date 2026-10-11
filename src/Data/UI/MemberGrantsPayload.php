@@ -2,9 +2,11 @@
 
 namespace Tey\Concierge\Data\UI;
 
-use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Tey\Concierge\Data\Props;
 
-class MemberGrantsPayload extends Data
+#[TypeScript]
+readonly class MemberGrantsPayload extends Props
 {
     public function __construct(
         /** @var list<string> */

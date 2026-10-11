@@ -4,8 +4,8 @@ namespace Tey\Concierge\Actions;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
 use SensitiveParameter;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
@@ -28,7 +28,7 @@ use Tey\Concierge\Support\TenantAcceptance;
  */
 class AcceptTenantInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected Concierge $concierge) {}
 

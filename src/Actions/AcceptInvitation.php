@@ -3,8 +3,8 @@
 namespace Tey\Concierge\Actions;
 
 use Illuminate\Support\Facades\DB;
-use Lorisleiva\Actions\Concerns\AsAction;
 use SensitiveParameter;
+use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\AcceptanceOutcome;
@@ -26,7 +26,7 @@ use Tey\Concierge\Support\Roles;
  */
 class AcceptInvitation
 {
-    use AsAction;
+    use Runnable;
 
     public function __construct(protected Concierge $concierge) {}
 
