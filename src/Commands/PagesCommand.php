@@ -7,12 +7,14 @@ use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 
 /**
  * Writes concierge's Inertia pages into the app. Mod does the work; mod names a
- * package's scaffold command mod:<recipe>, so this is the concierge:* name for it.
+ * package's scaffold command mod:<recipe>, so this is the concierge:* name for it
+ * until a package can name its own (teylabs/mod#95).
  */
 class PagesCommand extends Command
 {
     public $signature = 'concierge:pages
         {name=Concierge : The folder the pages go in, under the app\'s pages directory}
+        {--in= : The module (or other layout group) the pages go in}
         {--force : Overwrite pages that already exist}
         {--skip-existing : Leave pages that already exist as they are}
         {--dry-run : Show what would be written, and write nothing}
@@ -23,6 +25,7 @@ class PagesCommand extends Command
     public function handle(): int
     {
         $options = array_filter([
+            '--in' => $this->option('in'),
             '--force' => $this->option('force'),
             '--skip-existing' => $this->option('skip-existing'),
             '--dry-run' => $this->option('dry-run'),
