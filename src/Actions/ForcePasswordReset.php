@@ -39,6 +39,11 @@ use Tey\Concierge\Support\ManagedMembership;
  * itself ends them, provided the host runs Laravel's AuthenticateSession
  * middleware, which signs out a session whose password hash no longer matches.
  * API tokens (Sanctum, Passport) are not touched; listen to PasswordResetForced.
+ *
+ * Everything runs in one transaction on the default connection, so a failure
+ * after the authorization checks (a misconfigured broker, a missing two-factor
+ * column) rolls the user and session rows back. A user model or sessions table
+ * on another connection is outside that transaction.
  */
 class ForcePasswordReset
 {

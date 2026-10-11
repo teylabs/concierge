@@ -3,6 +3,8 @@
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Contracts\Auth\PasswordBroker;
+use Illuminate\Contracts\Auth\PasswordBrokerFactory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -183,6 +185,42 @@ it('refuses a two-factor reset when the app has no two-factor columns', function
         ->and(Hash::check('old-secret', $this->presenter->fresh()->password))->toBeTrue();
 
     Notification::assertNothingSent();
+});
+
+it('rolls back the password, remember token and sessions when the broker cannot create a token', function () {
+    session_row($this->presenter, 'p1');
+    Event::fake([PasswordResetForced::class]);
+    app()->instance(PasswordBrokerFactory::class, new class implements PasswordBrokerFactory
+    {
+        public function broker($name = null)
+        {
+            // A contract-only broker: it cannot create a token for a given user.
+            return new class implements PasswordBroker
+            {
+                public function sendResetLink(array $credentials, ?Closure $callback = null)
+                {
+                    return PasswordBroker::RESET_LINK_SENT;
+                }
+
+                public function reset(array $credentials, Closure $callback)
+                {
+                    return PasswordBroker::PASSWORD_RESET;
+                }
+            };
+        }
+    });
+
+    expect(fn () => ForcePasswordReset::run($this->admin, $this->presenterMembership))->toThrow(UnsupportedConfiguration::class);
+
+    $fresh = $this->presenter->fresh();
+
+    expect(Hash::check('old-secret', $fresh->password))->toBeTrue()
+        ->and($fresh->remember_token)->toBe('remember-me')
+        ->and(DB::table('sessions')->pluck('id')->all())->toBe(['p1'])
+        ->and(DB::table('password_reset_tokens')->count())->toBe(0);
+
+    Notification::assertNothingSent();
+    Event::assertNotDispatched(PasswordResetForced::class);
 });
 
 it('dispatches PasswordResetForced after the commit', function () {
