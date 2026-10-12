@@ -2,6 +2,7 @@
 
 namespace Tey\Concierge\Registration;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use SensitiveParameter;
 use Tey\Concierge\ConciergeServiceProvider;
@@ -19,6 +20,9 @@ use Tey\Concierge\Support\InvitationRules;
  */
 final class Registration
 {
+    /** Session key for the invitation token from the register link. */
+    public const string REMEMBERED_TOKEN = 'concierge.registration.invitation';
+
     public static function mode(): RegistrationMode
     {
         return RegistrationMode::configured();
@@ -47,6 +51,36 @@ final class Registration
         }
 
         return array_values(array_unique($domains));
+    }
+
+    /**
+     * Remember the token a register link carried, so the kit's unchanged form
+     * can post without it. It is only a lookup key: decide() still checks it
+     * on the request that creates the account.
+     */
+    public static function remember(Request $request, #[SensitiveParameter] mixed $token): void
+    {
+        if ($request->hasSession() && is_string($token) && trim($token) !== '') {
+            $request->session()->put(self::REMEMBERED_TOKEN, trim($token));
+        }
+    }
+
+    public static function remembered(?Request $request = null): ?string
+    {
+        $request ??= request();
+
+        $token = $request->hasSession() ? $request->session()->get(self::REMEMBERED_TOKEN) : null;
+
+        return is_string($token) && $token !== '' ? $token : null;
+    }
+
+    public static function forget(?Request $request = null): void
+    {
+        $request ??= request();
+
+        if ($request->hasSession()) {
+            $request->session()->forget(self::REMEMBERED_TOKEN);
+        }
     }
 
     /** True only in open mode: the app's sign-in page can decide whether to link to registration. */

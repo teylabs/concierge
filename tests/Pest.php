@@ -15,6 +15,7 @@ use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Tests\AppMode\AppModeTestCase;
+use Tey\Concierge\Tests\Fortify\FortifyAppWideTestCase;
 use Tey\Concierge\Tests\Fortify\FortifyTestCase;
 use Tey\Concierge\Tests\Import\ImportTestCase;
 use Tey\Concierge\Tests\Kit\KitTestCase;
@@ -32,7 +33,9 @@ uses(ScaffoldTestCase::class)->in('Scaffolding/ConciergePagesScaffoldTest.php');
 uses(ReactScaffoldTestCase::class)->in('Scaffolding/ReactPagesScaffoldTest.php');
 uses(ModulesScaffoldTestCase::class)->in('Scaffolding/ModulesPagesScaffoldTest.php');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
-uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify');
+uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify/FortifyDeactivationTest.php', 'Fortify/FortifyRegistrationTest.php', 'Fortify/RememberedInvitationTest.php');
+// The app-wide Fortify leg has its own schema, so DatabaseMigrations (see AppModeTestCase).
+uses(FortifyAppWideTestCase::class, DatabaseMigrations::class)->in('Fortify/AppWide');
 uses(KitTestCase::class, RefreshDatabase::class)->in('Kit');
 uses(ImportTestCase::class, RefreshDatabase::class)->in('Import');
 uses(RefreshDatabase::class)->in('Feature');

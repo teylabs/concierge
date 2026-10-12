@@ -14,7 +14,8 @@ use Tey\Concierge\Rules\MayRegister;
  * so the registration gate runs on every request Fortify turns into an
  * account, without the app editing its own action. A refusal is a validation
  * error on the email field, like any other. In closed mode the request is a
- * 404, the same as the register page.
+ * 404, the same as the register page. The token remembered from the register
+ * link is cleared once the account exists.
  */
 class GatedUserCreator implements CreatesNewUsers
 {
@@ -32,6 +33,10 @@ class GatedUserCreator implements CreatesNewUsers
             Fortify::email() => ['required', 'string', new MayRegister],
         ])->validate();
 
-        return $this->creator->create($input);
+        $user = $this->creator->create($input);
+
+        Registration::forget();
+
+        return $user;
     }
 }
