@@ -137,7 +137,7 @@ test('says users, never workspace', async ({ page }) => {
     await openHarness(page, 'user');
 
     await expect(page.locator('.concierge')).not.toContainText(/workspace/i);
-    await expect(page.getByText(/password reset|impersonat/i)).toHaveCount(0);
+    await expect(page.getByText(/impersonat/i)).toHaveCount(0);
 });
 
 test('offers deactivate, not restore, for an active user', async ({ page }) => {
@@ -161,6 +161,38 @@ test('offers deactivate, not restore, for an active user', async ({ page }) => {
                 data: { reason: 'Left the company' },
             },
         ]);
+});
+
+test('forces a password reset after a plain confirmation', async ({ page }) => {
+    await openHarness(page, 'user');
+
+    await page.getByRole('button', { name: 'Force password reset' }).click();
+    const dialog = page.getByRole('dialog', {
+        name: 'Force a password reset for Ada Lovelace?',
+    });
+
+    await expect(dialog).toContainText('signed out everywhere');
+    await expect(dialog).toContainText('reset link is emailed');
+    await dialog.getByLabel('Also reset two-factor authentication').check();
+    await dialog.getByRole('button', { name: 'Force password reset' }).click();
+
+    await expect
+        .poll(() => requests(page))
+        .toEqual([
+            {
+                method: 'post',
+                url: '/users/11/force-password-reset',
+                data: { resetTwoFactor: true },
+            },
+        ]);
+});
+
+test('hides force password reset for a deactivated user', async ({ page }) => {
+    await openHarness(page, 'user', 'deactivated');
+
+    await expect(
+        page.getByRole('button', { name: 'Force password reset' }),
+    ).toHaveCount(0);
 });
 
 test('offers restore, not deactivate, for a deactivated user', async ({

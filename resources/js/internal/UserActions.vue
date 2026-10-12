@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Deactivate / restore / remove one user. Only an action with a server-provided
+ * Force a password reset, deactivate / restore / remove one user. Only an action with a server-provided
  * link renders; the server still authorises every request. Shared by the users
  * index rows and the user page.
  */
@@ -19,13 +19,14 @@ const props = withDefaults(
     { size: 'sm' },
 );
 
-type Kind = 'deactivate' | 'restore' | 'remove';
+type Kind = 'forcePasswordReset' | 'deactivate' | 'restore' | 'remove';
 
 const { t } = useConcierge();
 const { pending, failure, submit, retry, reset } = useSubmit();
 
 const open = ref<Kind | null>(null);
 const reason = ref('');
+const resetTwoFactor = ref(false);
 
 const params = computed(() => ({ name: props.user.user.name }));
 
@@ -37,16 +38,34 @@ const showDeactivate = computed(
     () => !deactivated.value && links.value.deactivate !== null,
 );
 
+const showForceReset = computed(
+    () =>
+        !deactivated.value &&
+        !props.user.isSelf &&
+        links.value.forcePasswordReset !== null,
+);
+
 const showRestore = computed(
     () => deactivated.value && links.value.restore !== null,
 );
 
 const visible = computed(
-    () => showDeactivate.value || showRestore.value || links.value.remove,
+    () =>
+        showForceReset.value ||
+        showDeactivate.value ||
+        showRestore.value ||
+        links.value.remove,
 );
 
 const dialog = computed(() => {
     switch (open.value) {
+        case 'forcePasswordReset':
+            return {
+                title: t('userActions.forcePasswordReset.title', params.value),
+                body: t('userActions.forcePasswordReset.body', params.value),
+                label: t('userActions.forcePasswordReset'),
+                variant: 'warning' as const,
+            };
         case 'deactivate':
             return {
                 title: t('userActions.deactivate.title', params.value),
@@ -74,6 +93,7 @@ const dialog = computed(() => {
 function show(kind: Kind) {
     reset();
     reason.value = '';
+    resetTwoFactor.value = false;
     open.value = kind;
 }
 
@@ -103,6 +123,10 @@ async function confirm() {
                         ...(kind === 'deactivate' && trimmed !== ''
                             ? { data: { reason: trimmed } }
                             : {}),
+                        ...(kind === 'forcePasswordReset' &&
+                        resetTwoFactor.value
+                            ? { data: { resetTwoFactor: true } }
+                            : {}),
                     },
           );
 
@@ -121,6 +145,14 @@ async function confirm() {
             tier="outline"
             @click="show('restore')"
             >{{ t('userActions.restore') }}</Button
+        >
+        <Button
+            v-if="showForceReset"
+            :size="size"
+            variant="warning"
+            tier="outline"
+            @click="show('forcePasswordReset')"
+            >{{ t('userActions.forcePasswordReset') }}</Button
         >
         <Button
             v-if="showDeactivate"
@@ -151,6 +183,18 @@ async function confirm() {
             @close="close"
         >
             <p>{{ dialog.body }}</p>
+            <label
+                v-if="open === 'forcePasswordReset' && user.twoFactorResettable"
+                class="flex items-center gap-2 text-sm text-(--concierge-text)"
+            >
+                <input
+                    v-model="resetTwoFactor"
+                    type="checkbox"
+                    name="resetTwoFactor"
+                    :disabled="pending"
+                />
+                {{ t('userActions.forcePasswordReset.twoFactor') }}
+            </label>
             <label v-if="open === 'deactivate'" class="block space-y-1">
                 <span
                     class="block text-sm font-medium text-(--concierge-text)"

@@ -139,6 +139,13 @@ export const defaultLabels = {
     'user.accessDescription':
         'Deactivating a user takes their access away and keeps their history. Removing a user deletes their account.',
     'user.noActions': 'There are no actions available for this user.',
+    'userActions.forcePasswordReset': 'Force password reset',
+    'userActions.forcePasswordReset.title':
+        'Force a password reset for {name}?',
+    'userActions.forcePasswordReset.body':
+        'Their password is replaced with one nobody knows, they are signed out everywhere and a password reset link is emailed to them.',
+    'userActions.forcePasswordReset.twoFactor':
+        'Also reset two-factor authentication',
     'userActions.deactivate': 'Deactivate',
     'userActions.deactivate.title': 'Deactivate {name}?',
     'userActions.deactivate.body':

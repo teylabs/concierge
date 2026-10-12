@@ -15,5 +15,6 @@ readonly class UserLinks extends Props
         public ?string $remove,
         public ?string $deactivate,
         public ?string $restore,
+        public ?string $forcePasswordReset,
     ) {}
 }

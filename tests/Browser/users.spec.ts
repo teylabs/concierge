@@ -45,6 +45,7 @@ test.describe('users index', () => {
 
         await expect(rows.nth(0).getByRole('button')).toHaveCount(0);
         await expect(rows.nth(1).getByRole('button')).toHaveText([
+            'Force password reset',
             'Deactivate',
             'Remove',
         ]);

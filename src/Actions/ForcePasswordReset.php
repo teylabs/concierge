@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\AccountGuard;
+use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\RecentAuthentication;
@@ -20,8 +21,10 @@ use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Events\PasswordResetForced;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
+use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\ForcedPasswordReset;
+use Tey\Concierge\Support\ManagedAccount;
 use Tey\Concierge\Support\ManagedMembership;
 use Tey\Concierge\Support\UserSessions;
 
@@ -30,9 +33,10 @@ use Tey\Concierge\Support\UserSessions;
  * with one nobody knows, every session and the remember-me token end, two-factor
  * is optionally cleared, and the owner receives a password reset link.
  *
- * The target is a membership because the actor's authority comes from a
- * workspace: the same manager and rank rules as suspending or removing apply,
- * and nobody can reset their own password this way.
+ * In workspace mode the target is a membership, because the actor's authority
+ * comes from a workspace: the same manager and rank rules as suspending or
+ * removing apply. In app-wide mode the target is the user, under the same rules
+ * as deactivating one. Nobody can reset their own password this way.
  *
  * Sessions: with the `database` session driver the user's rows are deleted.
  * Other drivers cannot enumerate a user's sessions; there the password change
@@ -54,67 +58,86 @@ class ForcePasswordReset
         protected RecentAuthentication $recentAuthentication,
         protected AccountGuard $accountGuard,
         protected PasswordBrokerFactory $brokers,
+        protected AccountPolicy $accountPolicy,
     ) {}
 
-    public function handle(Member $actor, Membership $membership, bool $resetTwoFactor = false): ForcedPasswordReset
+    /**
+     * @param  Membership|Member  $target  a membership in workspace mode, the user app-wide
+     */
+    public function handle(Member $actor, Membership|Member $target, bool $resetTwoFactor = false): ForcedPasswordReset
     {
-        return ManagedMembership::mutate($membership, function (Workspace $workspace, Membership $membership) use ($actor, $resetTwoFactor) {
-            $this->policy->authorizeManagement($actor, $workspace, $membership)->authorize();
+        if ($target instanceof Membership) {
+            return ManagedMembership::mutate($target, function (Workspace $workspace, Membership $membership) use ($actor, $resetTwoFactor) {
+                $this->policy->authorizeManagement($actor, $workspace, $membership)->authorize();
 
-            if ($membership->status === MembershipStatus::Removed) {
-                Response::deny(__('That person is no longer a member.'), 'not_member')->authorize();
+                if ($membership->status === MembershipStatus::Removed) {
+                    Response::deny(__('That person is no longer a member.'), 'not_member')->authorize();
+                }
+
+                return $this->lockDown($actor, $membership->user, $resetTwoFactor, $workspace, $membership);
+            });
+        }
+
+        return ManagedAccount::mutate($actor, $target, function (Account $actorAccount, ?Account $account) use ($actor, $target, $resetTwoFactor) {
+            $this->accountPolicy->authorizeManagement($actor, $target)->authorize();
+
+            if (! $account?->isActive()) {
+                Response::deny(__('That account is deactivated.'), 'deactivated')->authorize();
             }
 
-            if (config('concierge.recent_authentication_seconds') !== null && ! $this->recentAuthentication->confirmed($actor)) {
-                Response::deny(__('Please confirm your password first.'), 'recent_auth_required')->authorize();
-            }
-
-            $user = $membership->user;
-
-            $this->accountGuard->authorize(AccountGuard::FORCE_PASSWORD_RESET, $actor, $user)->authorize();
-
-            if (! $user instanceof Authenticatable || ! $user instanceof CanResetPassword) {
-                throw new UnsupportedConfiguration(
-                    'ForcePasswordReset needs a user model that is Authenticatable and CanResetPassword.'
-                );
-            }
-
-            $twoFactorColumns = $resetTwoFactor ? $this->twoFactorColumns($user) : [];
-
-            // The random value is hashed and discarded: no one, including this process
-            // after this line, can sign in with it.
-            $user->forceFill([
-                $user->getAuthPasswordName() => Hash::make(Str::random(64)),
-                ...array_fill_keys($twoFactorColumns, null),
-            ]);
-
-            UserSessions::cycleRememberToken($user);
-
-            $user->save();
-
-            $sessionsEnded = UserSessions::endDatabaseSessions($user);
-
-            $broker = $this->brokers->broker(config('concierge.forced_password_reset.broker'));
-
-            // createToken() is on Laravel's broker, not the contract: a custom broker
-            // without it cannot deliver the link, so stop rather than lock the account out silently.
-            if (! $broker instanceof PasswordBroker) {
-                throw new UnsupportedConfiguration('ForcePasswordReset needs a password broker that can create a token for a user.');
-            }
-
-            $user->sendPasswordResetNotification($broker->createToken($user));
-
-            PasswordResetForced::dispatch(
-                $workspace->getKey(),
-                $membership->getKey(),
-                $user->getKey(),
-                $actor->getKey(),
-                $twoFactorColumns !== [],
-                $sessionsEnded,
-            );
-
-            return new ForcedPasswordReset($membership, $twoFactorColumns !== [], $sessionsEnded);
+            return $this->lockDown($actor, $target, $resetTwoFactor);
         });
+    }
+
+    protected function lockDown(Member $actor, Member $user, bool $resetTwoFactor, ?Workspace $workspace = null, ?Membership $membership = null): ForcedPasswordReset
+    {
+        if (config('concierge.recent_authentication_seconds') !== null && ! $this->recentAuthentication->confirmed($actor)) {
+            Response::deny(__('Please confirm your password first.'), 'recent_auth_required')->authorize();
+        }
+
+        $this->accountGuard->authorize(AccountGuard::FORCE_PASSWORD_RESET, $actor, $user)->authorize();
+
+        if (! $user instanceof Authenticatable || ! $user instanceof CanResetPassword || ! $user instanceof Model) {
+            throw new UnsupportedConfiguration(
+                'ForcePasswordReset needs a user model that is Authenticatable and CanResetPassword.'
+            );
+        }
+
+        $twoFactorColumns = $resetTwoFactor ? $this->twoFactorColumns($user) : [];
+
+        // The random value is hashed and discarded: no one, including this process
+        // after this line, can sign in with it.
+        $user->forceFill([
+            $user->getAuthPasswordName() => Hash::make(Str::random(64)),
+            ...array_fill_keys($twoFactorColumns, null),
+        ]);
+
+        UserSessions::cycleRememberToken($user);
+
+        $user->save();
+
+        $sessionsEnded = UserSessions::endDatabaseSessions($user);
+
+        $broker = $this->brokers->broker(config('concierge.forced_password_reset.broker'));
+
+        // createToken() is on Laravel's broker, not the contract: a custom broker
+        // without it cannot deliver the link, so stop rather than lock the account out silently.
+        if (! $broker instanceof PasswordBroker) {
+            throw new UnsupportedConfiguration('ForcePasswordReset needs a password broker that can create a token for a user.');
+        }
+
+        $user->sendPasswordResetNotification($broker->createToken($user));
+
+        PasswordResetForced::dispatch(
+            $workspace?->getKey(),
+            $membership?->getKey(),
+            $user->getKey(),
+            $actor->getKey(),
+            $twoFactorColumns !== [],
+            $sessionsEnded,
+        );
+
+        return new ForcedPasswordReset($membership, $twoFactorColumns !== [], $sessionsEnded);
     }
 
     /**

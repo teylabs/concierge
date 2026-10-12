@@ -23,6 +23,8 @@ readonly class UserRow extends Props
         public ?string $joinedAt,
         public bool $hasActions,
         public UserLinks $links,
+        /** Whether the force-reset dialog may offer to clear two-factor: the user table has the columns. */
+        public bool $twoFactorResettable = false,
         /**
          * The app's own fields from Concierge::userColumns(), keyed by column.
          *
