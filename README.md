@@ -140,6 +140,25 @@ One click signs in as the account in your configuration, in the `local` environm
 
 Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `UsersPage`, `InviteUserPage`, `UserPage`, `AcceptInvitationPage`) and `LocalLoginButton` ship in the package under `resources/js`. The Members pages are for workspaces; the Users pages are for app-wide mode. The PHP code never depends on them. In a Vue starter kit app, `php artisan concierge:pages` writes the four wrapper pages into your own `resources/js/pages/Concierge`, ready to edit (`--dry-run` previews them; mod lists the same recipe as `mod:concierge/pages`). Concierge declares the `@tey/concierge` alias, its TypeScript paths and its Tailwind source to [mod](https://mod.teylabs.com), so `php artisan mod:install inertia --dry-run` shows the wiring and `mod:install inertia` applies it to a starter kit app. See [Vue pages](https://concierge.teylabs.com/features/vue-pages) for the Vite, Tailwind and plugin setup by hand.
 
+#### TypeScript types
+
+Type your own Members, Member, invite and accept pages against the generated page props your controllers supply. Vue apps can import them from `@tey/concierge`; plain TypeScript or other frontends can use `@tey/concierge/types`, which imports no Vue components and needs no Vue tooling. Both entries export the same generated types, including the Users page props and row types. Mod's existing `@tey/concierge/*` TypeScript path covers `/types`; no extra wiring is needed. The `types.ts` contract will be frozen at 1.0 ([#36](https://github.com/teylabs/concierge/issues/36)).
+
+```ts
+import type { MembersPageProps } from '@tey/concierge';
+```
+
+Or, without Vue tooling:
+
+```ts
+import type {
+    MembersPageProps,
+    MemberPageProps,
+    InviteMemberPageProps,
+    AcceptInvitationPageProps,
+} from '@tey/concierge/types';
+```
+
 #### Users Pages (App-Wide Mode)
 
 `UsersPage` lists everyone with search, a role filter and a status filter (Active by default, Deactivated, or both), paginated; set `metadata.status` to `null` or `'active'` to hide deactivated users, `'deactivated'` for only them and `'all'` for everyone. `UserPage` edits a user's name, email and roles and links to removal, and `InviteUserPage` sends the app-wide invitation. Their props are `UsersPageProps`, `UserPageProps` and `InviteUserPageProps` in `types.ts`, and they never say "workspace". Concierge ships no routes yet ([#28](https://github.com/teylabs/concierge/issues/28)), so your controllers build the props and supply every link; a `null` link hides its control. Wire them to `ChangeUserRoles`, `RemoveUser`, `InviteUser` and `UpdateUser`. Changing an email does not clear `email_verified_at` or send a verification email; that is your app's call. Removal calls `delete()` on the user model, so a model with `SoftDeletes` is soft deleted. `UserPage` and the rows of `UsersPage` offer Deactivate (with an optional reason, sent as `reason`) and Restore when `UserLinks` carries a `deactivate` or `restore` link; both POST, so point them at routes that call `DeactivateUser` and `RestoreUser`. Your controller decides which users to list: filter on the account `status` to match the metadata.
