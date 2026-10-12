@@ -18,11 +18,27 @@ jobs:
         with:
           ref: main
 
+      # The release body is the curated notes, then `---` and GitHub's generated
+      # notes. The changelog takes only the curated part, with the optional
+      # `## <theme>` heading reduced to its paragraph, under `## [x.y.z] - date`.
+      - name: Extract the curated notes
+        id: notes
+        env:
+          BODY: ${{ github.event.release.body }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          {
+            echo "version=[${TAG#v}]"
+            echo 'notes<<CONCIERGE_NOTES_EOF'
+            printf '%s\n' "$BODY" | tr -d '\r' | awk '/^---$/ { exit } { print }' | sed '1{/^## /d;}' | sed '/./,$!d'
+            echo 'CONCIERGE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Update Changelog
         uses: stefanzweifel/changelog-updater-action@v1
         with:
-          latest-version: ${{ github.event.release.name }}
-          release-notes: ${{ github.event.release.body }}
+          latest-version: ${{ steps.notes.outputs.version }}
+          release-notes: ${{ steps.notes.outputs.notes }}
 
       - name: Commit updated CHANGELOG
         uses: stefanzweifel/git-auto-commit-action@v7
