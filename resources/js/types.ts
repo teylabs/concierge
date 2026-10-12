@@ -218,6 +218,7 @@ updateGrants: string | null,
 remove: string | null,
 deactivate: string | null,
 restore: string | null,
+forcePasswordReset: string | null,
 };
 export type UserPageLinks = {
 back: string,
@@ -253,6 +254,7 @@ roles: RoleBadge[],
 joinedAt: string | null,
 hasActions: boolean,
 links: UserLinks,
+twoFactorResettable: boolean,
 columns: Record<string, string | number | boolean | null>,
 };
 export type UserSummary = {

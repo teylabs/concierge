@@ -10,11 +10,12 @@ use Tey\Concierge\Models\Membership;
 final readonly class ForcedPasswordReset
 {
     /**
+     * @param  Membership|null  $membership  Null in app-wide mode, where the target is a user.
      * @param  int|null  $sessionsEnded  Database session rows deleted, or null when the
      *                                   session driver is not `database`.
      */
     public function __construct(
-        public Membership $membership,
+        public ?Membership $membership,
         public bool $twoFactorReset,
         public ?int $sessionsEnded,
     ) {}

@@ -202,6 +202,7 @@ const noUserLinks = {
     remove: null,
     deactivate: null,
     restore: null,
+    forcePasswordReset: null,
 };
 
 export const appOwner: UserRow = {
@@ -215,6 +216,7 @@ export const appOwner: UserRow = {
     joinedAt: '2026-08-01T09:00:00Z',
     hasActions: false,
     links: { ...noUserLinks, show: '/users/10' },
+    twoFactorResettable: false,
     columns: { plan: 'Team', seats: 5 },
 };
 
@@ -235,7 +237,9 @@ export const appAdmin: UserRow = {
         remove: '/users/11',
         deactivate: '/users/11/deactivate',
         restore: null,
+        forcePasswordReset: '/users/11/force-password-reset',
     },
+    twoFactorResettable: true,
     columns: { plan: 'Pro', seats: 2 },
 };
 
@@ -255,6 +259,7 @@ export const deactivated: UserRow = {
         remove: '/users/12',
         restore: '/users/12/restore',
     },
+    twoFactorResettable: false,
     columns: { plan: null, seats: 0 },
 };
 
