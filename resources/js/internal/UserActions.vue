@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Force a password reset, deactivate / restore / remove one user. Only an action with a server-provided
- * link renders; the server still authorises every request. Shared by the users
- * index rows and the user page.
+ * Force a password reset, deactivate / restore / remove one user. Only an
+ * action with a server-provided link renders; the server still authorises
+ * every request. Shared by the users index rows and the user page.
  */
 import { computed, ref } from 'vue';
 import { useConcierge } from '../plugin';
@@ -192,6 +192,7 @@ async function confirm() {
                     type="checkbox"
                     name="resetTwoFactor"
                     :disabled="pending"
+                    class="size-4 shrink-0 accent-(--concierge-primary-solid) focus:outline-none"
                 />
                 {{ t('userActions.forcePasswordReset.twoFactor') }}
             </label>
