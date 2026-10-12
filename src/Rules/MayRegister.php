@@ -12,8 +12,9 @@ use Tey\Concierge\Registration\Registration;
  * Validates the email a person registers with against concierge.registration.
  * The invitation token is read from the validated data, then from the current
  * request, under the "invitation" key, so a token on the form is checked on
- * the request that creates the account. Pass one explicitly to read it from
- * somewhere else.
+ * the request that creates the account. When the request carries none, the
+ * token remembered from the register link (?invitation=TOKEN) is used. Pass
+ * one explicitly to read it from somewhere else.
  *
  *     'email' => ['required', 'email', 'unique:users', new MayRegister],
  */
@@ -51,8 +52,12 @@ class MayRegister implements DataAwareRule, ValidationRule
 
     protected function token(): ?string
     {
-        $token = $this->token ?? $this->data[self::TOKEN_INPUT] ?? request()->input(self::TOKEN_INPUT);
+        foreach ([$this->token, $this->data[self::TOKEN_INPUT] ?? null, request()->input(self::TOKEN_INPUT)] as $token) {
+            if (is_string($token) && trim($token) !== '') {
+                return $token;
+            }
+        }
 
-        return is_string($token) ? $token : null;
+        return Registration::remembered();
     }
 }
