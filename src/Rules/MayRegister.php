@@ -13,8 +13,8 @@ use Tey\Concierge\Registration\Registration;
  * The invitation token is read from the validated data, then from the current
  * request, under the "invitation" key, so a token on the form is checked on
  * the request that creates the account. When the request carries none, the
- * token remembered from the register link (?invitation=TOKEN) is used. Pass one explicitly to read it from
- * somewhere else.
+ * token remembered from the register link (?invitation=TOKEN) is used. Pass
+ * one explicitly to read it from somewhere else.
  *
  *     'email' => ['required', 'email', 'unique:users', new MayRegister],
  */
