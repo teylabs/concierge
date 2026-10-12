@@ -28,6 +28,7 @@ final class ConciergeFrontend
         Mod::pages(self::PAGES_NAMESPACE, $basePath.'/'.self::PACKAGE_PATH.'/resources/js/pages');
         Mod::wiring()
             ->alias(self::ALIAS, self::PACKAGE_PATH.'/resources/js')
-            ->source(self::PACKAGE_PATH.'/resources/js');
+            ->source(self::PACKAGE_PATH.'/resources/js')
+            ->css(self::PACKAGE_PATH.'/resources/css/concierge.css');
     }
 }

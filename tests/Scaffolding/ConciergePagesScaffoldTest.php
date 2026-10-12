@@ -86,6 +86,10 @@ afterEach(function () {
         File::deleteDirectory($package);
     }
     @rmdir(dirname($package));
+
+    // The stylesheet test writes a starter kit's CSS entry and Vite config into the skeleton.
+    File::delete(base_path('vite.config.ts'));
+    File::deleteDirectory(base_path('resources/css'));
 });
 
 it('boots without a vendor copy and reports the declarations mod cannot use', function () {
@@ -188,3 +192,50 @@ it('runs the same recipe under mod\'s own name', function () {
     expect($exit)->toBe(0)
         ->and(json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR)['files'])->toHaveCount(4);
 });
+
+it('plans the stylesheet import for mod:install inertia and reports it wired once applied', function (bool $symlink) {
+    install_package($symlink);
+    $css = base_path('resources/css/app.css');
+    File::ensureDirectoryExists(dirname($css));
+    File::ensureDirectoryExists(base_path('resources/js'));
+    File::put($css, "@import 'tailwindcss';\n");
+    File::put(base_path('resources/js/app.ts'), <<<'TS'
+        import { createInertiaApp } from '@inertiajs/vue3';
+        import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+
+        createInertiaApp({
+            resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<import('vue').DefineComponent>('./pages/**/*.vue')),
+        });
+        TS);
+    File::put(base_path('vite.config.ts'), <<<'TS'
+        import { defineConfig } from 'vite';
+        import laravel from 'laravel-vite-plugin';
+
+        export default defineConfig({
+            plugins: [laravel({ input: ['resources/css/app.css', 'resources/js/app.ts'], refresh: true })],
+        });
+
+        TS);
+    File::put(base_path('tsconfig.json'), "{\n    \"compilerOptions\": {\n        \"paths\": {\n            \"@/*\": [\"./resources/js/*\"]\n        }\n    },\n    \"include\": [\"resources/js/**/*\"]\n}\n");
+    $import = "@import '../../vendor/tey/concierge/resources/css/concierge.css';";
+
+    $install = function (array $options = []): array {
+        $output = new BufferedOutput;
+        $exit = app(Kernel::class)->call('mod:install', ['stack' => 'inertia', '--no-interaction' => true] + $options, $output);
+
+        return [$exit, $output->fetch()];
+    };
+
+    [, $preview] = $install(['--dry-run' => true, '--json' => true]);
+    $plan = json_decode($preview, true, flags: JSON_THROW_ON_ERROR);
+    expect(collect($plan['files'])->firstWhere('path', 'resources/css/app.css')['identity']['after'])->toContain($import)
+        ->and(File::get($css))->not->toContain($import);
+
+    [$exit] = $install();
+    expect($exit)->toBe(0)->and(substr_count(File::get($css), $import))->toBe(1);
+
+    [$exit, $output] = $install();
+    expect($exit)->toBe(0)
+        ->and($output)->toContain('Already wired.')
+        ->and(substr_count(File::get($css), $import))->toBe(1);
+})->with(['symlinked path repository' => true, 'copied install' => false]);
