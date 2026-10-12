@@ -5,6 +5,7 @@
     "description": "Optional Vue UI for tey/concierge, consumed from vendor/tey/concierge through a host Vite alias.",
     "exports": {
         ".": "./resources/js/index.ts",
+        "./types": "./resources/js/types.ts",
         "./inertia": "./resources/js/inertia.ts",
         "./styles.css": "./resources/css/concierge.css"
     },
