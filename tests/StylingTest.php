@@ -29,7 +29,7 @@ function stylingFiles(string $dir, array $extensions): array
 
     foreach ($iterator as $file) {
         if ($file->isFile() && in_array($file->getExtension(), $extensions, true)) {
-            $files[] = substr($file->getPathname(), strlen($root) + 1);
+            $files[] = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($root) + 1));
         }
     }
 
