@@ -118,6 +118,42 @@ it("falls back to the user's current_team_id, and to nothing for a guest", funct
     $this->actingAs($olive)->get('/dashboard')->assertSee('Acme');
 });
 
+it('lets a kit member through concierge.member and refuses them after removal', function () {
+    $acme = kit_team('Acme', ['olive' => TeamRole::Owner, 'mia' => TeamRole::Member]);
+    $mia = User::query()->where('name', 'Mia')->sole();
+    $mia->switchTeam($acme);
+
+    Route::middleware('concierge.member')->get('/{current_team}/members', fn () => 'ok');
+    Route::middleware('concierge.member')->get('/dashboard', fn () => 'ok');
+
+    $this->actingAs($mia)->get("/{$acme->slug}/members")->assertOk()->assertSee('ok');
+    $this->actingAs($mia)->get('/dashboard')->assertOk()->assertSee('ok');
+    expect(DB::table('concierge_memberships')->count())->toBe(0);
+
+    $acme->memberships()->where('user_id', $mia->id)->delete();
+
+    $this->actingAs($mia)->get("/{$acme->slug}/members")->assertForbidden();
+    $this->actingAs($mia)->get('/dashboard')->assertForbidden();
+});
+
+it('refuses a non-member of the requested kit team with concierge.member', function () {
+    $acme = kit_team('Acme', ['olive' => TeamRole::Owner]);
+    $other = kit_team('Other', ['stranger' => TeamRole::Member]);
+    $stranger = User::query()->where('name', 'Stranger')->sole();
+    $stranger->switchTeam($other);
+
+    Route::middleware('concierge.member')->get('/{current_team}/members', fn () => 'ok');
+
+    $this->actingAs($stranger)->get("/{$acme->slug}/members")->assertForbidden();
+});
+
+it('returns 404 without a kit workspace in concierge.member', function () {
+    Route::middleware('concierge.member')->get('/dashboard', fn () => 'ok');
+
+    $this->get('/dashboard')->assertNotFound();
+    $this->actingAs(kit_user('stranger'))->get('/dashboard')->assertNotFound();
+});
+
 it('runs a callback with a team as the current one, and restores it afterwards', function () {
     $acme = Team::query()->create(['name' => 'Acme']);
     $context = app(WorkspaceContext::class);

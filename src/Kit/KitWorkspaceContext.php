@@ -13,8 +13,8 @@ use Tey\Concierge\Support\ConciergeModels;
 /**
  * The current team as a Laravel starter kit sees it: the team in the
  * {current_team} route parameter (a bound model or its slug), else the signed-in
- * user's current_team_id. It never checks membership; the kit's
- * EnsureTeamMembership middleware does that.
+ * user's current_team_id. It never checks membership; the concierge.member
+ * middleware does that through the membership source.
  *
  * Spatie teams is off under the kit engine, so run() only sets the current
  * workspace for the callback.

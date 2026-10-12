@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Contracts\Member;
+use Tey\Concierge\Contracts\MembershipSource;
 use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Enums\WorkspaceEngine;
 
 /**
  * Fails closed. Workspace mode: no workspace context is a 404, and anything
@@ -32,7 +34,9 @@ class RequireActiveMembership
 
         abort_if($workspace === null, 404);
 
-        abort_unless($user instanceof Member && $this->concierge->membership($user, $workspace)?->isActive(), 403);
+        abort_unless($user instanceof Member && (WorkspaceEngine::configured() === WorkspaceEngine::Kit
+            ? app(MembershipSource::class)->member($workspace, $user) !== null
+            : $this->concierge->membership($user, $workspace)?->isActive()), 403);
 
         return $next($request);
     }
