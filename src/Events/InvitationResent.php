@@ -10,7 +10,7 @@ class InvitationResent implements ShouldDispatchAfterCommit
     use Dispatchable;
 
     public function __construct(
-        public int $workspaceId,
+        public ?int $workspaceId,
         public int $invitationId,
         public int $generation,
         public ?int $actorId,

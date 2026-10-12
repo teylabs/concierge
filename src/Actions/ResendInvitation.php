@@ -6,6 +6,7 @@ use Illuminate\Auth\Access\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tey\Concierge\Concerns\Runnable;
+use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Events\InvitationResent;
@@ -17,6 +18,7 @@ use Tey\Concierge\Support\GrantSnapshot;
 use Tey\Concierge\Support\InvitationTokens;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Support\Locks;
+use Tey\Concierge\Support\ManagedAccount;
 
 /**
  * Rotates the token (old links die), renews expiry and re-captures grants
@@ -26,16 +28,18 @@ class ResendInvitation
 {
     use Runnable;
 
-    public function __construct(protected GrantPolicy $policy) {}
+    public function __construct(protected GrantPolicy $policy, protected AccountPolicy $accountPolicy) {}
 
     public function handle(Member $actor, Invitation $invitation): IssuedInvitation
     {
-        return DB::transaction(function () use ($actor, $invitation) {
-            $workspace = Locks::workspace($invitation->workspace_id);
+        $mutate = function () use ($actor, $invitation) {
+            $workspace = $invitation->isAppWide() ? null : Locks::workspace($invitation->workspace_id);
             $invitation = ConciergeModels::invitation()::query()->whereKey($invitation->getKey())->lockForUpdate()->firstOrFail();
             $grants = new GrantSet($invitation->roleNames());
 
-            $this->policy->authorizeGrant($actor, $workspace, $grants)->authorize();
+            ($workspace
+                ? $this->policy->authorizeGrant($actor, $workspace, $grants)
+                : $this->accountPolicy->authorizeGrant($actor, $grants))->authorize();
 
             if (! $invitation->isPending()) {
                 throw ValidationException::withMessages(['invitation' => __('Only pending invitations can be resent.')]);
@@ -62,10 +66,14 @@ class ResendInvitation
                 'inviter_id' => $actor->getKey(),
             ])->save();
 
-            InvitationResent::dispatch($workspace->getKey(), $invitation->getKey(), $invitation->generation, $actor->getKey());
+            InvitationResent::dispatch($workspace?->getKey(), $invitation->getKey(), $invitation->generation, $actor->getKey());
             DeliverInvitation::queueFor($invitation, $token['token']);
 
             return new IssuedInvitation($invitation, $token['token']);
-        });
+        };
+
+        return $invitation->isAppWide()
+            ? ManagedAccount::mutate($actor, null, $mutate)
+            : DB::transaction($mutate);
     }
 }
