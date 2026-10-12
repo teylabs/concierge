@@ -84,7 +84,3 @@
         --concierge-avatar-sky-fg: #075985;
     }
 }
-
-.concierge-dialog::backdrop {
-    background: var(--concierge-backdrop);
-}

@@ -68,7 +68,7 @@ function onBackdropClick(event: MouseEvent) {
 <template>
     <dialog
         ref="dialog"
-        class="concierge-dialog m-auto w-[calc(100%-2rem)] max-w-md rounded-md bg-(--concierge-surface) p-0 text-(--concierge-text) shadow-xl ring-1 ring-(--concierge-border)"
+        class="m-auto w-[calc(100%-2rem)] max-w-md rounded-md bg-(--concierge-surface) p-0 text-(--concierge-text) shadow-xl ring-1 ring-(--concierge-border) backdrop:bg-(--concierge-backdrop)"
         :aria-labelledby="`${id}-title`"
         :aria-describedby="`${id}-body`"
         @cancel="requestClose"
