@@ -21,6 +21,8 @@ CI also runs the suite on PostgreSQL 18 and a clean consumer install (`npm run c
 ## Conventions
 
 - Follow the surrounding code: naming, structure, comment density. Concierge is glue: it reuses Laravel, Spatie and mod rather than reinventing them.
+- Styling is pure Tailwind: utilities in the markup (arbitrary values, variants such as `dark:`, `backdrop:` and `@container`) and tokens through `@theme` or the `--concierge-*` variables. No hand-written CSS rules, `<style>` blocks or inline `style=` for appearance.
+- If Tailwind genuinely can't express something, say why in the PR and add the file to the allow-list in `tests/StylingTest.php` with a one-line reason.
 - Every change gets tests that fail without it. Test both modes where it matters: app-wide (`tests/AppMode`) and workspaces, with Spatie teams on and off.
 - Migrations in `database/migrations` are published into apps: never change one that has been released; add a new one.
 - Don't edit `CHANGELOG.md`; it's written from the release notes. Put upgrade notes in the PR body.
