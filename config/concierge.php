@@ -134,11 +134,16 @@ return [
     /*
      * One-click sign-in as a configured account, for local development only.
      * Off by default; both the application and uncached process APP_ENV must be
-     * exactly `local`. Missing APP_ENV fails closed, even with cached config. It signs the
-     * account in and nothing else: no roles, membership or workspace are granted.
+     * exactly `local`. Missing APP_ENV fails closed, even with cached config.
      */
     'local_login' => [
         'enabled' => false,
+
+        // With membership enabled, establish the first owner of the app or the
+        // oldest workspace if it has none. Read-only teams are unchanged.
+        // Never creates a workspace.
+        // Only takes effect when local login is available; false grants nothing.
+        'first_owner' => true,
 
         'account' => [
             // Value of the identity column. Required: nothing is available without it.

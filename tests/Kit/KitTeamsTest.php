@@ -17,6 +17,10 @@ use Workbench\App\Kit\Team;
 use Workbench\App\Kit\TeamRole;
 use Workbench\App\Kit\User;
 
+require_once __DIR__.'/../Support/LocalAuth/requests.php';
+
+local_login_preserve_process_environment();
+
 function kit_user(string $name): User
 {
     return User::query()->create(['name' => ucfirst($name), 'email' => "{$name}@example.test", 'email_verified_at' => now()]);
@@ -45,6 +49,20 @@ function described(array $members): array
 it('binds the kit adapter on the kit engine', function () {
     expect(app(MembershipSource::class))->toBeInstanceOf(KitMembershipSource::class)
         ->and(app(WorkspaceContext::class))->toBeInstanceOf(KitWorkspaceContext::class);
+});
+
+it('signs in locally without writing ownership or membership to a read-only kit team', function () {
+    local_login_enable();
+    $team = kit_team('Ownerless', []);
+
+    local_login_click()->assertRedirect('/');
+
+    $this->assertAuthenticatedAs(User::query()->where('email', LOCAL_LOGIN_EMAIL)->sole());
+    expect($team->owner())->toBeNull()
+        ->and(DB::table('team_members')->count())->toBe(0)
+        ->and(DB::table('concierge_memberships')->count())->toBe(0)
+        ->and(DB::table('concierge_ownerships')->count())->toBe(0)
+        ->and(DB::table('model_has_roles')->count())->toBe(0);
 });
 
 it("reads a kit team's members and their roles from team_members", function () {
