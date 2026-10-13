@@ -47,8 +47,7 @@
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "spatie/laravel-typescript-transformer": "^3.3",
-        "spatie/typescript-transformer": "^3.3",
-        "tey/standards": "^0.6"
+        "spatie/typescript-transformer": "^3.3"
     },
     "autoload": {
         "psr-4": {

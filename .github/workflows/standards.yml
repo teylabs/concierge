@@ -22,7 +22,7 @@ jobs:
   ci:
     name: CI workflow standards
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -32,11 +32,14 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5'
+          php-version: '8.4'
+          tools: composer:v2
           coverage: none
 
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+      # A global tool, so its PHP and Laravel floor never touches concierge's
+      # own dependency resolution. It reads extra.tey-standards from the checkout.
+      - name: Install tey/standards
+        run: composer global require tey/standards:^0.6 --no-interaction --no-progress
 
       - name: Check CI workflows
-        run: vendor/bin/standards ci --strict
+        run: '"$(composer global config bin-dir --absolute)/standards" ci --strict'
