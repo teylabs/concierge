@@ -14,6 +14,7 @@ use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Tey\Concierge\Commands\DeactivateUserCommand;
 use Tey\Concierge\Commands\ImportMembersCommand;
+use Tey\Concierge\Commands\InviteCommand;
 use Tey\Concierge\Commands\OwnersCommand;
 use Tey\Concierge\Commands\PagesCommand;
 use Tey\Concierge\Commands\SyncRolesCommand;
@@ -162,7 +163,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         ConciergeFrontend::register($this->app->basePath());
 
         if ($this->app->runningInConsole()) {
-            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, OwnersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
+            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register();
         }
     }

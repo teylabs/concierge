@@ -160,6 +160,19 @@ Establishes the emails in `concierge.owners`. See [Production](#production) for 
 | `--dry-run` | Preview without writing rows or sending password links. |
 | `--json` | Array of `{email, outcome, linkSent}`; outcomes and errors are described above. |
 
+### `concierge:invite`
+
+Invites an email into the app with roles, as an existing user. App-wide mode only. The invitation is delivered as it is from the Users page and the roles are granted on acceptance; every rule `InviteUser` applies holds unchanged (rank, not yourself, the last owner, the host `AccountGuard`).
+
+| Option | Behaviour |
+| --- | --- |
+| `--role=*` | Repeatable; at least one required. A configured role (`concierge.roles`), granted on acceptance. |
+| `--as=<email>` | Required; an existing user the invitation runs as. |
+| `--dry-run` | Every check the action makes — authorization, the roster and pending-invitation rules — without writing, mailing or dispatching events, so the preview matches the real run. |
+| `--json` | `{email, outcome, invitationId, roles, expiresAt}`; outcomes: `invited`, `would_invite`. Errors: `{error, code}`. |
+
+`invitationId` is the invitation's id and `expiresAt` its expiry; the token and accept link never appear in the output. Refusal `code`s: `missing_actor`, `unknown_actor`, `missing_roles`, `unknown_role`, `unsupported_configuration`, `database`, the first validation key (`email`, `roles`), and the action's own (`not_member`, `not_manager`, `not_grantable`, plus the account guard's).
+
 ### `concierge:import-members`
 
 Copies an existing pivot into Concierge's own workspace engine; app-wide mode and the kit engine refuse it. It never changes the source pivot. Ownership and existing memberships are kept; each workspace's writes are transactional, so a later failure leaves earlier workspaces imported.
