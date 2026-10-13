@@ -1,0 +1,42 @@
+name: Standards
+
+# tey/standards checks the CI workflows themselves (triggers, concurrency,
+# draft handling). Settings live in composer.json under extra.tey-standards.
+on:
+  push:
+    branches: [main, '*.x']
+    paths:
+      - '.github/workflows/**'
+      - 'composer.json'
+  pull_request:
+    branches: [main, '*.x']
+    paths:
+      - '.github/workflows/**'
+      - 'composer.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    name: CI workflow standards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Check CI workflows
+        run: vendor/bin/standards ci --strict
