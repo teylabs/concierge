@@ -233,6 +233,18 @@ Deactivates a user as the `--as` user: the same `DeactivateUser` action the User
 
 `user` carries `id` and `email`. Outcomes: `deactivated`; dry-run: `would_deactivate`. `sessionsEnded` is what the action ended on the `database` session driver, and `null` on other drivers and on a dry run. Refusal `code`s: `missing_actor`, `unknown_actor`, `unknown_user`, `unsupported_configuration`, `database`, and the action's own (`already_deactivated`, `self`, `rank`, `not_manager`, `not_member`, `last_owner`, plus the account guard's).
 
+### `concierge:restore <email>`
+
+Restores a deactivated user as the `--as` user: the same `RestoreUser` action the Users page calls, with the same rules as deactivating — not yourself, not someone of equal or higher rank, and the host `AccountGuard`'s veto. The user's roles come back as they left them, and no invitation is sent. App-wide mode only.
+
+| Option | Behaviour |
+| --- | --- |
+| `--as=<email>` | The existing user the action runs as; required. Every rule the action applies holds unchanged. |
+| `--dry-run` | Resolve both users and run the action's authorization check without writing or dispatching events. |
+| `--json` | `{user, outcome}`; refusals: `{error, code}`. |
+
+`user` carries `id` and `email`. Outcomes: `restored`; dry-run: `would_restore`. Refusal `code`s: `missing_actor`, `unknown_actor`, `unknown_user`, `unsupported_configuration`, `database`, and the action's own (`not_deactivated`, `self`, `rank`, `not_manager`, `not_member`, `last_owner`, plus the account guard's).
+
 ## Usage
 
 ### Membership
