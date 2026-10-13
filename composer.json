@@ -82,6 +82,15 @@
             "providers": [
                 "Tey\\Concierge\\ConciergeServiceProvider"
             ]
+        },
+        "tey-standards": {
+            "ci": {
+                "default-branches": [
+                    "main",
+                    "*.x"
+                ],
+                "distribution": "package"
+            }
         }
     },
     "minimum-stability": "dev",
