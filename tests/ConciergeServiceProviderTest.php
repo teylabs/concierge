@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
@@ -17,6 +18,24 @@ it('declares the provider for laravel package discovery', function () {
 
 it('defaults invitation expiry to seven days', function () {
     expect(config('concierge.invitations.expires_after_days'))->toBe(7);
+});
+
+it('reads owner emails from the environment, trimming whitespace and dropping blanks', function () {
+    $env = Env::getRepository();
+    $before = $env->get('CONCIERGE_OWNERS');
+    $env->clear('CONCIERGE_OWNERS');
+    $env->set('CONCIERGE_OWNERS', ' first@example.test, ,Second@Example.Test,, ');
+
+    try {
+        $config = require __DIR__.'/../config/concierge.php';
+
+        expect($config['owners'])->toBe(['first@example.test', 'Second@Example.Test']);
+    } finally {
+        $env->clear('CONCIERGE_OWNERS');
+        if ($before !== null) {
+            $env->set('CONCIERGE_OWNERS', $before);
+        }
+    }
 });
 
 it('publishes only the config file and the package migrations', function () {

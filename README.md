@@ -111,6 +111,32 @@ An app that only wants local login sets `'features' => ['membership' => false]` 
 
 `ResendInvitation::run($actor, $invitation)` and `RevokeInvitation::run($actor, $invitation)` use the `AccountPolicy` for app-wide invitations. Resending requires authority to grant every invitation role, rotates the token, renews expiry and honours the resend cooldown; revoking requires management authority and is idempotent. Accepted invitations cannot be resent or revoked. An elapsed invitation still marked pending can be resent; one already marked expired cannot. The actions dispatch `InvitationResent` and `InvitationRevoked` with a null `workspaceId` in app-wide mode.
 
+## Production
+
+An invite-only app needs an owner before anyone can invite others. Set `CONCIERGE_OWNERS` to a comma-separated list of emails, read into `concierge.owners` with whitespace trimmed and blanks dropped:
+
+```dotenv
+CONCIERGE_OWNERS=owner@example.com,second@example.com
+CONCIERGE_REGISTRATION=closed
+```
+
+Run the command after migrations on **every deploy**. In app-wide mode (Spatie teams off), several owners are allowed:
+
+```bash
+set -e
+php artisan migrate --force
+php artisan concierge:owners --no-interaction
+php artisan optimize
+```
+
+In workspace mode (Spatie teams on), configure **one owner** and replace the owners line with `php artisan concierge:owners --workspace=1 --no-interaction`, using the key of an existing workspace. Your app creates the workspace; the command never does. A missing or unknown `--workspace`, several configured owners for one workspace, or an existing different owner exits non-zero without changing ownership. Starter kit teams are read-only and cannot be established by this command.
+
+The command creates missing role definitions and looks up emails case-insensitively. For a new user it uses the email as the initial name, hashes a random password nobody knows, grants ownership and sends a set-password link through Laravel's default password broker. Configure that broker's user provider, mail delivery, `APP_URL` and your app's password-reset route before deploying. Email verification stays with your app's normal flow. Existing users keep their name, email, password, verification state and other role grants. Removing an email from the setting never removes a user or their ownership. `EstablishOwner` and `EstablishWorkspace` also preserve existing role grants when establishing ownership.
+
+**Only a user created by this invocation is emailed.** Later deploys never resend the link, even if it expired or the owner has not chosen a password yet. Use your app's forgot-password flow to request another link. A broker refusal rolls back that owner's creation and role changes and exits non-zero; earlier owners successfully processed in the same invocation remain.
+
+The command never prompts. `--dry-run` previews without writing any rows or sending links. `--json` returns an array with exactly `email`, `outcome` and boolean `linkSent` per email. Outcomes are `created`, `role_added` or `already_owner`; dry-run uses `would_create`, `would_add_role` or `already_owner`, always with `linkSent: false`. Errors return an `error` object and a non-zero exit code. An empty list (with a valid `--workspace` in workspace mode) or already-established owners exits 0. `concierge.owners` and `tenant_invitations.platform_owners` are separate settings: owning an app or workspace does not authorize inviting tenants.
+
 ## Usage
 
 ### Membership

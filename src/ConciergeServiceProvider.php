@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Tey\Concierge\Commands\ImportMembersCommand;
+use Tey\Concierge\Commands\OwnersCommand;
 use Tey\Concierge\Commands\PagesCommand;
 use Tey\Concierge\Commands\SyncRolesCommand;
 use Tey\Concierge\Contracts\AccountGuard;
@@ -160,7 +161,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         ConciergeFrontend::register($this->app->basePath());
 
         if ($this->app->runningInConsole()) {
-            $this->commands([ImportMembersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
+            $this->commands([ImportMembersCommand::class, OwnersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register();
         }
     }

@@ -66,7 +66,7 @@ class EstablishWorkspace
 
             $this->concierge->context()->run(
                 $workspace,
-                fn () => $owner->syncRoles(Roles::resolve([Roles::owner()])),
+                fn () => $owner->syncRoles([...$owner->roles()->get()->all(), ...Roles::resolve([Roles::owner()])]),
                 [$owner],
             );
 

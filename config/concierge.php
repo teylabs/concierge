@@ -16,6 +16,15 @@ return [
      */
     'mode' => null,
 
+    /*
+     * First owners for concierge:owners, run after migrate on every deploy.
+     * Comma-separated emails: whitespace and blanks are dropped. App mode allows
+     * several; workspace mode needs one and --workspace=<existing key>.
+     * Only newly created users receive a password link; existing users are never
+     * emailed or have their profile changed. Separate from platform_owners.
+     */
+    'owners' => array_values(array_filter(array_map('trim', explode(',', env('CONCIERGE_OWNERS', ''))), fn (string $email) => $email !== '')),
+
     'workspaces' => [
         /*
          * Read in workspace mode only. 'concierge' keeps members in concierge's own
