@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Testing\TestResponse;
 use Tey\Concierge\Data\UI\LocalLoginOffer;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\LocalAuth\LocalLogin;
@@ -16,7 +15,7 @@ use Workbench\App\Models\LocalAuth\SecondaryAccount;
 use Workbench\App\Models\LocalAuth\SoftAccount;
 use Workbench\App\Models\User;
 
-require_once __DIR__.'/../../Support/LocalAuth/ProcessEnvironment.php';
+require_once __DIR__.'/../../Support/LocalAuth/requests.php';
 
 local_login_preserve_process_environment();
 
@@ -29,36 +28,6 @@ local_login_preserve_process_environment();
  * way a real local boot would. Leaving `testing` also switches CSRF verification
  * on, which is skipped only while the environment is `testing`.
  */
-const LOCAL_LOGIN_EMAIL = 'local@example.test';
-
-/**
- * @param  array<string, mixed>  $config  merged over the enabled configuration
- */
-function local_login_enable(array $config = []): void
-{
-    local_login_process_environment('local');
-    app()->detectEnvironment(fn () => 'local');
-
-    config(['concierge.local_login' => array_replace_recursive(config('concierge.local_login'), [
-        'enabled' => true,
-        'account' => ['email' => LOCAL_LOGIN_EMAIL, 'name' => 'Local developer'],
-    ], $config)]);
-
-    app()->getProvider(LocalAuthServiceProvider::class)->registerRoutes();
-    app('router')->getRoutes()->refreshNameLookups();
-    app('router')->getRoutes()->refreshActionLookups();
-}
-
-function local_login_click(array $input = []): TestResponse
-{
-    return test()->withSession(['_token' => 'csrf'])->post(route(LocalLogin::ROUTE), ['_token' => 'csrf', ...$input]);
-}
-
-function local_login_account(): ?User
-{
-    return User::query()->where('email', LOCAL_LOGIN_EMAIL)->first();
-}
-
 it('is absent outside the local environment: no route, no offer, no account', function (string $environment) {
     app()->detectEnvironment(fn () => $environment);
 
@@ -106,7 +75,7 @@ it('offers a server-supplied url and the configured address', function () {
         ->and($offer->toArray())->toBe(['url' => '/local-login', 'email' => LOCAL_LOGIN_EMAIL]);
 });
 
-it('creates the configured account on the first click and signs in, granting nothing', function () {
+it('creates the configured account and signs in without a workspace, granting nothing', function () {
     local_login_enable();
 
     expect(User::count())->toBe(0);
@@ -124,6 +93,49 @@ it('creates the configured account on the first click and signs in, granting not
 
     $this->assertAuthenticatedAs($account);
 });
+
+it('makes only the first local account owner of the oldest workspace', function (bool $existingAccount) {
+    local_login_enable();
+    $newer = host_workspace('Newer');
+    $oldest = host_workspace('Oldest');
+    $oldest->forceFill(['created_at' => now()->subDay()])->save();
+
+    if ($existingAccount) {
+        host_user('local');
+    }
+
+    local_login_click()->assertRedirect('/');
+    $owner = local_login_account();
+
+    $this->assertAuthenticatedAs($owner);
+    expect(roles_in($owner->membershipIn($oldest)))->toBe(['owner'])
+        ->and($owner->membershipIn($newer))->toBeNull();
+
+    auth()->logout();
+    config(['concierge.local_login.account.email' => 'second@example.test']);
+    local_login_click()->assertRedirect('/');
+    $second = User::query()->where('email', 'second@example.test')->sole();
+
+    $this->assertAuthenticatedAs($second);
+    expect($second->membershipIn($oldest))->toBeNull()
+        ->and($second->membershipIn($newer))->toBeNull()
+        ->and(DB::table('model_has_roles')->where('model_id', $second->id)->count())->toBe(0)
+        ->and(Membership::query()->count())->toBe(1);
+})->with([false, true]);
+
+it('grants nothing when the oldest workspace already has an owner or first owner is off', function (bool $existingOwner) {
+    local_login_enable(['first_owner' => $existingOwner]);
+    $workspace = host_workspace(owner: $existingOwner ? host_user('owner') : null);
+    host_workspace('Another ownerless workspace');
+    $before = DB::table('model_has_roles')->get()->all();
+
+    local_login_click()->assertRedirect('/');
+
+    $this->assertAuthenticatedAs(local_login_account());
+    expect(local_login_account()->membershipIn($workspace))->toBeNull()
+        ->and(DB::table('model_has_roles')->get()->all())->toEqual($before)
+        ->and(Membership::query()->count())->toBe($existingOwner ? 1 : 0);
+})->with([false, true]);
 
 it('redirects to the intended url, then the configured one, then the root', function () {
     local_login_enable(['redirect' => '/configured']);
@@ -313,11 +325,14 @@ it('works for a model without soft deletes, on a configured guard', function () 
         'auth.guards.plain' => ['driver' => 'session', 'provider' => 'plain'],
     ]);
     local_login_enable(['guard' => 'plain', 'redirect' => '/plain-home']);
+    host_workspace();
 
     local_login_click()->assertRedirect('/plain-home');
 
     expect(PlainAccount::count())->toBe(1)
-        ->and(User::count())->toBe(0);
+        ->and(User::count())->toBe(0)
+        ->and(Membership::query()->count())->toBe(0)
+        ->and(DB::table('model_has_roles')->count())->toBe(0);
     $this->assertAuthenticated('plain');
     expect(auth('plain')->user()->email)->toBe(LOCAL_LOGIN_EMAIL);
 });

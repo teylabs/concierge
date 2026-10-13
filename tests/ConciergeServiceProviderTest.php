@@ -55,6 +55,7 @@ it('keeps the membership feature on by default, with its bindings, alias, comman
 it('ships local login off, with no account, throttled and with no hard-coded redirect', function () {
     expect(config('concierge.local_login'))->toBe([
         'enabled' => false,
+        'first_owner' => true,
         'account' => ['email' => null, 'name' => null, 'attributes' => []],
         'identity' => 'email',
         'guard' => null,

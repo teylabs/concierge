@@ -5,6 +5,7 @@ namespace Tey\Concierge\LocalAuth\Controllers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tey\Concierge\LocalAuth\Actions\EstablishFirstLocalOwner;
 use Tey\Concierge\LocalAuth\Actions\ResolveLocalAccount;
 use Tey\Concierge\LocalAuth\Exceptions\LocalLoginRefused;
 use Tey\Concierge\LocalAuth\LocalLogin;
@@ -15,12 +16,12 @@ use Tey\Concierge\LocalAuth\LocalLogin;
  * THIS BYPASSES THE PASSWORD AND TWO-FACTOR, so it is only ever reachable in the
  * `local` environment. The route is only registered there, and this action
  * re-checks on every request (a route cache built locally and served elsewhere
- * must still fail). Anything the browser sends is ignored. It authenticates an
- * identity and nothing more: no roles, membership or recent-authentication state.
+ * must still fail). Anything the browser sends is ignored. It can establish the
+ * first owner, but never sets recent-authentication state.
  */
 class LocalLoginController
 {
-    public function store(Request $request, LocalLogin $localLogin, ResolveLocalAccount $resolve): RedirectResponse
+    public function store(Request $request, LocalLogin $localLogin, ResolveLocalAccount $resolve, EstablishFirstLocalOwner $establishOwner): RedirectResponse
     {
         abort_unless($localLogin->isAvailable(), 404);
 
@@ -37,6 +38,8 @@ class LocalLoginController
         } catch (LocalLoginRefused $refused) {
             return back()->withErrors(['local_login' => $refused->getMessage()]);
         }
+
+        $establishOwner($account);
 
         // No remember token: the session ends with the browser, like any other login.
         Auth::guard($guard)->login($account);
