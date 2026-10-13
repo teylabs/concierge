@@ -111,7 +111,7 @@ it('never resends a link even if the newly created owner has not set a password'
 });
 
 it('reports pinned JSON keys for creation and a no-op without extra output', function () {
-    expect(Artisan::call('concierge:owners', $this->ownerOptions + ['--json' => true]))->toBe(0);
+    expect(Artisan::call('concierge:owners', $this->ownerOptions + ['--json' => true, '--no-interaction' => true]))->toBe(0);
     expect(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR))->toBe([
         ['email' => 'first@example.test', 'outcome' => 'created', 'linkSent' => true],
     ]);
@@ -147,8 +147,12 @@ it('rolls back a new owner when the real password broker refuses to send a link'
         'created_at' => now(),
     ]);
 
-    expect(Artisan::call('concierge:owners', $this->ownerOptions + ['--json' => true]))->not->toBe(0)
-        ->and(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR)['error'])->toContain('rolled back')
+    $exit = Artisan::call('concierge:owners', $this->ownerOptions + ['--json' => true]);
+    $error = json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($exit)->not->toBe(0)
+        ->and(array_keys($error))->toBe(['error'])
+        ->and($error['error'])->toContain('rolled back', 'config/auth.php', 'php artisan concierge:owners')
         ->and(User::query()->count())->toBe(0)
         ->and(DB::table('model_has_roles')->count())->toBe(0)
         ->and(DB::table('concierge_accounts')->count())->toBe(0);

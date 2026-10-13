@@ -24,7 +24,7 @@ enum WorkspaceEngine: string
         }
 
         return (is_string($value) ? self::tryFrom($value) : null) ?? throw new UnsupportedConfiguration(sprintf(
-            'concierge.workspaces.engine must be one of [%s]; got %s.',
+            'concierge.workspaces.engine must be one of [%s]; got %s. Set \'workspaces.engine\' in config/concierge.php to one of them.',
             implode(', ', array_column(self::cases(), 'value')),
             is_string($value) ? "[{$value}]" : get_debug_type($value),
         ));

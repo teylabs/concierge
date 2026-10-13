@@ -64,12 +64,12 @@ class AcceptTenantInvitation
             }
 
             $provisioner = $this->concierge->workspaceProvisioner()
-                ?? throw new UnsupportedConfiguration('Tenant invitations need Concierge::provisionWorkspaceUsing() to create the workspace.');
+                ?? throw new UnsupportedConfiguration("Tenant invitations need Concierge::provisionWorkspaceUsing() to create the workspace; register a provisioner in a service provider's boot(), or set 'features.tenant_invitations' => false in config/concierge.php.");
 
             $workspace = $provisioner($user, $invitation);
 
             if (! $workspace instanceof Model || ! $workspace instanceof Workspace || ! $workspace->exists) {
-                throw new UnsupportedConfiguration('The workspace provisioner must return a saved Workspace model.');
+                throw new UnsupportedConfiguration('The workspace provisioner must return a saved Workspace model; save the workspace in the closure given to Concierge::provisionWorkspaceUsing() and return it.');
             }
 
             $membership = EstablishWorkspace::run($workspace, $user);

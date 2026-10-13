@@ -37,9 +37,9 @@ function organisation(string $name, array $members, ?User $ownerColumn = null): 
 /** @return array{int, array<string, mixed>} */
 function import_members(array $options = []): array
 {
-    $exit = Artisan::call('concierge:import-members', ['--json' => true] + $options);
+    $exit = Artisan::call('concierge:import-members', ['--json' => true, '--no-interaction' => true] + $options);
 
-    return [$exit, json_decode(Artisan::output(), true)];
+    return [$exit, json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR)];
 }
 
 function owner_name(Organisation $organisation): ?string
@@ -62,6 +62,10 @@ it('plans the import without writing anything on a dry run', function () {
     [$exit, $plan] = import_members(['--role-column' => 'role', '--dry-run' => true]);
 
     expect($exit)->toBe(0)
+        ->and(array_keys($plan))->toBe(['dry_run', 'model', 'pivot', 'workspaces', 'summary', 'nothing_to_do'])
+        ->and(array_keys($plan['workspaces'][0]))->toBe(['id', 'name', 'owner', 'members'])
+        ->and(array_keys($plan['workspaces'][0]['owner']))->toBe(['user_id', 'email', 'source', 'action'])
+        ->and(array_keys($plan['workspaces'][0]['members'][0]))->toBe(['user_id', 'email', 'source_role', 'role', 'action', 'joined_at'])
         ->and($plan['dry_run'])->toBeTrue()
         ->and($plan['pivot'])->toBe('organisation_user')
         ->and($plan['nothing_to_do'])->toBeFalse()
@@ -165,6 +169,7 @@ it('refuses role values with no concierge role, writing nothing, and names the f
     [$exit, $error] = import_members(['--role-column' => 'role']);
 
     expect($exit)->toBe(1)
+        ->and(array_keys($error))->toBe(['error', 'fix'])
         ->and($error['error'])->toBe('No concierge role for the role-column value(s) [editor], [viewer].')
         ->and($error['fix'])->toContain('--map=<value>:<concierge role>')
         ->and(Membership::query()->count())->toBe(0);
@@ -197,6 +202,17 @@ it('refuses in app-wide mode and without Spatie teams', function (string $key, m
     'app-wide' => ['concierge.mode', 'app', "'mode' => 'workspaces'"],
     'teams off' => ['permission.teams', false, "'teams' => true"],
 ]);
+
+it('reports unsupported user configuration as JSON with the fix', function () {
+    config()->set('concierge.models.user', null);
+
+    [$exit, $error] = import_members(['--dry-run' => true]);
+
+    expect($exit)->toBe(1)
+        ->and(array_keys($error))->toBe(['error', 'fix'])
+        ->and($error['error'])->toContain('concierge.models.user', 'config/concierge.php')
+        ->and(Membership::query()->count())->toBe(0);
+});
 
 it('prints a readable plan without --json', function () {
     organisation('Acme', ['olive' => 'owner', 'adam' => 'admin']);

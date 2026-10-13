@@ -2,6 +2,8 @@
 
 use Spatie\Permission\Models\Role;
 
+require __DIR__.'/../Support/SyncRolesCommandTests.php';
+
 it('registers the role sync command', function () {
     $this->artisan('concierge:sync-roles')->assertSuccessful();
 

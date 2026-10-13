@@ -105,7 +105,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         // Tenant invitations provision a workspace per invitee, so they need workspaces.
         if ($mode === Mode::App && static::tenantInvitationsEnabled()) {
             throw new UnsupportedConfiguration(
-                "concierge.features.tenant_invitations needs concierge.mode = 'workspaces'; the mode is 'app'."
+                "concierge.features.tenant_invitations needs concierge.mode = 'workspaces'; the mode is 'app'. Set 'features.tenant_invitations' => false or 'mode' => 'workspaces' in config/concierge.php."
             );
         }
 

@@ -230,10 +230,12 @@ it('requires a provisioner and a saved workspace', function () {
     $peer = host_user('peer');
 
     app(Concierge::class)->provisionWorkspaceUsing(null);
-    expect(fn () => AcceptTenantInvitation::run($peer, $issued->token))->toThrow(UnsupportedConfiguration::class);
+    expect(fn () => AcceptTenantInvitation::run($peer, $issued->token))
+        ->toThrow(UnsupportedConfiguration::class, "register a provisioner in a service provider's boot(), or set 'features.tenant_invitations' => false in config/concierge.php.");
 
     app(Concierge::class)->provisionWorkspaceUsing(fn () => new Workspace(['name' => 'unsaved']));
-    expect(fn () => AcceptTenantInvitation::run($peer, $issued->token))->toThrow(UnsupportedConfiguration::class);
+    expect(fn () => AcceptTenantInvitation::run($peer, $issued->token))
+        ->toThrow(UnsupportedConfiguration::class, 'save the workspace in the closure given to Concierge::provisionWorkspaceUsing() and return it.');
 });
 
 it('inspects what the host needs for register-or-sign-in', function () {

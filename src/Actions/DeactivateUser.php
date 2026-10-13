@@ -36,7 +36,7 @@ class DeactivateUser
     public function handle(Member $actor, Member $user, ?string $reason = null): Account
     {
         if (! $user instanceof Authenticatable) {
-            throw new UnsupportedConfiguration('DeactivateUser needs an Authenticatable user model.');
+            throw new UnsupportedConfiguration('DeactivateUser needs an Authenticatable user model; have the model set as concierge.models.user extend Illuminate\\Foundation\\Auth\\User or implement Illuminate\\Contracts\\Auth\\Authenticatable.');
         }
 
         return ManagedAccount::mutate($actor, $user, function (Account $actorAccount, ?Account $account) use ($actor, $user, $reason) {

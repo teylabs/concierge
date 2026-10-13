@@ -20,7 +20,7 @@ it('keeps an existing workspace owner and refuses a conflicting owner without cr
     EstablishWorkspace::run($this->ownerWorkspace, $current);
 
     expect(Artisan::call('concierge:owners', $this->ownerOptions + ['--json' => true]))->not->toBe(0)
-        ->and(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR)['error'])->toContain('--workspace')
+        ->and(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR)['error'])->toContain('--workspace', 'concierge.owners', 'TransferOwnership::run()')
         ->and(app(Concierge::class)->ownerOf($this->ownerWorkspace)->user_id)->toBe($current->id)
         ->and(User::query()->count())->toBe(1);
     Notification::assertNothingSent();

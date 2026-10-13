@@ -54,7 +54,7 @@ it('rejects an unknown workspace engine, naming the values', function () {
     config()->set('concierge.workspaces.engine', 'jetstream');
 
     expect(fn () => WorkspaceEngine::configured())
-        ->toThrow(UnsupportedConfiguration::class, 'concierge.workspaces.engine must be one of [concierge, kit]; got [jetstream].');
+        ->toThrow(UnsupportedConfiguration::class, 'concierge.workspaces.engine must be one of [concierge, kit]; got [jetstream]. Set \'workspaces.engine\' in config/concierge.php to one of them.');
 });
 
 it('ships the concierge engine as the default', function () {

@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 use Tey\Concierge\Support\ConciergeFrontend;
@@ -132,7 +134,11 @@ it('previews the four Vue wrapper pages as a JSON plan without writing', functio
     $plan = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
     expect($exit)->toBe(0)
+        ->and(array_keys($plan))->toBe(['command', 'group', 'name', 'files', 'inserts', 'warnings', 'would_write', 'dry_run', 'written', 'skipped'])
         ->and($plan['would_write'])->toBeTrue()
+        ->and($plan['dry_run'])->toBeTrue()
+        ->and($plan['written'])->toBe([])
+        ->and($plan['skipped'])->toBe([])
         ->and($plan['warnings'])->toBe([])
         ->and(collect($plan['files'])->pluck('identity.name', 'path')->all())->toBe([
             'resources/js/pages/Concierge/Members.vue' => 'Concierge/Members',
@@ -173,13 +179,67 @@ it('refuses to overwrite pages the developer owns unless told to', function () {
     expect($exit)->toBe(0)->and(File::get($members))->not->toContain('edited by the app');
 });
 
+it('reports written and skipped paths as JSON without prompting, even on an interactive input', function () {
+    $members = base_path(ScaffoldTestCase::PAGES.'/Members.vue');
+    File::ensureDirectoryExists(dirname($members));
+    File::put($members, '<!-- app-owned page -->');
+    $input = new ArrayInput(['--json' => true]);
+    $input->setInteractive(true);
+    $output = new BufferedOutput;
+
+    $exit = Artisan::all()['concierge:pages']->run($input, $output);
+    $error = json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
+    expect($exit)->toBe(1)
+        ->and($error['error'])->toContain('--skip-existing', '--force')
+        ->and($error['written'])->toBe([])
+        ->and(File::files(dirname($members)))->toHaveCount(1);
+
+    [$exit, $json] = run_scaffold(['--json' => true, '--skip-existing' => true]);
+    $result = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+    expect($exit)->toBe(0)
+        ->and(array_keys($result))->toBe(['command', 'group', 'name', 'files', 'inserts', 'warnings', 'would_write', 'dry_run', 'written', 'skipped'])
+        ->and($result['dry_run'])->toBeFalse()
+        ->and($result['skipped'])->toBe(['resources/js/pages/Concierge/Members.vue'])
+        ->and($result['written'])->toBe([
+            'resources/js/pages/Concierge/InviteMember.vue',
+            'resources/js/pages/Concierge/Member.vue',
+            'resources/js/pages/Concierge/AcceptInvitation.vue',
+        ])
+        ->and(File::get($members))->toBe('<!-- app-owned page -->');
+
+    [$exit, $json] = run_scaffold(['--json' => true, '--skip-existing' => true]);
+    $result = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+    expect($exit)->toBe(0)
+        ->and($result['written'])->toBe([])
+        ->and($result['skipped'])->toBe([
+            'resources/js/pages/Concierge/Members.vue',
+            'resources/js/pages/Concierge/InviteMember.vue',
+            'resources/js/pages/Concierge/Member.vue',
+            'resources/js/pages/Concierge/AcceptInvitation.vue',
+        ]);
+
+    [$exit, $json] = run_scaffold(['--json' => true, '--force' => true, '--skip-existing' => true]);
+    $result = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+    expect($exit)->toBe(0)
+        ->and($result['skipped'])->toBe([])
+        ->and($result['written'])->toBe([
+            'resources/js/pages/Concierge/Members.vue',
+            'resources/js/pages/Concierge/InviteMember.vue',
+            'resources/js/pages/Concierge/Member.vue',
+            'resources/js/pages/Concierge/AcceptInvitation.vue',
+        ])
+        ->and(File::get($members))->toBe(File::get(ConciergeScaffolds::stubPath('concierge-members')));
+});
+
 it('needs an Inertia app', function () {
     File::put(base_path('package.json'), json_encode(['devDependencies' => ['vue' => '^3.5']]));
 
     [$exit, $json] = run_scaffold(['--dry-run' => true, '--json' => true]);
     $plan = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
-    expect($plan['would_write'])->toBeFalse()
+    expect($exit)->toBe(1)
+        ->and(json_decode($json, flags: JSON_THROW_ON_ERROR)->warnings[0]->data)->toBeInstanceOf(stdClass::class)
+        ->and($plan['would_write'])->toBeFalse()
         ->and($plan['files'])->toBe([])
         ->and($plan['warnings'][0]['code'])->toBe('generation_refused')
         ->and($plan['warnings'][0]['message'])->toContain('No Inertia app found');

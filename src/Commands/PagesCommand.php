@@ -3,6 +3,8 @@
 namespace Tey\Concierge\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\Kernel;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
 
 /**
@@ -30,11 +32,59 @@ class PagesCommand extends Command
             '--in' => $this->option('in'),
             '--force' => $this->option('force'),
             '--skip-existing' => $this->option('skip-existing'),
-            '--dry-run' => $this->option('dry-run'),
-            '--json' => $this->option('json'),
-            '--no-interaction' => ! $this->input->isInteractive(),
+            '--no-interaction' => true,
         ]);
+        $options = ['name' => $this->argument('name')] + $options;
+        $command = 'mod:'.ConciergeScaffolds::id();
+        $output = new BufferedOutput;
 
-        return $this->call('mod:'.ConciergeScaffolds::id(), ['name' => $this->argument('name')] + $options);
+        // Mod only emits JSON for previews, and a refused preview can still exit 0.
+        $exit = app(Kernel::class)->call($command, $options + ['--dry-run' => true, '--json' => true], $output);
+        $plan = json_decode($output->fetch(), flags: JSON_THROW_ON_ERROR);
+        $dryRun = (bool) $this->option('dry-run');
+        $skipped = [];
+        $written = [];
+
+        foreach ($plan->files as $file) {
+            if ($file->exists && ($file->existing === 'keep' || ($this->option('skip-existing') && ! $this->option('force')))) {
+                $skipped[] = $file->path;
+            } elseif (! $dryRun && $plan->would_write) {
+                $written[] = $file->path;
+            }
+        }
+
+        $result = (array) $plan + ['dry_run' => $dryRun, 'written' => $written, 'skipped' => $skipped];
+
+        if ($exit !== self::SUCCESS || ! $plan->would_write) {
+            $message = implode("\n", array_column($plan->warnings, 'message'))
+                ?: 'Pages already exist. Nothing was written. Pass --skip-existing to keep them, or --force to overwrite them.';
+            $result['error'] = $message;
+
+            if ($this->option('json')) {
+                $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            } else {
+                $this->components->error($message);
+            }
+
+            return self::FAILURE;
+        }
+
+        if (! $this->option('json')) {
+            return $this->call($command, $options + ($dryRun ? ['--dry-run' => true] : []));
+        }
+
+        if (! $dryRun) {
+            $exit = app(Kernel::class)->call($command, $options, $output);
+
+            if ($exit !== self::SUCCESS) {
+                $this->line((string) json_encode(['error' => trim($output->fetch())], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+                return self::FAILURE;
+            }
+        }
+
+        $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return self::SUCCESS;
     }
 }

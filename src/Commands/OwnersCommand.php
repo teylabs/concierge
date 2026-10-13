@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -59,10 +60,16 @@ class OwnersCommand extends Command
                 $results[] = $this->option('dry-run') ? $process() : DB::transaction($process);
             }
         } catch (LogicException|RuntimeException $exception) {
+            $message = $exception->getMessage();
+
+            if ($exception instanceof QueryException) {
+                $message .= ' Check database.default in config/database.php and run php artisan migrate before retrying php artisan concierge:owners.';
+            }
+
             if ($this->option('json')) {
-                $this->line((string) json_encode(['error' => $exception->getMessage()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                $this->line((string) json_encode(['error' => $message], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             } else {
-                $this->components->error($exception->getMessage());
+                $this->components->error($message);
             }
 
             return self::FAILURE;
@@ -127,7 +134,7 @@ class OwnersCommand extends Command
             $owner = $concierge->ownerOf($workspace);
 
             if ($owner && (! $user || (int) $owner->user_id !== (int) $user->getKey())) {
-                throw new LogicException("--workspace={$workspace->getKey()} already has another owner; ownership is unchanged.");
+                throw new LogicException("--workspace={$workspace->getKey()} already has another owner; ownership is unchanged. Set concierge.owners in config/concierge.php to that owner's email, or use TransferOwnership::run() to transfer ownership first.");
             }
 
             $alreadyOwner = $owner !== null;
@@ -150,7 +157,7 @@ class OwnersCommand extends Command
             $user = new $model;
 
             if (! $user instanceof Authenticatable || ! $user instanceof CanResetPassword) {
-                throw new LogicException('concierge:owners needs a user model that is Authenticatable and CanResetPassword.');
+                throw new LogicException('concierge:owners needs a user model that is Authenticatable and CanResetPassword; set concierge.models.user in config/concierge.php to a model extending Illuminate\\Foundation\\Auth\\User or implementing both contracts.');
             }
 
             // Hash and discard a random value: no operator knows the password.
@@ -172,7 +179,7 @@ class OwnersCommand extends Command
             $status = Password::broker()->sendResetLink(['email' => $email]);
 
             if ($status !== Password::ResetLinkSent) {
-                throw new RuntimeException("Password broker did not send a set-password link to {$email} ({$status}); this owner's changes were rolled back.");
+                throw new RuntimeException("Password broker did not send a set-password link to {$email} ({$status}); this owner's changes were rolled back. Check auth.defaults.passwords and that broker's provider and throttle in config/auth.php, then rerun php artisan concierge:owners after the throttle period.");
             }
         }
 

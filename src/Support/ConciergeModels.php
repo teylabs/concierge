@@ -24,7 +24,7 @@ final class ConciergeModels
         $class = self::host('user', Member::class);
 
         if (! in_array(HasRoles::class, class_uses_recursive($class), true)) {
-            throw new UnsupportedConfiguration("[{$class}] must use Spatie\\Permission\\Traits\\HasRoles.");
+            throw new UnsupportedConfiguration("[{$class}] must use Spatie\\Permission\\Traits\\HasRoles; add `use HasRoles;` to the model set as concierge.models.user.");
         }
 
         return $class;
@@ -87,7 +87,7 @@ final class ConciergeModels
     {
         if (Mode::configured() === Mode::App) {
             if (config('permission.teams')) {
-                throw new UnsupportedConfiguration("Concierge app-wide mode requires permission.teams = false; set 'mode' => 'workspaces' to use teams.");
+                throw new UnsupportedConfiguration("Concierge app-wide mode requires permission.teams = false; set 'teams' => false in config/permission.php, or set 'mode' => 'workspaces' in config/concierge.php to use teams.");
             }
 
             return;
@@ -96,14 +96,14 @@ final class ConciergeModels
         // A starter kit's teams carry their own roles; Spatie holds only the app-level ones (D7).
         if (WorkspaceEngine::configured() === WorkspaceEngine::Kit) {
             if (config('permission.teams')) {
-                throw new UnsupportedConfiguration("concierge.workspaces.engine = 'kit' requires permission.teams = false; the kit's team_members.role holds the team roles.");
+                throw new UnsupportedConfiguration("concierge.workspaces.engine = 'kit' requires permission.teams = false; the kit's team_members.role holds the team roles. Set 'teams' => false in config/permission.php.");
             }
 
             return;
         }
 
         if (! config('permission.teams')) {
-            throw new UnsupportedConfiguration('Concierge workspace mode requires permission.teams = true.');
+            throw new UnsupportedConfiguration("Concierge workspace mode requires permission.teams = true; set 'teams' => true in config/permission.php (on an existing schema, run php artisan permission:setup-teams and migrate), or set 'mode' => 'app' in config/concierge.php.");
         }
     }
 
@@ -135,13 +135,13 @@ final class ConciergeModels
         $class = config("concierge.models.{$key}");
 
         if (! is_string($class) || ! is_a($class, Model::class, true) || ! is_a($class, $contract, true)) {
-            throw new UnsupportedConfiguration("concierge.models.{$key} must be an Eloquent model implementing [{$contract}].");
+            throw new UnsupportedConfiguration("concierge.models.{$key} must be an Eloquent model implementing [{$contract}]; set it in config/concierge.php to such a model's class.");
         }
 
         $model = new $class;
 
         if (! $model->getIncrementing() || $model->getKeyType() !== 'int') {
-            throw new UnsupportedConfiguration("[{$class}] must use an incrementing integer key.");
+            throw new UnsupportedConfiguration("[{$class}] must use an incrementing integer key; remove HasUuids or HasUlids so \$incrementing is true and \$keyType is 'int', or set concierge.models.{$key} to a model that has one.");
         }
 
         return $class;

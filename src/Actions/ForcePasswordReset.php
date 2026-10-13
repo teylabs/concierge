@@ -99,7 +99,7 @@ class ForcePasswordReset
 
         if (! $user instanceof Authenticatable || ! $user instanceof CanResetPassword || ! $user instanceof Model) {
             throw new UnsupportedConfiguration(
-                'ForcePasswordReset needs a user model that is Authenticatable and CanResetPassword.'
+                'ForcePasswordReset needs a user model that is Authenticatable and CanResetPassword; have the model set as concierge.models.user extend Illuminate\\Foundation\\Auth\\User, or implement both contracts and use the CanResetPassword trait.'
             );
         }
 
@@ -123,7 +123,7 @@ class ForcePasswordReset
         // createToken() is on Laravel's broker, not the contract: a custom broker
         // without it cannot deliver the link, so stop rather than lock the account out silently.
         if (! $broker instanceof PasswordBroker) {
-            throw new UnsupportedConfiguration('ForcePasswordReset needs a password broker that can create a token for a user.');
+            throw new UnsupportedConfiguration('ForcePasswordReset needs a password broker that can create a token for a user; set concierge.forced_password_reset.broker to an auth.passwords broker backed by Laravel\'s Illuminate\\Auth\\Passwords\\PasswordBroker, or to null for the default.');
         }
 
         $user->sendPasswordResetNotification($broker->createToken($user));
@@ -154,7 +154,7 @@ class ForcePasswordReset
 
         if ($columns === []) {
             throw new UnsupportedConfiguration(
-                'Two-factor reset was requested but none of the configured two_factor_columns exist on the user table.'
+                'Two-factor reset was requested but none of the configured two_factor_columns exist on the user table; set concierge.forced_password_reset.two_factor_columns to the user table\'s two-factor columns, or pass resetTwoFactor: false.'
             );
         }
 

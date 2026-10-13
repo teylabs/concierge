@@ -137,6 +137,63 @@ The command creates missing role definitions and looks up emails case-insensitiv
 
 The command never prompts. `--dry-run` previews without writing any rows or sending links. `--json` returns an array with exactly `email`, `outcome` and boolean `linkSent` per email. Outcomes are `created`, `role_added` or `already_owner`; dry-run uses `would_create`, `would_add_role` or `already_owner`, always with `linkSent: false`. Errors return an `error` object and a non-zero exit code. An empty list (with a valid `--workspace` in workspace mode) or already-established owners exits 0. `concierge.owners` and `tenant_invitations.platform_owners` are separate settings: owning an app or workspace does not authorize inviting tenants.
 
+## Command reference
+
+Run these as `php artisan concierge:<command>`. They are registered when `concierge.features.membership` is enabled. Every command runs without prompts, including with Laravel's `--no-interaction` (`-n`). Missing input or a refused operation exits non-zero and names the flag, configuration setting or command that fixes it. `--json` emits one JSON value without progress output; `--dry-run` makes no writes or deliveries. Laravel's standard options, including `--help`, `--quiet` and `--no-ansi`, also apply.
+
+### `concierge:sync-roles`
+
+Creates missing global Spatie roles from `concierge.roles`, under `concierge.guard` (or the default auth guard). It never removes roles or changes assignments. Works in app-wide mode, workspace mode and the kit engine.
+
+| Option | Behaviour |
+| --- | --- |
+| `--dry-run` | Preview missing roles without writing or clearing the permission cache. |
+| `--json` | Array of `{name, guard, outcome}`. Outcomes: `created`, `already_exists`; dry-run: `would_create`, `already_exists`. Errors: `{error}`. |
+
+### `concierge:owners`
+
+Establishes the emails in `concierge.owners`. See [Production](#production) for broker setup and deploy behaviour.
+
+| Option | Behaviour |
+| --- | --- |
+| `--workspace=<key>` | Existing workspace key; required in workspace mode, unused in app-wide mode. |
+| `--dry-run` | Preview without writing rows or sending password links. |
+| `--json` | Array of `{email, outcome, linkSent}`; outcomes and errors are described above. |
+
+### `concierge:import-members`
+
+Copies an existing pivot into Concierge's own workspace engine; app-wide mode and the kit engine refuse it. It never changes the source pivot. Ownership and existing memberships are kept; each workspace's writes are transactional, so a later failure leaves earlier workspaces imported.
+
+| Option | Behaviour / default |
+| --- | --- |
+| `--model=<class>` | `concierge.models.workspace`; must match that setting. |
+| `--pivot=<table>` | Laravel's pivot convention, e.g. `organisation_user`. |
+| `--foreign-key=<column>` | Workspace key in the pivot; `<model>_id`. |
+| `--user-key=<column>` | User key in the pivot; `user_id`. |
+| `--role-column=<column>` | Optional source role column. |
+| `--owner-role=<value>` | Source value marking the owner; `concierge.owner_role`. |
+| `--owner-column=<column>` | Fallback owner key on the workspace; `owner_id`, ignored when absent. |
+| `--map=<from>:<to>` | Repeatable source-to-Concierge role mapping. |
+| `--default-role=<role>` | Role for unmapped members, or all members without a role column. |
+| `--dry-run` | Plan the import without writing. |
+| `--json` | `{dry_run, model, pivot, workspaces, summary, nothing_to_do}`; errors: `{error, fix}`. |
+
+Each JSON workspace has `id`, `name`, `owner` and `members`. The owner has `user_id`, `email`, `source` and `action` (`establish` or `keep`), with an optional `note` when promoting an existing member. A member has `user_id`, `email`, `source_role`, `role` and `action`: `import` includes `joined_at`; `skip` includes `reason`. `summary` counts `workspaces`, `owners`, `members` and `skipped`. Dry-run reports the same planned actions with `dry_run: true`.
+
+### `concierge:pages [name]`
+
+Writes the four Inertia wrapper pages using mod. `name` is the folder under the app's pages directory, defaulting to `Concierge`; on a modules layout use `Billing:Concierge` or `--in=Billing`.
+
+| Option | Behaviour |
+| --- | --- |
+| `--in=<group>` | Layout group or module to place the pages in. |
+| `--force` | Overwrite existing pages. Takes precedence over `--skip-existing`. |
+| `--skip-existing` | Keep existing pages and write the rest. |
+| `--dry-run` | Preview without writing. Refused plans also exit non-zero. |
+| `--json` | Mod's plan plus `dry_run`, `written` and `skipped` path arrays. |
+
+The JSON keys are `command`, `group`, `name`, `files`, `inserts`, `warnings`, `would_write`, `dry_run`, `written` and `skipped`. `files` describes each planned page (`alias`, `type`, `path`, `identity`, `group`, `existing`, `exists`); `warnings` carries mod's diagnostic messages. Dry-run leaves `written` empty; `files` shows what would be written and `skipped` what would be kept. A refused plan adds `error` and writes nothing. A failure during generation returns `{error}`; it may have written earlier files. Without either collision flag, existing pages are refused rather than prompting.
+
 ## Usage
 
 ### Membership
