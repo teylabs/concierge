@@ -9,6 +9,7 @@ import { useConcierge } from '../plugin';
 import type { UserRow } from '../types';
 import Button from '../ui/Button.vue';
 import ConfirmDialog from '../ui/ConfirmDialog.vue';
+import Menu from '../ui/Menu.vue';
 import { useSubmit } from './useSubmit';
 
 const props = withDefaults(
@@ -49,12 +50,35 @@ const showRestore = computed(
     () => deactivated.value && links.value.restore !== null,
 );
 
-const visible = computed(
-    () =>
-        showForceReset.value ||
-        showDeactivate.value ||
-        showRestore.value ||
-        links.value.remove,
+const primary = computed(() =>
+    showRestore.value ? 'restore' : showDeactivate.value ? 'deactivate' : null,
+);
+
+const secondary = computed(() => {
+    const actions: Kind[] = [];
+
+    if (showForceReset.value) {
+        actions.push('forcePasswordReset');
+    }
+    if (links.value.remove) {
+        actions.push('remove');
+    }
+
+    return actions;
+});
+
+const count = computed(
+    () => Number(primary.value !== null) + secondary.value.length,
+);
+const button = computed(() =>
+    count.value === 1 ? (primary.value ?? secondary.value[0]) : primary.value,
+);
+const menuItems = computed(() =>
+    secondary.value.map((kind) => ({
+        value: kind,
+        label: t(`userActions.${kind}`),
+        danger: kind === 'remove',
+    })),
 );
 
 const dialog = computed(() => {
@@ -137,39 +161,28 @@ async function confirm() {
 </script>
 
 <template>
-    <div v-if="visible" class="flex flex-wrap gap-2">
+    <div v-if="count" class="flex items-center gap-2">
         <Button
-            v-if="showRestore"
+            v-if="button"
             :size="size"
-            variant="primary"
+            :variant="
+                button === 'restore'
+                    ? 'primary'
+                    : button === 'remove'
+                      ? 'danger'
+                      : 'warning'
+            "
             tier="outline"
-            @click="show('restore')"
-            >{{ t('userActions.restore') }}</Button
+            @click="show(button)"
+            >{{ t(`userActions.${button}`) }}</Button
         >
-        <Button
-            v-if="showForceReset"
+        <Menu
+            v-if="count > 1 && secondary.length"
             :size="size"
-            variant="warning"
-            tier="outline"
-            @click="show('forcePasswordReset')"
-            >{{ t('userActions.forcePasswordReset') }}</Button
-        >
-        <Button
-            v-if="showDeactivate"
-            :size="size"
-            variant="warning"
-            tier="outline"
-            @click="show('deactivate')"
-            >{{ t('userActions.deactivate') }}</Button
-        >
-        <Button
-            v-if="links.remove"
-            :size="size"
-            variant="danger"
-            tier="outline"
-            @click="show('remove')"
-            >{{ t('userActions.remove') }}</Button
-        >
+            :label="t('actions.more')"
+            :items="menuItems"
+            @select="show"
+        />
 
         <ConfirmDialog
             :open="open !== null"

@@ -68,6 +68,7 @@ export const defaultLabels = {
     'actions.transfer.typeName': 'Type {name} to confirm',
     'actions.cancel': 'Cancel',
     'actions.retry': 'Try again',
+    'actions.more': 'More actions',
     'invite.title': 'Invite member',
     'invite.description':
         'Send an invitation to join {workspace}. The link expires automatically.',
