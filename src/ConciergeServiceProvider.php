@@ -17,6 +17,7 @@ use Tey\Concierge\Commands\ImportMembersCommand;
 use Tey\Concierge\Commands\InviteCommand;
 use Tey\Concierge\Commands\OwnersCommand;
 use Tey\Concierge\Commands\PagesCommand;
+use Tey\Concierge\Commands\RolesCommand;
 use Tey\Concierge\Commands\SyncRolesCommand;
 use Tey\Concierge\Contracts\AccountGuard;
 use Tey\Concierge\Contracts\AccountPolicy;
@@ -163,7 +164,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         ConciergeFrontend::register($this->app->basePath());
 
         if ($this->app->runningInConsole()) {
-            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, SyncRolesCommand::class]);
+            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, RolesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register();
         }
     }

@@ -193,6 +193,19 @@ Copies an existing pivot into Concierge's own workspace engine; app-wide mode an
 
 Each JSON workspace has `id`, `name`, `owner` and `members`. The owner has `user_id`, `email`, `source` and `action` (`establish` or `keep`), with an optional `note` when promoting an existing member. A member has `user_id`, `email`, `source_role`, `role` and `action`: `import` includes `joined_at`; `skip` includes `reason`. `summary` counts `workspaces`, `owners`, `members` and `skipped`. Dry-run reports the same planned actions with `dry_run: true`.
 
+### `concierge:roles {email}`
+
+Changes a user's app-wide roles through `ChangeUserRoles`, running as the `--as` user: the same rules — not yourself, not the last owner, not someone of equal or higher rank, a role the actor may grant, and the host `AccountGuard`'s veto. App-wide mode only.
+
+| Option | Behaviour |
+| --- | --- |
+| `--role=<name>` | A role the user ends up with; repeat for several. At least one is required. |
+| `--as=<email>` | The existing user the action runs as; required. Every rule the action applies holds unchanged. |
+| `--dry-run` | Resolve both users and run the action's authorization check without writing or dispatching events. |
+| `--json` | `{user, outcome, roles}`; refusals: `{error, code}`. |
+
+`user` is the target's email, `roles` lists the resulting role names. Outcomes: `changed`, `unchanged`; dry-run: `would_change`, `unchanged`. Refusal `code`s: `missing_actor`, `unknown_actor`, `unknown_user`, `missing_roles`, `unknown_role`, `unsupported_configuration`, `database`, and the action's own (`self`, `rank`, `not_grantable`, `not_manager`, `not_member`, `last_owner`, plus the account guard's).
+
 ### `concierge:pages [name]`
 
 Writes the four Inertia wrapper pages using mod. `name` is the folder under the app's pages directory, defaulting to `Concierge`; on a modules layout use `Billing:Concierge` or `--in=Billing`.
