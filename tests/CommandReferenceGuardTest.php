@@ -18,6 +18,7 @@ const COMMAND_REFERENCE_WRITING_COMMANDS = [
     'concierge:owners', // Creates users, grants ownership and sends password links.
     'concierge:import-members', // Writes workspace memberships and ownership.
     'concierge:pages', // Writes Inertia wrapper pages into the app.
+    'concierge:deactivate', // Deactivates the user's account and ends their sessions.
 ];
 
 it('keeps the README command reference in step with registered commands and options', function () {

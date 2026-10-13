@@ -41,11 +41,7 @@ class DeactivateUser
 
         return ManagedAccount::mutate($actor, $user, function (Account $actorAccount, ?Account $account) use ($actor, $user, $reason) {
             /** @var Account $account */
-            $this->policy->authorizeManagement($actor, $user)->authorize();
-
-            if (! $account->isActive()) {
-                Response::deny(__('That account is already deactivated.'), 'already_deactivated')->authorize();
-            }
+            $this->authorize($actor, $user, $account);
 
             $reason = filled($reason) ? mb_substr(trim($reason), 0, self::REASON_LENGTH) : null;
 
@@ -65,5 +61,21 @@ class DeactivateUser
 
             return $account;
         });
+    }
+
+    /**
+     * Every rule the action applies, without the write: the AccountPolicy's
+     * rank, self, last-owner and AccountGuard rules, then the state the account
+     * is already in. handle() passes the locked row, so the rules see what it
+     * is about to write; a dry run or a caller checking first passes the row it
+     * read.
+     */
+    public function authorize(Member $actor, Member $user, Account $account): void
+    {
+        $this->policy->authorizeManagement($actor, $user)->authorize();
+
+        if (! $account->isActive()) {
+            Response::deny(__('That account is already deactivated.'), 'already_deactivated')->authorize();
+        }
     }
 }
