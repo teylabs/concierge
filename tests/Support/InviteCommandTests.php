@@ -246,3 +246,40 @@ it('previews the authorization refusal without writing', function () {
     ]))->toBe(['error' => 'You cannot grant the [admin] role.', 'code' => 'not_grantable'])
         ->and(Invitation::query()->count())->toBe($before);
 });
+
+it('previews the refusal for an email that already has an account', function () {
+    host_user('ana');
+
+    expect(invite_refused([
+        'email' => 'ana@example.test',
+        '--role' => ['presenter'],
+        '--as' => $this->owner->email,
+        '--dry-run' => true,
+    ]))->toBe(['error' => 'That person already has an account; change their roles instead.', 'code' => 'email'])
+        ->and(Invitation::query()->count())->toBe(0);
+});
+
+it('previews the refusal for a deactivated account', function () {
+    $ana = host_user('ana');
+    Account::query()->create(['user_id' => $ana->getKey(), 'status' => AccountStatus::Deactivated]);
+
+    expect(invite_refused([
+        'email' => 'ana@example.test',
+        '--role' => ['presenter'],
+        '--as' => $this->owner->email,
+        '--dry-run' => true,
+    ]))->toBe(['error' => 'That account is deactivated; restore it instead.', 'code' => 'email'])
+        ->and(Invitation::query()->count())->toBe(0);
+});
+
+it('previews the refusal for a pending invitation', function () {
+    invite_user($this->owner, 'ana@example.com');
+
+    expect(invite_refused([
+        'email' => 'ana@example.com',
+        '--role' => ['presenter'],
+        '--as' => $this->owner->email,
+        '--dry-run' => true,
+    ]))->toBe(['error' => 'An invitation is already pending for that email.', 'code' => 'email'])
+        ->and(Invitation::query()->count())->toBe(1);
+});

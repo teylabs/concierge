@@ -9,13 +9,11 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tey\Concierge\Actions\InviteUser;
-use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Exceptions\CommandRefused;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
-use Tey\Concierge\Support\InvitationRules;
 use Tey\Concierge\Support\InvitationTokens;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Support\Roles;
@@ -32,34 +30,33 @@ class InviteCommand extends Command
         {email : The email address to invite}
         {--role=* : A role to grant on acceptance; at least one required}
         {--as= : The email of the existing user to run the action as}
-        {--dry-run : Resolve both users and run the action authorization check, writing nothing}
+        {--dry-run : Run the action checks, writing nothing}
         {--json : Print email, outcome, invitationId, roles and expiresAt as JSON}';
 
     public $description = 'Invite an email into the app with roles. Runs as the --as user.';
 
-    public function handle(AccountPolicy $policy): int
+    public function handle(): int
     {
         try {
             ConciergeModels::assertModeSupported();
             ConciergeModels::assertAppWide("concierge:invite is app-wide only; in workspace mode invite into a workspace with InviteMember, or set 'mode' => 'app' in config/concierge.php");
 
             $actor = $this->resolve((string) $this->option('as'));
-            $email = $this->email();
             $grants = new GrantSet($this->roles());
-            $target = ConciergeModels::user()::query()->whereRaw('lower(email) = ?', [$email])->first();
+            $action = app(InviteUser::class);
 
             if ($this->option('dry-run')) {
-                // The action's authorization check, run against both users
-                // without writing, mailing or dispatching events.
-                $policy->authorizeGrant($actor, $grants, $target)->authorize();
+                // The action's own checks, so a dry run predicts the real run.
+                $email = $action->check($actor, (string) $this->argument('email'), $grants);
 
                 $outcome = 'would_invite';
                 $invitationId = null;
                 $expiresAt = InvitationTokens::expiry();
             } else {
                 /** @var IssuedInvitation $issued */
-                $issued = InviteUser::run($actor, $email, $grants);
+                $issued = $action->handle($actor, (string) $this->argument('email'), $grants);
 
+                $email = $issued->invitation->email;
                 $outcome = 'invited';
                 $invitationId = $issued->invitation->getKey();
                 $expiresAt = $issued->invitation->expires_at;
@@ -132,20 +129,6 @@ class InviteCommand extends Command
         }
 
         return $actor;
-    }
-
-    /**
-     * The email to invite, normalized and validated with the action's own rule.
-     */
-    protected function email(): string
-    {
-        $email = InvitationRules::normalizeEmail((string) $this->argument('email'));
-
-        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw ValidationException::withMessages(['email' => __('Enter a valid email address.')]);
-        }
-
-        return $email;
     }
 
     /**

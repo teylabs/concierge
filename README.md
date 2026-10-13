@@ -168,7 +168,7 @@ Invites an email into the app with roles, as an existing user. App-wide mode onl
 | --- | --- |
 | `--role=*` | Repeatable; at least one required. A configured role (`concierge.roles`), granted on acceptance. |
 | `--as=<email>` | Required; an existing user the invitation runs as. |
-| `--dry-run` | Resolve both users and check authorization without writing, mailing or dispatching events. |
+| `--dry-run` | Every check the action makes — authorization, the roster and pending-invitation rules — without writing, mailing or dispatching events, so the preview matches the real run. |
 | `--json` | `{email, outcome, invitationId, roles, expiresAt}`; outcomes: `invited`, `would_invite`. Errors: `{error, code}`. |
 
 `invitationId` is the invitation's id and `expiresAt` its expiry; the token and accept link never appear in the output. Refusal `code`s: `missing_actor`, `unknown_actor`, `missing_roles`, `unknown_role`, `unsupported_configuration`, `database`, the first validation key (`email`, `roles`), and the action's own (`not_member`, `not_manager`, `not_grantable`, plus the account guard's).

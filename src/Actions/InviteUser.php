@@ -9,7 +9,6 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Events\UserInvited;
 use Tey\Concierge\Jobs\DeliverInvitation;
-use Tey\Concierge\Models\Account;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\GrantSnapshot;
@@ -31,36 +30,15 @@ class InviteUser
 
     public function handle(Member $actor, string $email, GrantSet $grants): IssuedInvitation
     {
-        ConciergeModels::assertAppWide('use InviteMember');
+        return ManagedAccount::mutate($actor, null, function () use ($actor, $email, $grants) {
+            $email = $this->check($actor, $email, $grants);
 
-        $email = InvitationRules::normalizeEmail($email);
-
-        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw ValidationException::withMessages(['email' => __('Enter a valid email address.')]);
-        }
-
-        return ManagedAccount::mutate($actor, null, function (Account $actorAccount) use ($actor, $email, $grants) {
-            $this->policy->authorizeGrant($actor, $grants)->authorize();
-
-            $existing = ConciergeModels::user()::query()->whereRaw('lower(email) = ?', [$email])->first();
-
-            if ($existing) {
-                $account = ConciergeModels::account()::query()->find($existing->getKey());
-
-                throw ValidationException::withMessages(['email' => $account && ! $account->isActive()
-                    ? __('That account is deactivated; restore it instead.')
-                    : __('That person already has an account; change their roles instead.')]);
-            }
-
+            // The row check() read is still the one to write under its lock.
             $pending = ConciergeModels::invitation()::query()
                 ->whereNull('workspace_id')
                 ->where('pending_key', $email)
                 ->lockForUpdate()
                 ->first();
-
-            if ($pending && ! $pending->isExpired()) {
-                throw ValidationException::withMessages(['email' => __('An invitation is already pending for that email.')]);
-            }
 
             $pending?->forceFill(['status' => InvitationStatus::Expired, 'pending_key' => null])->save();
 
@@ -87,5 +65,52 @@ class InviteUser
 
             return new IssuedInvitation($invitation, $token['token']);
         });
+    }
+
+    /**
+     * Every rule the action applies, without the write: the app-wide mode, the
+     * email, the AccountPolicy's grant rules, the roster, a pending invitation
+     * and that the roles exist. handle() runs it inside the write's lock, so
+     * the rules see what they are about to write; a dry run or a caller
+     * checking first runs it before any.
+     *
+     * @return string the normalized email
+     */
+    public function check(Member $actor, string $email, GrantSet $grants): string
+    {
+        ConciergeModels::assertAppWide('use InviteMember');
+
+        $email = InvitationRules::normalizeEmail($email);
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw ValidationException::withMessages(['email' => __('Enter a valid email address.')]);
+        }
+
+        $this->policy->authorizeGrant($actor, $grants)->authorize();
+
+        $existing = ConciergeModels::user()::query()->whereRaw('lower(email) = ?', [$email])->first();
+
+        if ($existing) {
+            $account = ConciergeModels::account()::query()->find($existing->getKey());
+
+            throw ValidationException::withMessages(['email' => $account && ! $account->isActive()
+                ? __('That account is deactivated; restore it instead.')
+                : __('That person already has an account; change their roles instead.')]);
+        }
+
+        $pending = ConciergeModels::invitation()::query()
+            ->whereNull('workspace_id')
+            ->where('pending_key', $email)
+            ->lockForUpdate()
+            ->first();
+
+        if ($pending && ! $pending->isExpired()) {
+            throw ValidationException::withMessages(['email' => __('An invitation is already pending for that email.')]);
+        }
+
+        GrantSnapshot::capture($grants)
+            ?? throw ValidationException::withMessages(['roles' => __('One or more roles do not exist.')]);
+
+        return $email;
     }
 }
