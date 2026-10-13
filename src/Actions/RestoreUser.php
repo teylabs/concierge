@@ -26,11 +26,7 @@ class RestoreUser
     {
         return ManagedAccount::mutate($actor, $user, function (Account $actorAccount, ?Account $account) use ($actor, $user) {
             /** @var Account $account */
-            $this->policy->authorizeManagement($actor, $user)->authorize();
-
-            if ($account->isActive()) {
-                Response::deny(__('That account is not deactivated.'), 'not_deactivated')->authorize();
-            }
+            $this->authorize($actor, $user, $account);
 
             $account->forceFill([
                 'status' => AccountStatus::Active,
@@ -43,5 +39,20 @@ class RestoreUser
 
             return $account;
         });
+    }
+
+    /**
+     * Every rule the action applies, without the write: the AccountPolicy's
+     * rank, self, last-owner and AccountGuard rules, then the state the account
+     * is in. handle() passes the locked row, so the rules see what it is about
+     * to write; a dry run or a caller checking first passes the row it read.
+     */
+    public function authorize(Member $actor, Member $user, Account $account): void
+    {
+        $this->policy->authorizeManagement($actor, $user)->authorize();
+
+        if ($account->isActive()) {
+            Response::deny(__('That account is not deactivated.'), 'not_deactivated')->authorize();
+        }
     }
 }

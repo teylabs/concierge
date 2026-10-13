@@ -21,6 +21,7 @@ const COMMAND_REFERENCE_WRITING_COMMANDS = [
     'concierge:pages', // Writes Inertia wrapper pages into the app.
     'concierge:deactivate', // Deactivates the user's account and ends their sessions.
     'concierge:roles', // Replaces a user's app-wide role assignments.
+    'concierge:restore', // Restores a deactivated user's account.
 ];
 
 it('keeps the README command reference in step with registered commands and options', function () {
