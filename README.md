@@ -194,6 +194,19 @@ Writes the four Inertia wrapper pages using mod. `name` is the folder under the 
 
 The JSON keys are `command`, `group`, `name`, `files`, `inserts`, `warnings`, `would_write`, `dry_run`, `written` and `skipped`. `files` describes each planned page (`alias`, `type`, `path`, `identity`, `group`, `existing`, `exists`); `warnings` carries mod's diagnostic messages. Dry-run leaves `written` empty; `files` shows what would be written and `skipped` what would be kept. A refused plan adds `error` and writes nothing. A failure during generation returns `{error}`; it may have written earlier files. Without either collision flag, existing pages are refused rather than prompting.
 
+### `concierge:deactivate <email>`
+
+Deactivates a user as the `--as` user: the same `DeactivateUser` action the Users page calls, with the same rules — not yourself, not the last owner, not someone of equal or higher rank, and the host `AccountGuard`'s veto. App-wide mode only.
+
+| Option | Behaviour |
+| --- | --- |
+| `--as=<email>` | The existing user the action runs as; required. Every rule the action applies holds unchanged. |
+| `--reason=<text>` | Why the user is deactivated; stored on the account, truncated to 500 characters. |
+| `--dry-run` | Resolve both users and run the action's authorization check without writing, mailing or dispatching events. |
+| `--json` | `{user, outcome, sessionsEnded}`; refusals: `{error, code}`. |
+
+`user` carries `id` and `email`. Outcomes: `deactivated`; dry-run: `would_deactivate`. `sessionsEnded` is what the action ended on the `database` session driver, and `null` on other drivers and on a dry run. Refusal `code`s: `missing_actor`, `unknown_actor`, `unknown_user`, `unsupported_configuration`, `database`, and the action's own (`already_deactivated`, `self`, `rank`, `not_manager`, `not_member`, `last_owner`, plus the account guard's).
+
 ## Usage
 
 ### Membership
