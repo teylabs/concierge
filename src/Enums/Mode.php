@@ -27,7 +27,7 @@ enum Mode: string
         }
 
         return (is_string($value) ? self::tryFrom($value) : null) ?? throw new UnsupportedConfiguration(sprintf(
-            'concierge.mode must be one of [%s]; got %s.',
+            'concierge.mode must be one of [%s]; got %s. Set \'mode\' in config/concierge.php to one of them.',
             implode(', ', array_column(self::cases(), 'value')),
             is_string($value) ? "[{$value}]" : get_debug_type($value),
         ));

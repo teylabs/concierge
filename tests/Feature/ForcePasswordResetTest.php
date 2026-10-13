@@ -181,7 +181,7 @@ it('refuses a two-factor reset when the app has no two-factor columns', function
     config()->set('concierge.forced_password_reset.two_factor_columns', ['missing_column']);
 
     expect(fn () => ForcePasswordReset::run($this->admin, $this->presenterMembership, resetTwoFactor: true))
-        ->toThrow(UnsupportedConfiguration::class)
+        ->toThrow(UnsupportedConfiguration::class, 'set concierge.forced_password_reset.two_factor_columns to the user table\'s two-factor columns, or pass resetTwoFactor: false.')
         ->and(Hash::check('old-secret', $this->presenter->fresh()->password))->toBeTrue();
 
     Notification::assertNothingSent();
@@ -210,7 +210,8 @@ it('rolls back the password, remember token and sessions when the broker cannot 
         }
     });
 
-    expect(fn () => ForcePasswordReset::run($this->admin, $this->presenterMembership))->toThrow(UnsupportedConfiguration::class);
+    expect(fn () => ForcePasswordReset::run($this->admin, $this->presenterMembership))
+        ->toThrow(UnsupportedConfiguration::class, 'set concierge.forced_password_reset.broker to an auth.passwords broker backed by Laravel\'s Illuminate\\Auth\\Passwords\\PasswordBroker');
 
     $fresh = $this->presenter->fresh();
 

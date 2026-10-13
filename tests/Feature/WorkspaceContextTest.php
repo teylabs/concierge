@@ -8,6 +8,7 @@ use Tey\Concierge\Actions\SuspendMembership;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\Roles;
 use Workbench\App\Models\User;
 use Workbench\App\Models\UuidWorkspace;
 
@@ -85,11 +86,18 @@ it('fails closed in middleware: 404 without context, 403 unless active', functio
 
 it('refuses unsupported configuration', function () {
     config()->set('permission.teams', false);
-    expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, 'requires permission.teams = true');
+    expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, "requires permission.teams = true; set 'teams' => true in config/permission.php (on an existing schema, run php artisan permission:setup-teams and migrate)");
+
+    expect(fn () => Roles::resolve(['auditor']))
+        ->toThrow(UnsupportedConfiguration::class, "Role [auditor] is not in concierge.roles; add it to 'roles' in config/concierge.php, then run php artisan concierge:sync-roles.");
+
+    Role::query()->whereNull('workspace_id')->where('name', 'presenter')->delete();
+    expect(fn () => Roles::resolve(['presenter']))
+        ->toThrow(UnsupportedConfiguration::class, 'Role [presenter] is not defined; run php artisan concierge:sync-roles');
 
     config()->set('concierge.models.workspace', UuidWorkspace::class);
-    expect(fn () => ConciergeModels::workspace())->toThrow(UnsupportedConfiguration::class, 'incrementing integer key');
+    expect(fn () => ConciergeModels::workspace())->toThrow(UnsupportedConfiguration::class, 'incrementing integer key; remove HasUuids or HasUlids');
 
     config()->set('concierge.models.user', stdClass::class);
-    expect(fn () => ConciergeModels::user())->toThrow(UnsupportedConfiguration::class);
+    expect(fn () => ConciergeModels::user())->toThrow(UnsupportedConfiguration::class, 'concierge.models.user must be an Eloquent model implementing [Tey\\Concierge\\Contracts\\Member]; set it in config/concierge.php');
 });

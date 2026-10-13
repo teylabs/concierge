@@ -30,7 +30,7 @@ class RemoveUser
         ConciergeModels::assertAppWide('use RemoveMembership');
 
         if (! $user instanceof Model) {
-            throw new UnsupportedConfiguration('RemoveUser needs an Eloquent user model.');
+            throw new UnsupportedConfiguration('RemoveUser needs an Eloquent user model; pass an instance of the model set as concierge.models.user.');
         }
 
         return ManagedAccount::mutate($actor, $user, function (Account $actorAccount, ?Account $account) use ($actor, $user) {

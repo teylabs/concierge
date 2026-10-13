@@ -9,6 +9,7 @@ use Tey\Concierge\Actions\EstablishWorkspace;
 use Tey\Concierge\Actions\InviteUser;
 use Tey\Concierge\Actions\RemoveUser;
 use Tey\Concierge\Actions\SyncRoleDefinitions;
+use Tey\Concierge\Actions\UpdateUser;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\Contracts\WorkspaceContext;
@@ -76,7 +77,7 @@ it('refuses an unknown mode, naming the valid values', function (mixed $value, s
     config()->set('concierge.mode', $value);
 
     expect(fn () => Mode::configured())
-        ->toThrow(UnsupportedConfiguration::class, "concierge.mode must be one of [app, workspaces]; got {$got}.");
+        ->toThrow(UnsupportedConfiguration::class, "concierge.mode must be one of [app, workspaces]; got {$got}. Set 'mode' in config/concierge.php to one of them.");
 })->with([
     'a typo' => ['workspace', '[workspace]'],
     'the wrong case' => ['App', '[App]'],
@@ -110,7 +111,7 @@ it('requires Spatie teams to match the mode', function () {
     $workspace = host_workspace();
     config()->set('concierge.mode', 'app');
 
-    $refusal = 'Concierge app-wide mode requires permission.teams = false';
+    $refusal = "Concierge app-wide mode requires permission.teams = false; set 'teams' => false in config/permission.php";
 
     expect(fn () => ConciergeModels::assertModeSupported())->toThrow(UnsupportedConfiguration::class, $refusal)
         ->and(fn () => SyncRoleDefinitions::run())->toThrow(UnsupportedConfiguration::class, $refusal)
@@ -162,7 +163,8 @@ it('refuses the app-wide reads and actions in workspace mode, naming the workspa
         ->and(fn () => InviteUser::run($owner, 'a@example.test', new GrantSet(['presenter'])))->toThrow(UnsupportedConfiguration::class, 'use InviteMember')
         ->and(fn () => EstablishOwner::run($owner))->toThrow(UnsupportedConfiguration::class, 'use EstablishWorkspace')
         ->and(fn () => ChangeUserRoles::run($owner, $owner, new GrantSet([])))->toThrow(UnsupportedConfiguration::class, 'use ChangeMemberRoles')
-        ->and(fn () => RemoveUser::run($owner, $owner))->toThrow(UnsupportedConfiguration::class, 'use RemoveMembership');
+        ->and(fn () => RemoveUser::run($owner, $owner))->toThrow(UnsupportedConfiguration::class, 'use RemoveMembership')
+        ->and(fn () => UpdateUser::run($owner, $owner, name: 'Renamed'))->toThrow(UnsupportedConfiguration::class, "UpdateUser is app-wide only; update the user model directly, or set 'mode' => 'app' in config/concierge.php.");
 });
 
 it('reads roles without the teams key when Spatie teams are off', function () {

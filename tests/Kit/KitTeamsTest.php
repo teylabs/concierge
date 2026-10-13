@@ -6,8 +6,10 @@ use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Role;
 use Tey\Concierge\Actions\EstablishWorkspace;
 use Tey\Concierge\Actions\InviteMember;
+use Tey\Concierge\Actions\SyncRoleDefinitions;
 use Tey\Concierge\Contracts\MembershipSource;
 use Tey\Concierge\Contracts\WorkspaceContext;
+use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Exceptions\WorkspaceNotManaged;
 use Tey\Concierge\Kit\KitMembershipSource;
 use Tey\Concierge\Kit\KitWorkspaceContext;
@@ -212,6 +214,15 @@ it('syncs the configured roles as global Spatie roles with Spatie teams off', fu
     Artisan::call('concierge:sync-roles');
 
     expect(Role::query()->count())->toBe(3);
+});
+
+it('refuses Spatie teams on the kit engine, naming the setting', function () {
+    config()->set('permission.teams', true);
+
+    expect(fn () => SyncRoleDefinitions::run())->toThrow(
+        UnsupportedConfiguration::class,
+        "concierge.workspaces.engine = 'kit' requires permission.teams = false; the kit's team_members.role holds the team roles. Set 'teams' => false in config/permission.php.",
+    );
 });
 
 it('shows the workspace engine in about', function () {

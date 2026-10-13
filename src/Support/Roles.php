@@ -75,8 +75,9 @@ final class Roles
     public static function resolve(array $names): array
     {
         return array_map(function (string $name) {
-            return self::find($name) ?? throw new UnsupportedConfiguration(
-                "Role [{$name}] is not defined; run SyncRoleDefinitions."
+            return self::find($name) ?? throw new UnsupportedConfiguration(in_array($name, self::configured(), true)
+                ? "Role [{$name}] is not defined; run php artisan concierge:sync-roles (or SyncRoleDefinitions::run())."
+                : "Role [{$name}] is not in concierge.roles; add it to 'roles' in config/concierge.php, then run php artisan concierge:sync-roles."
             );
         }, array_values($names));
     }

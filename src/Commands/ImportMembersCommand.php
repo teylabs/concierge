@@ -4,6 +4,7 @@ namespace Tey\Concierge\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\ImportRefused;
+use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\Locks;
 use Tey\Concierge\Support\Roles;
@@ -52,14 +54,17 @@ class ImportMembersCommand extends Command
         try {
             $options = $this->preflight();
             $plan = $this->plan($options);
+            $dryRun = (bool) $this->option('dry-run');
+
+            if (! $dryRun && ! $plan['nothing_to_do']) {
+                $this->import($concierge, $plan);
+            }
         } catch (ImportRefused $refused) {
             return $this->refuse($refused);
-        }
-
-        $dryRun = (bool) $this->option('dry-run');
-
-        if (! $dryRun && ! $plan['nothing_to_do']) {
-            $this->import($concierge, $plan);
+        } catch (UnsupportedConfiguration $exception) {
+            return $this->refuse(new ImportRefused($exception->getMessage(), 'Correct the configuration named above, then rerun php artisan concierge:import-members.'));
+        } catch (QueryException $exception) {
+            return $this->refuse(new ImportRefused($exception->getMessage(), 'Check database.default in config/database.php and the source pivot options, and run php artisan migrate before retrying php artisan concierge:import-members.'));
         }
 
         $result = ['dry_run' => $dryRun] + $plan;

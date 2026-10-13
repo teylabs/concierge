@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tey\Concierge\Concierge;
@@ -51,13 +52,13 @@ it('requires Spatie teams off and refuses tenant invitations at boot', function 
     config()->set('permission.teams', true);
 
     expect(fn () => ConciergeModels::assertModeSupported())
-        ->toThrow(UnsupportedConfiguration::class, 'Concierge app-wide mode requires permission.teams = false');
+        ->toThrow(UnsupportedConfiguration::class, "Concierge app-wide mode requires permission.teams = false; set 'teams' => false in config/permission.php, or set 'mode' => 'workspaces' in config/concierge.php to use teams.");
 
     config()->set('permission.teams', false);
     config()->set('concierge.features.tenant_invitations', true);
 
     expect(fn () => app()->register(ConciergeServiceProvider::class, force: true))
-        ->toThrow(UnsupportedConfiguration::class, "concierge.features.tenant_invitations needs concierge.mode = 'workspaces'; the mode is 'app'.");
+        ->toThrow(UnsupportedConfiguration::class, "concierge.features.tenant_invitations needs concierge.mode = 'workspaces'; the mode is 'app'. Set 'features.tenant_invitations' => false or 'mode' => 'workspaces' in config/concierge.php.");
 });
 
 it('syncs plain global roles with no team column', function () {
@@ -68,4 +69,12 @@ it('syncs plain global roles with no team column', function () {
     $this->artisan('concierge:sync-roles')->assertSuccessful();
 
     expect(DB::table('roles')->count())->toBe(3);
+});
+
+it('refuses an unattended member import with JSON naming workspace mode', function () {
+    expect(Artisan::call('concierge:import-members', ['--json' => true, '--no-interaction' => true]))->toBe(1)
+        ->and(json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR))->toBe([
+            'error' => 'Concierge is in app-wide mode, which has no workspaces to import members into.',
+            'fix' => "Set 'mode' => 'workspaces' in config/concierge.php.",
+        ]);
 });

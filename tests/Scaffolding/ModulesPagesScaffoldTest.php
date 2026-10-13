@@ -29,8 +29,9 @@ it('takes the module with --in, as mod asks when it is missing', function () {
     $exit = app(Kernel::class)->call('concierge:pages', ['--no-interaction' => true, '--dry-run' => true, '--json' => true], $output);
     $plan = json_decode($output->fetch(), true, flags: JSON_THROW_ON_ERROR);
 
-    expect($exit)->toBe(0)
+    expect($exit)->toBe(1)
         ->and($plan['would_write'])->toBeFalse()
+        ->and($plan['error'])->toContain('--in', '<module>')
         ->and($plan['warnings'][0]['code'])->toBe('missing_placement')
         ->and($plan['warnings'][0]['data']['dimension'])->toBe('module');
 

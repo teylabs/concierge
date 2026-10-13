@@ -37,10 +37,10 @@ class UpdateUser
 
     public function handle(Member $actor, Member $user, ?string $name = null, ?string $email = null): Member
     {
-        ConciergeModels::assertAppWide('UpdateUser is an app-wide action');
+        ConciergeModels::assertAppWide("UpdateUser is app-wide only; update the user model directly, or set 'mode' => 'app' in config/concierge.php");
 
         if (! $user instanceof Model) {
-            throw new UnsupportedConfiguration('UpdateUser needs an Eloquent user model.');
+            throw new UnsupportedConfiguration('UpdateUser needs an Eloquent user model; pass an instance of the model set as concierge.models.user.');
         }
 
         return ManagedAccount::mutate($actor, $user, function (Account $actorAccount, ?Account $account) use ($actor, $user, $name, $email) {
