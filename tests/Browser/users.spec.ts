@@ -37,22 +37,89 @@ test.describe('users index', () => {
         ).toHaveCount(0);
     });
 
-    test('renders actions only where the server provided a link', async ({
+    test('renders a primary action and a menu only where the server provided links', async ({
         page,
-    }) => {
+    }, info) => {
         await openHarness(page, 'users', 'withDeactivated');
         const rows = page.locator('tbody tr');
 
         await expect(rows.nth(0).getByRole('button')).toHaveCount(0);
         await expect(rows.nth(1).getByRole('button')).toHaveText([
-            'Force password reset',
             'Deactivate',
-            'Remove',
+            'More actions',
         ]);
         await expect(rows.nth(2).getByRole('button')).toHaveText([
             'Restore',
+            'More actions',
+        ]);
+
+        const active = rows
+            .nth(1)
+            .getByRole('button', { name: 'More actions' });
+        await active.click();
+        await expect(page.getByRole('menuitem')).toHaveText([
+            'Force password reset',
             'Remove',
         ]);
+        await page.screenshot({
+            path: `build/screenshots/${info.project.name}/users-active-menu.png`,
+            fullPage: true,
+        });
+        await page.getByRole('heading', { name: 'Users', level: 1 }).click();
+        await expect(page.getByRole('menu')).toBeHidden();
+        await expect(active).toHaveAttribute('aria-expanded', 'false');
+        await expect(active).toBeFocused();
+        expect(await requests(page)).toEqual([]);
+
+        await active.click();
+        await page.getByLabel('Search users').click();
+        await expect(page.getByRole('menu')).toBeHidden();
+        await expect(page.getByLabel('Search users')).toBeFocused();
+
+        const restored = rows
+            .nth(2)
+            .getByRole('button', { name: 'More actions' });
+        await restored.focus();
+        await restored.press('Enter');
+        const remove = page.getByRole('menuitem', { name: 'Remove' });
+        await expect(page.getByRole('menuitem')).toHaveText(['Remove']);
+        await expect(remove).toBeFocused();
+        await page.keyboard.press('ArrowDown');
+        await expect(remove).toBeFocused();
+        await page.screenshot({
+            path: `build/screenshots/${info.project.name}/users-deactivated-menu.png`,
+            fullPage: true,
+        });
+        await page.keyboard.press('Space');
+        const dialog = page.getByRole('dialog', {
+            name: 'Remove Grace Hopper?',
+        });
+        await expect(dialog).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(restored).toBeFocused();
+        expect(await requests(page)).toEqual([]);
+    });
+
+    test('keeps index actions on one line without horizontal overflow', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users', 'withDeactivated');
+
+        for (const index of [1, 2]) {
+            const row = page.locator('tbody tr').nth(index);
+            const primary = await row.getByRole('button').nth(0).boundingBox();
+            const trigger = await row.getByRole('button').nth(1).boundingBox();
+            expect(primary).not.toBeNull();
+            expect(trigger).not.toBeNull();
+            expect(primary!.y).toBe(trigger!.y);
+            expect(primary!.x + primary!.width).toBeLessThan(trigger!.x);
+            expect(trigger!.x + trigger!.width).toBeLessThanOrEqual(
+                page.viewportSize()!.width,
+            );
+        }
+        expect(
+            await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(page.viewportSize()!.width);
     });
 
     test('shows no management controls to a read-only viewer', async ({
@@ -244,8 +311,9 @@ test.describe('user actions', () => {
         await page
             .locator('tbody tr')
             .nth(2)
-            .getByRole('button', { name: 'Remove' })
+            .getByRole('button', { name: 'More actions' })
             .click();
+        await page.getByRole('menuitem', { name: 'Remove' }).click();
         const dialog = page.getByRole('dialog', {
             name: 'Remove Grace Hopper?',
         });
@@ -266,8 +334,9 @@ test.describe('user actions', () => {
         await page
             .locator('tbody tr')
             .nth(1)
-            .getByRole('button', { name: 'Remove' })
+            .getByRole('button', { name: 'More actions' })
             .click();
+        await page.getByRole('menuitem', { name: 'Remove' }).click();
         await page.keyboard.press('Escape');
 
         await expect(page.getByRole('dialog')).toBeHidden();
@@ -282,8 +351,9 @@ test.describe('user actions', () => {
         await page
             .locator('tbody tr')
             .nth(1)
-            .getByRole('button', { name: 'Remove' })
+            .getByRole('button', { name: 'More actions' })
             .click();
+        await page.getByRole('menuitem', { name: 'Remove' }).click();
         const dialog = page.getByRole('dialog');
 
         await dialog.getByRole('button', { name: 'Remove' }).click();
@@ -342,6 +412,32 @@ test.describe('user actions', () => {
 
         expect(await requests(page)).toEqual([
             { method: 'post', url: '/users/11/deactivate' },
+        ]);
+    });
+
+    test('forces a password reset from the menu without resetting two-factor', async ({
+        page,
+    }) => {
+        await openHarness(page, 'users');
+        await page
+            .locator('tbody tr')
+            .nth(1)
+            .getByRole('button', { name: 'More actions' })
+            .click();
+        await page
+            .getByRole('menuitem', { name: 'Force password reset' })
+            .click();
+        const dialog = page.getByRole('dialog', {
+            name: 'Force a password reset for Ada Lovelace?',
+        });
+
+        expect(await requests(page)).toEqual([]);
+        await dialog
+            .getByRole('button', { name: 'Force password reset' })
+            .click();
+        await expect(dialog).toBeHidden();
+        expect(await requests(page)).toEqual([
+            { method: 'post', url: '/users/11/force-password-reset' },
         ]);
     });
 
