@@ -62,7 +62,7 @@ class KitMembershipSource implements MembershipSource
     {
         if (! $user instanceof Model || ! method_exists($user, $this->teamsRelation) || ! ($relation = $user->{$this->teamsRelation}()) instanceof BelongsToMany) {
             throw new UnsupportedConfiguration(sprintf(
-                "[%s] must define %s(), the starter kit's HasTeams relation; add `use App\\Concerns\\HasTeams;` to the user model, or extend KitMembershipSource and set \$teamsRelation to the renamed relation.",
+                "[%s] must define %s(), the starter kit's HasTeams relation; the model set as concierge.models.user needs the relation. Add `use App\\Concerns\\HasTeams;` to that model, or extend KitMembershipSource and set \$teamsRelation to the renamed relation.",
                 get_debug_type($user),
                 $this->teamsRelation,
             ));
