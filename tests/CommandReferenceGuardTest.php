@@ -16,6 +16,7 @@ const COMMAND_REFERENCE_ALLOWED_NO_DRY_RUN = [];
 const COMMAND_REFERENCE_WRITING_COMMANDS = [
     'concierge:sync-roles', // Creates global role definitions.
     'concierge:owners', // Creates users, grants ownership and sends password links.
+    'concierge:invite', // Creates invitations and sends the accept link.
     'concierge:import-members', // Writes workspace memberships and ownership.
     'concierge:pages', // Writes Inertia wrapper pages into the app.
     'concierge:deactivate', // Deactivates the user's account and ends their sessions.
