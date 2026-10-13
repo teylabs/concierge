@@ -2,10 +2,21 @@ name: PHPStan
 
 on:
   push:
+    branches: [main, '*.x']
     paths:
       - '**.php'
       - 'phpstan.neon.dist'
       - '.github/workflows/phpstan.yml'
+  pull_request:
+    branches: [main, '*.x']
+    paths:
+      - '**.php'
+      - 'phpstan.neon.dist'
+      - '.github/workflows/phpstan.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   phpstan:

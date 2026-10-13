@@ -2,6 +2,7 @@ name: run-tests
 
 on:
   push:
+    branches: [main, '*.x']
     paths:
       - '.gitattributes'
       - '**.php'
@@ -10,6 +11,7 @@ on:
       - 'composer.json'
       - 'composer.lock'
   pull_request:
+    branches: [main, '*.x']
     paths:
       - '.gitattributes'
       - '**.php'
@@ -19,8 +21,8 @@ on:
       - 'composer.lock'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:

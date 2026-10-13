@@ -2,12 +2,14 @@ name: PHP code style
 
 on:
   push:
+    branches: [main, '*.x']
     paths:
       - '**.php'
       - 'pint.json'
       - 'composer.json'
       - '.github/workflows/fix-php-code-style-issues.yml'
   pull_request:
+    branches: [main, '*.x']
     paths:
       - '**.php'
       - 'pint.json'
@@ -16,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   php-code-styling:
