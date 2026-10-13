@@ -13,7 +13,8 @@ it('previews missing roles without writing or clearing the cache, then reports c
     Role::create(['name' => 'owner', 'guard_name' => 'api']);
     if ($registrar->teams) {
         $workspace = Workspace::create(['name' => 'Scoped roles']);
-        Role::create(['name' => 'owner', 'guard_name' => 'web', $registrar->teamsKey => $workspace->id]);
+        // Eloquent may have cached Role's columns from the app-wide schema, without the team key.
+        Role::query()->forceCreate(['name' => 'owner', 'guard_name' => 'web', $registrar->teamsKey => $workspace->id]);
     }
     $before = DB::table('roles')->orderBy('id')->get()->all();
     Cache::put($registrar->cacheKey, ['sentinel'], 600);
