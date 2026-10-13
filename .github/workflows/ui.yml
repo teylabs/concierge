@@ -117,10 +117,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Apps install concierge on Windows too, so the clean install runs on both.
   consumer:
-    name: Clean consumer install and build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: Clean consumer install and build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -131,4 +136,5 @@ jobs:
           node-version: 24
 
       - name: Consumer proof
+        shell: bash
         run: npm run consumer:proof
