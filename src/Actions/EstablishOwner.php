@@ -13,7 +13,7 @@ use Tey\Concierge\Support\ManagedAccount;
 use Tey\Concierge\Support\Roles;
 
 /**
- * Makes a user an app-wide owner: the owner role, replacing any other roles,
+ * Makes a user an app-wide owner: adds the owner role, keeping any other roles,
  * and an active account row. Idempotent, and several owners are allowed, so
  * the first-owner command and a deploy script can both call it freely. There
  * is no actor: this is the operator's or the installer's act, not a manager's.
@@ -39,7 +39,7 @@ class EstablishOwner
             ])->save();
 
             if (! $this->scope->isOwner($user)) {
-                $user->syncRoles(Roles::resolve([Roles::owner()]));
+                $user->syncRoles([...$user->roles()->get()->all(), ...Roles::resolve([Roles::owner()])]);
 
                 OwnerEstablished::dispatch((int) $user->getKey());
             }
