@@ -2,6 +2,17 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## v0.7.2 - 2026-10-19
+
+### Changed
+
+- Allow `tey/mod` `^0.8` alongside `^0.6.1` and `^0.7`, so apps on mod 0.8 can install concierge.
+
+
+---
+
+**Full Changelog**: https://github.com/teylabs/concierge/compare/v0.7.1...v0.7.2
+
 ## v0.7.1 - 2026-10-13
 
 ### Changed
@@ -25,28 +36,34 @@ Concierge is now built on [mod](https://mod.teylabs.com): one command wires its 
 ### Added
 
 - Concierge declares its Inertia pages and frontend wiring to mod: the `@tey/concierge` alias, its TypeScript paths and its Tailwind source.
+  
   - `php artisan mod:install inertia --dry-run` shows the edits, and `mod:install inertia` applies them. That replaces the hand-written alias, paths and source.
   - It works whether concierge is installed from Packagist or symlinked from a path repository.
   - You still import `concierge.css` yourself, until #81. (#17, #70, #76)
   
 - `php artisan concierge:pages` writes concierge's Inertia wrapper pages into your own `resources/js/pages/Concierge`, placed by your app's mod layout. A React app is told which `.tsx` stubs to supply. (#62)
+  
 - App-wide mode, early and opt-in (`'mode' => 'app'`).
+  
   - Invitations and roles apply to the whole app, with no workspace model, through `EstablishOwner`, `InviteUser`, `ChangeUserRoles` and `RemoveUser`.
   - The last owner can never be removed, demoted or deleted.
   - App-wide invitations can't be resent or revoked yet (#79).
   - It completes in 0.8. (#19, #65, #69)
   
 - Starter kit teams, early and opt-in (`'workspaces' => ['engine' => 'kit']`).
+  
   - Concierge reads a kit's teams, members and roles through an adapter and never writes the kit's tables.
   - `php artisan concierge:import-members` copies an existing pivot into concierge's own engine.
   - Protect kit routes with the kit's `EnsureTeamMembership` for now (#80). (#20, #68)
   
 - The Users pages for app-wide mode, early: `UsersPage`, `UserPage` and `InviteUserPage`.
+  
   - They have search, role and status filters, plus `Concierge::userColumns()` for your own columns.
   - `UpdateUser` edits a user's name and email.
   - Your controllers supply the props and links until concierge ships routes (#28). (#43, #75, #77)
   
 - Deactivation, early.
+  
   - `DeactivateUser` and `RestoreUser` take a user's access away and give it back, keeping their roles and history.
   - A deactivated user is refused at sign-in.
   - The `concierge.active` middleware signs out existing sessions and refuses API tokens without deleting them. (#44, #74)
@@ -69,16 +86,19 @@ Registration gating, an admin-forced password reset and initials avatars, and tw
 ### Added
 
 - Registration gating. `CONCIERGE_REGISTRATION` is `open` (the default), `domains`, `invitation` or `closed`, with `CONCIERGE_REGISTRATION_DOMAINS` for `domains` mode.
+  
   - In `invitation` and `domains` modes, someone holding a valid invitation can register with the email it was sent to.
   - It fails closed: an unknown or empty mode counts as `closed`, and so does `domains` mode with no domains.
   - It works with Fortify with no app code. Otherwise, add the `MayRegister` rule to the email field. (#45)
   
 - `ForcePasswordReset::run($actor, $membership, resetTwoFactor: false)`.
+  
   - It replaces the password with an unknown one, cycles the remember token, and ends the user's database sessions. It then sends a reset link through the user's own reset notification.
   - The same rules as suspending a member apply, and a new `AccountGuard` contract can veto it.
   - It fires `PasswordResetForced`. (#47)
   
 - Initials avatars. `UserSummary` carries an `avatar`: a photo URL when the app has one (`Concierge::avatarUsing(...)`), and otherwise initials and a stable colour, with no outside requests. The Vue kit exports an `Avatar` component. (#48)
+  
 
 ### Changed
 
