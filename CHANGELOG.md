@@ -2,6 +2,17 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## v0.7.3 - 2026-10-19
+
+### Changed
+
+- Allow `tey/mod` `^0.9` alongside `^0.6.1`, `^0.7` and `^0.8`, so apps on mod 0.9 can install concierge.
+
+
+---
+
+**Full Changelog**: https://github.com/teylabs/concierge/compare/v0.7.2...v0.7.3
+
 ## v0.7.2 - 2026-10-19
 
 ### Changed
