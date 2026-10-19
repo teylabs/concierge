@@ -2,6 +2,21 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## v0.7.4 - 2026-10-19
+
+### Added
+
+- `concierge:owners` creates the owners listed in `CONCIERGE_OWNERS` and sends each new one a set-password link. It is safe to run on every deploy, and takes `--workspace`, `--dry-run` and `--json` (#94).
+
+### Changed
+
+- Allow `tey/mod` `^0.10` alongside `^0.6.1`, `^0.7`, `^0.8` and `^0.9`.
+
+
+---
+
+**Full Changelog**: https://github.com/teylabs/concierge/compare/v0.7.3...v0.7.4
+
 ## v0.7.3 - 2026-10-19
 
 ### Changed
