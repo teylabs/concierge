@@ -2,18 +2,35 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.7.6] - 2026-10-20
+
+### Fixed
+
+- Allow `tey/mod` `^0.8`, `^0.9` and `^0.10` again. v0.7.5 narrowed the constraint back to `^0.6.1 || ^0.7` because the widening shipped in v0.7.4 had not reached `main`, so apps on `tey/mod` 0.8 to 0.10 could not install it (#125).
+
+### Changed
+
+- Bump the development dependency `vite` to `^8.3.4` (#124).
+
+### Upgrade notes
+
+- None. v0.7.6 is v0.7.5 with the `tey/mod` constraint of v0.7.4. Apps on v0.7.5 can update directly, and apps on v0.7.4 get everything in v0.7.5 (`LeaveWorkspace`, `MembersIndex`).
+
 ## [0.7.5] - 2026-10-20
 
 ### Added
 
 - `LeaveWorkspace::run($user, $workspace)` lets a member end their own membership of one workspace. It takes the same locks as the other membership actions, clears the member's roles and permissions in that workspace only, and dispatches `MembershipRemoved` with the member as the actor. The owner is refused with `owner_must_transfer` until ownership is transferred (#122).
+  
 - `MembersIndex` builds the whole members page for a workspace, so an app or a UI kit renders it and carries no membership logic of its own (#123):
+  
   - Members and Invitations tabs (`?tab`), each with its label, URL and a server-side count that follows the active search.
   - Sort, search, role and status filters and pagination through spatie/laravel-query-builder. An unknown sort, filter or tab is a 400, and `per_page` is capped at 100.
   - Each row carries only the actions the grant rules let the viewer take, decided by rank. Destructive actions carry their confirmation words, and nothing is shown disabled.
   - `table` gives the active tab's rows in the shape a generic data table takes, with a `first-use` or `no-results` empty state decided on the server.
   
 - `MembersPage.vue` shows the tabs on Concierge's own primitives, through a new `ui/Tabs.vue` (#123).
+  
 
 ### Changed
 
