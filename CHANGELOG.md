@@ -2,6 +2,29 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.7.5] - 2026-10-20
+
+### Added
+
+- `LeaveWorkspace::run($user, $workspace)` lets a member end their own membership of one workspace. It takes the same locks as the other membership actions, clears the member's roles and permissions in that workspace only, and dispatches `MembershipRemoved` with the member as the actor. The owner is refused with `owner_must_transfer` until ownership is transferred (#122).
+- `MembersIndex` builds the whole members page for a workspace, so an app or a UI kit renders it and carries no membership logic of its own (#123):
+  - Members and Invitations tabs (`?tab`), each with its label, URL and a server-side count that follows the active search.
+  - Sort, search, role and status filters and pagination through spatie/laravel-query-builder. An unknown sort, filter or tab is a 400, and `per_page` is capped at 100.
+  - Each row carries only the actions the grant rules let the viewer take, decided by rank. Destructive actions carry their confirmation words, and nothing is shown disabled.
+  - `table` gives the active tab's rows in the shape a generic data table takes, with a `first-use` or `no-results` empty state decided on the server.
+  
+- `MembersPage.vue` shows the tabs on Concierge's own primitives, through a new `ui/Tabs.vue` (#123).
+
+### Changed
+
+- Require `spatie/laravel-query-builder` `^7.3`.
+
+### Upgrade notes
+
+- No migration and no config key.
+- TypeScript hosts that build `MemberRow`, `InvitationRow` or `MembersPageProps` by hand (fixtures, mocks) now need `actions: []`, and `tab`, `tabs` and `table` on the page props. Props built by PHP are unaffected.
+- `LeaveWorkspace` and `MembersIndex` are workspace mode only. In app-wide mode they throw `UnsupportedConfiguration`.
+
 ## v0.7.4 - 2026-10-19
 
 ### Added
