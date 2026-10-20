@@ -421,3 +421,97 @@ test.describe('avatars', () => {
         await expect(avatars.nth(2)).toHaveText('GH');
     });
 });
+
+test.describe('members index tabs', () => {
+    test('shows Members and Invitations tabs with the server counts, the current one marked', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'tabs');
+
+        const tabs = page.getByRole('navigation', {
+            name: 'Members and invitations',
+        });
+        await expect(tabs.getByRole('link')).toHaveText([
+            'Members 5',
+            'Invitations 2',
+        ]);
+        await expect(
+            tabs.getByRole('link', { name: /Members/ }),
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(
+            tabs.getByRole('link', { name: /Invitations/ }),
+        ).not.toHaveAttribute('aria-current');
+        await expect(
+            tabs.getByRole('link', { name: /Invitations/ }),
+        ).toHaveAttribute('href', '/workspaces/7/members?tab=invitations');
+        await expect(page.locator('tbody tr')).toHaveCount(3);
+        await expect(
+            page.getByRole('region', { name: 'Invitations' }),
+        ).toHaveCount(0);
+    });
+
+    test('switching to the Invitations tab visits its URL', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'tabs');
+
+        await page.getByRole('link', { name: /Invitations/ }).click();
+
+        expect(await visits(page)).toEqual([
+            expect.objectContaining({
+                url: '/workspaces/7/members?tab=invitations',
+            }),
+        ]);
+    });
+
+    test('the Invitations tab lists invitations only, and searches through the filter query', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'invitations');
+
+        await expect(
+            page.getByRole('link', { name: /Invitations/ }),
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(page.locator('tbody tr')).toHaveCount(0);
+        const invitations = page.getByRole('region', { name: 'Invitations' });
+        await expect(invitations.getByRole('listitem')).toHaveCount(2);
+
+        await invitations.getByRole('searchbox').fill('mar');
+        await page.waitForTimeout(400);
+
+        const sent = await visits(page);
+        expect(sent).toHaveLength(1);
+        expect(sent[0]).toMatchObject({
+            url: '/workspaces/7/members',
+            options: expect.objectContaining({
+                data: { tab: 'invitations', filter: { search: 'mar' } },
+            }),
+        });
+    });
+
+    test('the Invitations tab says so when there are none', async ({
+        page,
+    }) => {
+        await openHarness(page, 'members', 'invitationsEmpty');
+
+        await expect(page.getByText('No pending invitations')).toBeVisible();
+    });
+
+    test('the tabs and the lists stay usable on a phone with no sideways scroll', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 390, height: 800 });
+        await openHarness(page, 'members', 'tabs');
+
+        await expect(
+            page.getByRole('link', { name: /Invitations/ }),
+        ).toBeVisible();
+        expect(
+            await page.evaluate(
+                () =>
+                    document.documentElement.scrollWidth <=
+                    document.documentElement.clientWidth,
+            ),
+        ).toBe(true);
+    });
+});

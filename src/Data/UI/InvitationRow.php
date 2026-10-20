@@ -19,5 +19,7 @@ readonly class InvitationRow extends Props
         public ?string $invitedBy,
         public bool $hasActions,
         public InvitationLinks $links,
+        /** @var list<RowAction> what the viewer may do to this invitation, decided by the grant rules */
+        public array $actions = [],
     ) {}
 }

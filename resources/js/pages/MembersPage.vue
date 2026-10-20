@@ -19,6 +19,7 @@ import PageHeader from '../ui/PageHeader.vue';
 import Pagination from '../ui/Pagination.vue';
 import Spinner from '../ui/Spinner.vue';
 import Surface from '../ui/Surface.vue';
+import Tabs from '../ui/Tabs.vue';
 import { controlClasses } from '../ui/controlClasses';
 
 const props = defineProps<MembersPageProps>();
@@ -31,6 +32,13 @@ const loading = ref(false);
 let timer: ReturnType<typeof setTimeout> | undefined;
 
 const statuses = ['active', 'suspended', 'removed'] as const;
+
+// With tabs (the server-driven index) the query is `?tab` and `?filter[...]`; without them, the host's own `search` and `status`.
+const hasTabs = computed(() => props.tabs.length > 0);
+const showMembers = computed(() => !hasTabs.value || props.tab === 'members');
+const showInvitations = computed(() =>
+    hasTabs.value ? props.tab === 'invitations' : props.invitations.length > 0,
+);
 
 const filtered = computed(
     () => props.metadata.search !== '' || props.metadata.status !== null,
@@ -51,14 +59,34 @@ function refresh() {
     timer = undefined;
     loading.value = true;
 
-    const data: Record<string, string> = {};
+    const data: Record<string, unknown> = {};
 
-    if (search.value.trim() !== '') {
-        data.search = search.value.trim();
-    }
+    if (hasTabs.value) {
+        const filter: Record<string, string> = {};
 
-    if (status.value !== '') {
-        data.status = status.value;
+        if (props.tab !== 'members') {
+            data.tab = props.tab;
+        }
+
+        if (search.value.trim() !== '') {
+            filter.search = search.value.trim();
+        }
+
+        if (props.tab === 'members' && status.value !== '') {
+            filter.status = status.value;
+        }
+
+        if (Object.keys(filter).length > 0) {
+            data.filter = filter;
+        }
+    } else {
+        if (search.value.trim() !== '') {
+            data.search = search.value.trim();
+        }
+
+        if (status.value !== '') {
+            data.status = status.value;
+        }
     }
 
     adapter
@@ -137,7 +165,15 @@ function statusVariant(member: MemberRow): string {
             </PageHeader>
         </slot>
 
+        <Tabs
+            v-if="hasTabs"
+            :tabs="tabs"
+            :label="t('members.tabs')"
+            @navigate="navigate"
+        />
+
         <Surface
+            v-if="showMembers"
             as="section"
             :aria-busy="loading || undefined"
             aria-labelledby="concierge-members-heading"
@@ -386,8 +422,9 @@ function statusVariant(member: MemberRow): string {
         </Surface>
 
         <Surface
-            v-if="invitations.length"
+            v-if="showInvitations"
             as="section"
+            :aria-busy="loading || undefined"
             aria-labelledby="concierge-invitations-heading"
         >
             <div class="border-b border-(--concierge-border) px-4 py-3 sm:px-6">
@@ -401,6 +438,52 @@ function statusVariant(member: MemberRow): string {
                     {{ t('invitations.description') }}
                 </p>
             </div>
+            <form
+                v-if="hasTabs"
+                role="search"
+                class="flex flex-col gap-3 border-b border-(--concierge-border) px-4 py-3 sm:flex-row sm:items-end sm:px-6"
+                @submit.prevent="refresh"
+            >
+                <label class="block min-w-0 flex-1 space-y-1.5">
+                    <span
+                        class="block text-sm font-medium text-(--concierge-text)"
+                        >{{ t('members.search') }}</span
+                    >
+                    <input
+                        v-model="search"
+                        type="search"
+                        name="search"
+                        :placeholder="t('members.searchPlaceholder')"
+                        :class="controlClasses"
+                        @input="onSearchInput"
+                    />
+                </label>
+                <Button
+                    v-if="filtered"
+                    variant="muted"
+                    tier="ghost"
+                    @click="clearFilters"
+                    >{{ t('members.clearFilters') }}</Button
+                >
+            </form>
+            <EmptyState
+                v-if="hasTabs && !invitations.length"
+                :title="
+                    t(
+                        filtered
+                            ? 'invitations.noResults.title'
+                            : 'invitations.empty.title',
+                    )
+                "
+            >
+                {{
+                    t(
+                        filtered
+                            ? 'invitations.noResults.body'
+                            : 'invitations.empty.body',
+                    )
+                }}
+            </EmptyState>
             <ul class="divide-y divide-(--concierge-border)">
                 <InvitationItem
                     v-for="invitation in invitations"

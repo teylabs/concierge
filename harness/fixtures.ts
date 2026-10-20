@@ -81,6 +81,7 @@ export const owner: MemberRow = {
     joinedAt: '2026-08-01T09:00:00Z',
     hasActions: false,
     links: { ...noLinks, show: '/workspaces/7/members/1' },
+    actions: [],
 };
 
 export const admin: MemberRow = {
@@ -100,6 +101,7 @@ export const admin: MemberRow = {
         remove: '/workspaces/7/members/2',
         transferOwnership: '/workspaces/7/members/2/transfer-ownership',
     },
+    actions: [],
 };
 
 export const suspended: MemberRow = {
@@ -117,6 +119,7 @@ export const suspended: MemberRow = {
         reinstate: '/workspaces/7/members/3/reinstate',
         remove: '/workspaces/7/members/3',
     },
+    actions: [],
 };
 
 export const pending: InvitationRow = {
@@ -132,6 +135,7 @@ export const pending: InvitationRow = {
         resend: '/workspaces/7/invitations/01JAB0000000000000000000PX/resend',
         revoke: '/workspaces/7/invitations/01JAB0000000000000000000PX',
     },
+    actions: [],
 };
 
 export const expired: InvitationRow = {
@@ -147,6 +151,7 @@ export const expired: InvitationRow = {
         resend: '/workspaces/7/invitations/01JAB0000000000000000000EX/resend',
         revoke: null,
     },
+    actions: [],
 };
 
 const membersBase: MembersPageProps = {
@@ -172,6 +177,46 @@ const membersBase: MembersPageProps = {
             transferOwnership: true,
         },
     },
+    tab: 'members',
+    tabs: [],
+    table: null,
+};
+
+/** The server-driven index: Members and Invitations tabs, the active one in the URL. */
+const tabs = [
+    {
+        key: 'members',
+        label: 'Members',
+        url: '/workspaces/7/members',
+        count: 5,
+        current: true,
+    },
+    {
+        key: 'invitations',
+        label: 'Invitations',
+        url: '/workspaces/7/members?tab=invitations',
+        count: 2,
+        current: false,
+    },
+];
+
+const membersTabs: MembersPageProps = { ...membersBase, tabs };
+
+const invitationsTabs: MembersPageProps = {
+    ...membersBase,
+    members: [],
+    invitations: [pending, expired],
+    tab: 'invitations',
+    tabs: tabs.map((tab) => ({ ...tab, current: tab.key === 'invitations' })),
+};
+
+const invitationsEmpty: MembersPageProps = {
+    ...invitationsTabs,
+    invitations: [],
+    tabs: invitationsTabs.tabs.map((tab) => ({
+        ...tab,
+        count: tab.key === 'invitations' ? 0 : tab.count,
+    })),
 };
 
 /** Viewer is a presenter: every action link is null. */
@@ -307,6 +352,9 @@ const singlePage = {
 export const fixtures = {
     members: {
         default: membersBase,
+        tabs: membersTabs,
+        invitations: invitationsTabs,
+        invitationsEmpty,
         readOnly: membersReadOnly,
         roleless: {
             ...membersBase,

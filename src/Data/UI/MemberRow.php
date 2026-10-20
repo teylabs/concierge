@@ -21,5 +21,7 @@ readonly class MemberRow extends Props
         public ?string $joinedAt,
         public bool $hasActions,
         public MemberLinks $links,
+        /** @var list<RowAction> what the viewer may do to this member, decided by the grant rules */
+        public array $actions = [],
     ) {}
 }

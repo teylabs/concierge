@@ -48,6 +48,7 @@ lastSentAt: string | null,
 invitedBy: string | null,
 hasActions: boolean,
 links: InvitationLinks,
+actions: RowAction[],
 };
 export type InviteMemberLinks = {
 cancel: string,
@@ -149,6 +150,7 @@ roles: RoleBadge[],
 joinedAt: string | null,
 hasActions: boolean,
 links: MemberLinks,
+actions: RowAction[],
 };
 export type MembersAbilities = {
 invite: boolean,
@@ -171,6 +173,26 @@ members: MemberRow[],
 pagination: Pagination,
 invitations: InvitationRow[],
 metadata: MembersMetadata,
+tab: string,
+tabs: MembersTab[],
+table: MembersTable | null,
+};
+export type MembersTab = {
+key: string,
+label: string,
+url: string,
+count: number,
+current: boolean,
+};
+export type MembersTable = {
+rows: (MemberRow| InvitationRow)[],
+columns: TableColumn[],
+sort: TableSort | null,
+search: string | null,
+filters: Record<string, string>,
+tabs: MembersTab[],
+pagination: TablePagination,
+emptyState: 'first-use' | 'no-results' | null,
 };
 export type PaginatedDataCollection<TKey, TValue> = LengthAwarePaginator<TKey, TValue>;
 export type Pagination = {
@@ -190,6 +212,40 @@ export type RoleOption = {
 value: string,
 label: string,
 description: string | null,
+};
+export type RowAction = {
+key: string,
+label: string,
+url: string,
+method: string,
+destructive: boolean,
+confirm: RowActionConfirm | null,
+};
+export type RowActionConfirm = {
+title: string,
+body: string,
+confirmLabel: string,
+};
+export type TableColumn = {
+key: string,
+label: string,
+sortable: boolean,
+hideable: boolean,
+hiddenByDefault: boolean,
+align: string | null,
+srOnlyLabel: boolean,
+};
+export type TablePagination = {
+page: number,
+perPage: number,
+total: number,
+from: number | null,
+to: number | null,
+lastPage: number,
+};
+export type TableSort = {
+column: string,
+direction: 'asc' | 'desc',
 };
 export type UserAvatar = {
 url: string | null,
