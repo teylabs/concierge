@@ -26,9 +26,17 @@ use Tey\Concierge\Data\UI\MembersAbilities;
 use Tey\Concierge\Data\UI\MembersLinks;
 use Tey\Concierge\Data\UI\MembersMetadata;
 use Tey\Concierge\Data\UI\MembersPageProps;
+use Tey\Concierge\Data\UI\MembersTab;
+use Tey\Concierge\Data\UI\MembersTable;
 use Tey\Concierge\Data\UI\Pagination;
 use Tey\Concierge\Data\UI\RoleBadge;
 use Tey\Concierge\Data\UI\RoleOption;
+use Tey\Concierge\Data\UI\RowAction;
+use Tey\Concierge\Data\UI\RowActionConfirm;
+use Tey\Concierge\Data\UI\TableColumn;
+use Tey\Concierge\Data\UI\TablePagination;
+use Tey\Concierge\Data\UI\TableSort;
+use Tey\Concierge\Data\UI\UserAvatar;
 use Tey\Concierge\Data\UI\UserColumn;
 use Tey\Concierge\Data\UI\UserGrants;
 use Tey\Concierge\Data\UI\UserGrantsMetadata;
@@ -96,6 +104,7 @@ function serialization_member_row_array(): array
             'remove' => null,
             'transferOwnership' => null,
         ],
+        'actions' => [],
     ];
 }
 
@@ -182,6 +191,7 @@ dataset('page props', [
                 'invitedBy' => 'Ada Lovelace',
                 'hasActions' => false,
                 'links' => ['resend' => null, 'revoke' => '/invitations/5/revoke'],
+                'actions' => [],
             ]],
             'metadata' => [
                 'refreshUrl' => '/members',
@@ -190,6 +200,87 @@ dataset('page props', [
                 'links' => ['invite' => null],
                 'abilities' => ['invite' => true, 'manageMembers' => false, 'transferOwnership' => true],
             ],
+            'tab' => 'members',
+            'tabs' => [],
+            'table' => null,
+        ],
+    ],
+    'members page with a table' => fn () => [
+        new MembersPageProps(
+            workspace: new WorkspaceSummary('7', 'Teylabs'),
+            members: [],
+            pagination: new Pagination(1, 1, 25, 0, null, null),
+            invitations: [],
+            metadata: new MembersMetadata('/members', '', null, new MembersLinks(null), new MembersAbilities(false, false, false)),
+            tab: 'invitations',
+            tabs: [new MembersTab('members', 'Members', '/members', 4, false), new MembersTab('invitations', 'Invitations', '/members?tab=invitations', 0, true)],
+            table: new MembersTable(
+                rows: [],
+                columns: [new TableColumn('email', 'Email', sortable: true), new TableColumn('actions', 'Actions', align: 'end', srOnlyLabel: true)],
+                sort: new TableSort('email', 'desc'),
+                search: null,
+                filters: ['role' => 'admin'],
+                tabs: [new MembersTab('members', 'Members', '/members', 4, false)],
+                pagination: new TablePagination(1, 25, 0, null, null, 1),
+                emptyState: 'first-use',
+            ),
+        ),
+        [
+            'workspace' => ['id' => '7', 'name' => 'Teylabs'],
+            'members' => [],
+            'pagination' => ['currentPage' => 1, 'lastPage' => 1, 'perPage' => 25, 'total' => 0, 'previousUrl' => null, 'nextUrl' => null],
+            'invitations' => [],
+            'metadata' => [
+                'refreshUrl' => '/members',
+                'search' => '',
+                'status' => null,
+                'links' => ['invite' => null],
+                'abilities' => ['invite' => false, 'manageMembers' => false, 'transferOwnership' => false],
+            ],
+            'tab' => 'invitations',
+            'tabs' => [
+                ['key' => 'members', 'label' => 'Members', 'url' => '/members', 'count' => 4, 'current' => false],
+                ['key' => 'invitations', 'label' => 'Invitations', 'url' => '/members?tab=invitations', 'count' => 0, 'current' => true],
+            ],
+            'table' => [
+                'rows' => [],
+                'columns' => [
+                    ['key' => 'email', 'label' => 'Email', 'sortable' => true, 'hideable' => false, 'hiddenByDefault' => false, 'align' => null, 'srOnlyLabel' => false],
+                    ['key' => 'actions', 'label' => 'Actions', 'sortable' => false, 'hideable' => false, 'hiddenByDefault' => false, 'align' => 'end', 'srOnlyLabel' => true],
+                ],
+                'sort' => ['column' => 'email', 'direction' => 'desc'],
+                'search' => null,
+                'filters' => ['role' => 'admin'],
+                'tabs' => [['key' => 'members', 'label' => 'Members', 'url' => '/members', 'count' => 4, 'current' => false]],
+                'pagination' => ['page' => 1, 'perPage' => 25, 'total' => 0, 'from' => null, 'to' => null, 'lastPage' => 1],
+                'emptyState' => 'first-use',
+            ],
+        ],
+    ],
+    'row with actions' => fn () => [
+        new MemberRow(
+            id: '9',
+            user: new UserSummary('9', 'Grace Hopper', 'grace@example.com'),
+            status: 'active',
+            isOwner: false,
+            isSelf: false,
+            roles: [],
+            joinedAt: null,
+            hasActions: true,
+            links: new MemberLinks(null, null, null, null, '/members/9', null),
+            actions: [new RowAction('remove', 'Remove', '/members/9', 'delete', true, new RowActionConfirm('Remove Grace?', 'They lose access.', 'Remove member'))],
+        ),
+        [
+            'id' => '9',
+            'user' => ['id' => '9', 'name' => 'Grace Hopper', 'email' => 'grace@example.com', 'avatar' => ['url' => null, 'initials' => 'GH', 'colour' => UserAvatar::colour('9')]],
+            'status' => 'active',
+            'isOwner' => false,
+            'isSelf' => false,
+            'roles' => [],
+            'joinedAt' => null,
+            'hasActions' => true,
+            'links' => ['show' => null, 'updateGrants' => null, 'suspend' => null, 'reinstate' => null, 'remove' => '/members/9', 'transferOwnership' => null],
+            'actions' => [['key' => 'remove', 'label' => 'Remove', 'url' => '/members/9', 'method' => 'delete', 'destructive' => true, 'confirm' => ['title' => 'Remove Grace?', 'body' => 'They lose access.', 'confirmLabel' => 'Remove member']]],
         ],
     ],
     'member page with grants' => fn () => [

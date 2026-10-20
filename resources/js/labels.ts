@@ -28,6 +28,12 @@ export const defaultLabels = {
     'members.manage': 'Manage',
     'members.noRoles': 'No roles',
     'members.loading': 'Loading members…',
+    'members.tabs': 'Members and invitations',
+    'invitations.empty.title': 'No pending invitations',
+    'invitations.empty.body':
+        'Invitations you send appear here until they are accepted.',
+    'invitations.noResults.title': 'No matching invitations',
+    'invitations.noResults.body': 'Try a different email.',
     'pagination.label': 'Pagination',
     'pagination.summary': 'Page {current} of {last} · {total} total',
     'pagination.previous': 'Previous',
