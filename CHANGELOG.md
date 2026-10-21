@@ -2,6 +2,19 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.8.1] - 2026-10-21
+
+### Added
+
+- **Join as the signed-in account.** A new `concierge.invitations.match_email` setting (default `true`, today's behaviour). When it's `false`, someone signed in with a different, verified email can accept an invitation as themselves. Every other check still applies: expiry, revoked, the workspace accepting members, the inviter still authorised, grants unchanged, and already a member. The invitation records who accepted it and whether they used a different email (#127).
+- The accept page offers "Join as {email}" before Switch account, with "This invitation was sent to {email}." Member rows in `MembersIndex` carry `acceptedWithOtherEmail` and `invitedEmail`, so a host can show who accepted.
+- `docs/scenarios.md` adds the join-as cases and updates the accept decision tree.
+
+### Upgrade notes
+
+- Publish and run the new migration (`update_concierge_invitations_with_acceptor`). It adds one boolean column, defaulting to false.
+- Nothing else changes unless you set `concierge.invitations.match_email` to `false`. To offer Join as, pass `otherEmail: $inspection->otherEmail`, `signedInAs` and the `switchAccount` link on the ready state.
+
 ## [0.8.0] - 2026-10-21
 
 ### Added
