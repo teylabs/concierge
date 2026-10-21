@@ -261,3 +261,14 @@ it('reads roles in a fixed number of queries however many members there are', fu
 
     expect($queries())->toBe($many);
 });
+
+it('searches members and invitations without regard to case, on every database', function () {
+    join_as($this->workspace, $this->owner, host_user('viewer'), ['presenter']);
+    issue($this->owner, $this->workspace, 'viewer-invite@example.test', ['presenter']);
+
+    expect(member_names(members_index($this->owner, $this->workspace, ['filter' => ['search' => 'VIEW']])))->toBe(['Viewer'])
+        ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['search' => 'vIeWeR@EXAMPLE']])))->toBe(['Viewer'])
+        ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'VIEWER-INVITE']])['invitations'], 'email'))->toBe(['viewer-invite@example.test'])
+        ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'VIEW']])['tabs'], 'count'))->toBe([1, 1])
+        ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['search' => 'VIEW_']])))->toBe([]);
+});

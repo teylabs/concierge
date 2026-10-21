@@ -197,7 +197,7 @@ final class MembersIndex
             ->where('status', InvitationStatus::Pending->value);
 
         return QueryBuilder::for($query, $request)
-            ->allowedFilters(AllowedFilter::callback('search', fn (Builder $q, $value) => $q->where('email', 'like', '%'.$this->escape((string) $value).'%')))
+            ->allowedFilters(AllowedFilter::callback('search', fn (Builder $q, $value) => $q->whereLike('email', '%'.$this->escape((string) $value).'%', caseSensitive: false)))
             ->allowedSorts(AllowedSort::field('email'), AllowedSort::field('sent', 'last_sent_at'), AllowedSort::field('expires', 'expires_at'))
             ->defaultSort('expires_at', 'id');
     }
@@ -222,7 +222,7 @@ final class MembersIndex
 
         if ($search !== '') {
             $this->searchMembers($members, $search);
-            $invitations->where('email', 'like', '%'.$this->escape($search).'%');
+            $invitations->whereLike('email', '%'.$this->escape($search).'%', caseSensitive: false);
         }
 
         $counts = ['members' => $members->count(), 'invitations' => $invitations->count()];
@@ -387,7 +387,7 @@ final class MembersIndex
         [$users] = $this->tables();
         $like = '%'.$this->escape($value).'%';
 
-        return $query->where(fn (Builder $inner) => $inner->where("{$users}.name", 'like', $like)->orWhere("{$users}.email", 'like', $like));
+        return $query->where(fn (Builder $inner) => $inner->whereLike("{$users}.name", $like, caseSensitive: false)->orWhereLike("{$users}.email", $like, caseSensitive: false));
     }
 
     /** @param  Builder<*>  $query */

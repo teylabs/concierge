@@ -61,6 +61,7 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | Leave app-wide | Refused: a workspace action | `tests/AppMode/LeaveWorkspaceTest.php::is a workspace action: app-wide mode, with no workspaces and Spatie teams off, refuses it` |
 | Transfer ownership | The old owner is demoted | `tests/Feature/OwnershipTest.php::transfers ownership and demotes the previous owner` |
 | Transfer needs recent authentication | Refused without it | `tests/Feature/OwnershipTest.php::requires recent authentication` |
+| Search members and invitations | Case-insensitive on every database (ilike on PostgreSQL); `%` and `_` are literal | `tests/Feature/MembersIndexTest.php::searches members and invitations without regard to case, on every database` |
 | Tenant isolation | Managers of one workspace cannot touch another | `tests/Feature/MembershipManagementTest.php::isolates tenants: managers of one workspace cannot touch another` |
 | Last owner app-wide | Cannot be removed or demoted | `tests/AppMode/OwnershipTest.php::protects the last owner from removal and demotion` |
 | Deactivate and restore | Sessions end; roles are kept | `tests/AppMode/DeactivationTest.php::restores a user with their roles and clears the deactivation record` |
