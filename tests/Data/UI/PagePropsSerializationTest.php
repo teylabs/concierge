@@ -192,6 +192,7 @@ dataset('page props', [
                 'hasActions' => false,
                 'links' => ['resend' => null, 'revoke' => '/invitations/5/revoke'],
                 'actions' => [],
+                'message' => null,
             ]],
             'metadata' => [
                 'refreshUrl' => '/members',
@@ -360,8 +361,9 @@ dataset('page props', [
             'email' => 'grace@example.com',
             'roles' => [['value' => 'member', 'label' => 'Member', 'variant' => 'neutral']],
             'metadata' => ['links' => [
-                'accept' => '/accept', 'login' => null, 'register' => null, 'logout' => '/logout', 'continue' => null,
+                'accept' => '/accept', 'login' => null, 'register' => null, 'logout' => '/logout', 'continue' => null, 'switchAccount' => null, 'cancel' => null,
             ], 'appName' => 'Teylabs'],
+            'signedInAs' => null,
         ],
     ],
     'accept invitation page without a workspace' => fn () => [
@@ -378,8 +380,9 @@ dataset('page props', [
             'email' => null,
             'roles' => [],
             'metadata' => ['links' => [
-                'accept' => null, 'login' => null, 'register' => null, 'logout' => null, 'continue' => '/',
+                'accept' => null, 'login' => null, 'register' => null, 'logout' => null, 'continue' => '/', 'switchAccount' => null, 'cancel' => null,
             ], 'appName' => null],
+            'signedInAs' => null,
         ],
     ],
     'users page' => fn () => [

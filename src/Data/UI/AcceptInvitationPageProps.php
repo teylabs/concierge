@@ -17,5 +17,7 @@ readonly class AcceptInvitationPageProps extends Props
         /** @var list<RoleBadge> */
         public array $roles,
         public AcceptInvitationMetadata $metadata,
+        /** The signed-in user's email, named on the page when it is not the invited one (wrong_account). */
+        public ?string $signedInAs = null,
     ) {}
 }

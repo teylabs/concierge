@@ -21,5 +21,7 @@ readonly class InvitationRow extends Props
         public InvitationLinks $links,
         /** @var list<RowAction> what the viewer may do to this invitation, decided by the grant rules */
         public array $actions = [],
+        /** The inviter's optional note, at most 500 characters. */
+        public ?string $message = null,
     ) {}
 }

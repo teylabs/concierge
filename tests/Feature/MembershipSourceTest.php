@@ -58,5 +58,5 @@ it('rejects an unknown workspace engine, naming the values', function () {
 });
 
 it('ships the concierge engine as the default', function () {
-    expect((require __DIR__.'/../../config/concierge.php')['workspaces'])->toBe(['engine' => 'concierge']);
+    expect((require __DIR__.'/../../config/concierge.php')['workspaces'])->toBe(['engine' => 'concierge', 'no_workspace_url' => '/']);
 });

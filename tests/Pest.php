@@ -33,7 +33,7 @@ uses(ScaffoldTestCase::class)->in('Scaffolding/ConciergePagesScaffoldTest.php');
 uses(ReactScaffoldTestCase::class)->in('Scaffolding/ReactPagesScaffoldTest.php');
 uses(ModulesScaffoldTestCase::class)->in('Scaffolding/ModulesPagesScaffoldTest.php');
 uses(StandaloneTestCase::class, RefreshDatabase::class)->in('Standalone');
-uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify/FortifyDeactivationTest.php', 'Fortify/FortifyRegistrationTest.php', 'Fortify/RememberedInvitationTest.php');
+uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify/FortifyDeactivationTest.php', 'Fortify/FortifyRegistrationTest.php', 'Fortify/RememberedInvitationTest.php', 'Fortify/SwitchAccountTest.php');
 // The app-wide Fortify leg has its own schema, so DatabaseMigrations (see AppModeTestCase).
 uses(FortifyAppWideTestCase::class, DatabaseMigrations::class)->in('Fortify/AppWide');
 uses(KitTestCase::class, RefreshDatabase::class)->in('Kit');

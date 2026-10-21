@@ -26,14 +26,15 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | Unknown token | Refused | `tests/Feature/InvitationLifecycleTest.php::rejects unknown tokens` |
 | Delivery | Queued, encrypted, only with a host URL; stale deliveries dropped | `tests/Feature/DeliveryAndInspectionTest.php::drops stale deliveries after rotation or revocation` |
 | Register through an invitation | The register link remembers the token | `tests/Fortify/RememberedInvitationTest.php::remembers the token from the register link and registers through the unchanged form` |
-| Switch account: signed in as another email | The page says who the invitation is for and who is signed in, with Switch account and Cancel | planned |
-| Switch account: sign in after switching | Sign-out keeps a signed, short-lived handoff; sign-in returns to the invitation | planned |
-| Switch account: register after switching | Registration returns to the invitation | planned |
-| Signed out with an existing account | Sign in, then return to the invitation | planned |
-| Switch account: expired or revoked after the switch | The returned page shows expired or revoked | planned |
-| Switch account: tampered or stale handoff | Ignored; no redirect | planned |
-| Copy link | Rotates the token without email; the old link dies; inviters only | planned |
-| Invitation message | An optional message of up to 500 characters on invite and resend, shown on rows and passed to delivery | planned |
+| Switch account: signed in as another email | The page says who the invitation is for and who is signed in, with Switch account and Cancel | `tests/Browser/accept.spec.ts::names both accounts and switches with POST, or cancels` |
+| Switch account: sign in after switching | Sign-out keeps an encrypted, short-lived handoff; sign-in returns to the invitation once | `tests/Fortify/SwitchAccountTest.php::signs the wrong account out and keeps the invitation through sign-in` |
+| Switch account: register after switching | Registration returns to the invitation; the handoff counts as the register link | `tests/Fortify/SwitchAccountTest.php::returns to the invitation after registering, and the handoff counts as the register link` |
+| Signed out with an existing account | Sign in, then return to the invitation | `tests/Fortify/SwitchAccountTest.php::returns a signed-out user with an account to the invitation after sign-in` |
+| Switch account: expired or revoked after the switch | The returned page shows expired or revoked | `tests/Fortify/SwitchAccountTest.php::shows an invitation revoked or expired after the switch as such` |
+| Switch account: tampered, forged, off-site or lapsed handoff | Ignored; sign-in goes home | `tests/Fortify/SwitchAccountTest.php::ignores a tampered, forged or stale handoff` |
+| Copy link | Rotates the token without email; the old link dies; inviters only | `tests/Feature/InvitationLinkAndMessageTest.php::copies a link by rotating the token: the old link dies and nothing is emailed` |
+| Copy link row action | Offered to inviters on pending invitations, with a confirm | `tests/Feature/InvitationLinkAndMessageTest.php::offers copy link on pending invitations to inviters only, warning that the previous link stops working` |
+| Invitation message | An optional message of up to 500 characters on invite and resend, shown on rows and passed to delivery | `tests/Feature/InvitationLinkAndMessageTest.php::keeps an optional message on invite and resend, on the rows and in delivery` |
 | Change roles of a pending invitation | Without revoke and reissue | planned (part B) |
 | Invite rate limiters | Named limiters for invite, inspect and accept | planned (part B) |
 | Bulk invite | Skips emails with a pending invitation | planned (part B) |
@@ -50,7 +51,8 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | Rank rules app-wide | The same, with teams off | `tests/AppMode/OwnershipTest.php::lets admins grant presenter but never admin or owner` |
 | Protect owner, equals and self | Refused | `tests/Feature/MembershipManagementTest.php::protects the owner, equal ranks and the actor themselves` |
 | Suspend and reinstate | Roles are kept | `tests/Feature/MembershipManagementTest.php::suspends and reinstates without losing roles` |
-| Suspend and reinstate row actions | Offered by rank, with confirms | `tests/Feature/MembersIndexTest.php::swaps suspend for reinstate, shows removed members only when asked, and confirms the destructive actions` |
+| Suspend and reinstate row actions | Offered by rank, with a suspended status for the badge | `tests/Feature/MembersIndexTest.php::swaps suspend for reinstate, shows removed members only when asked, and confirms the destructive actions` |
+| Suspend and reinstate confirms | Each asks first | `tests/Feature/InvitationLinkAndMessageTest.php::confirms suspend and reinstate` |
 | Suspension blocks invitations | A suspended member cannot accept their way back | `tests/Feature/InvitationLifecycleTest.php::never lets an invitation bypass a suspension` |
 | Remove | Ends one workspace only | `tests/Feature/MembershipManagementTest.php::removes membership in one workspace only` |
 | Rejoin after removal | Through a fresh invitation | `tests/Feature/InvitationLifecycleTest.php::lets a removed member rejoin through a fresh invitation` |
@@ -64,8 +66,9 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | Deactivate and restore | Sessions end; roles are kept | `tests/AppMode/DeactivationTest.php::restores a user with their roles and clears the deactivation record` |
 | Deactivate in workspace mode | Memberships and roles untouched | `tests/Feature/UserDeactivationTest.php::deactivates and restores a user in workspace mode, leaving memberships and roles alone` |
 | User deletion app-wide | Last-owner guard; soft delete keeps the account row | `tests/AppMode/DeletionTest.php::lets an owner with a co-owner delete their account, and refuses the last owner` |
-| Workspace unavailable after remove, leave or suspend | The current workspace is repointed and the user lands on the no-workspace route | planned |
-| A workspace that never existed for the user | 404 | planned |
+| Workspace unavailable after remove, leave or suspend | The current workspace is repointed to another active membership, or none | `tests/Feature/WorkspaceContextTest.php::repoints the current workspace after remove, leave or suspend` |
+| Request for an unavailable workspace | Redirect to the no-workspace route; JSON gets a 403 | `tests/Feature/WorkspaceContextTest.php::fails closed in middleware: 404 without context or a membership, the no-workspace route once it is unavailable` |
+| A workspace that never existed for the user | 404 | `tests/Feature/WorkspaceContextTest.php::fails closed in middleware: 404 without context or a membership, the no-workspace route once it is unavailable` |
 | User deletion in workspace mode | Last-owner guard, membership cleanup, soft delete and restore | planned (part B) |
 | Re-invite a deactivated user in workspace mode | Covered end to end | planned (part B) |
 | Pending invitations when a workspace becomes unavailable | Covered end to end | planned (part B) |

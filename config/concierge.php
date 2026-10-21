@@ -33,6 +33,14 @@ return [
          * stays off. Set it here, never from .env.
          */
         'engine' => 'concierge',
+
+        /*
+         * Where a user goes when the workspace they asked for is no longer
+         * available to them (removed, left or suspended): a path on this app,
+         * such as a page to pick another workspace or create one. JSON requests
+         * get a 403, and a workspace they never belonged to stays a 404.
+         */
+        'no_workspace_url' => '/',
     ],
 
     'features' => [

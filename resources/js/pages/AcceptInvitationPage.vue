@@ -22,6 +22,7 @@ const props = defineProps<AcceptInvitationPageProps>();
 const { adapter, t } = useConcierge();
 const accept = useSubmit();
 const logout = useSubmit();
+const switchAccount = useSubmit();
 
 type State = AcceptInvitationPageProps['state'];
 
@@ -55,6 +56,7 @@ const target = computed(
 const params = computed(() => ({
     workspace: target.value ?? '',
     email: props.email ?? '',
+    current: props.signedInAs ?? '',
 }));
 
 const title = computed(() => {
@@ -70,6 +72,9 @@ const title = computed(() => {
 
 const message = computed(() => {
     const keys = [
+        ...(knownState.value === 'wrong_account' && props.signedInAs
+            ? ['accept.wrong_account_as']
+            : []),
         ...(target.value === null
             ? [`accept.generic.${knownState.value}`]
             : []),
@@ -99,9 +104,9 @@ const showRoles = computed(
 );
 
 type Action =
-    | { key: 'accept' | 'logout'; kind: 'submit'; label: string }
+    | { key: 'accept' | 'switch' | 'logout'; kind: 'submit'; label: string }
     | {
-          key: 'login' | 'register' | 'continue';
+          key: 'login' | 'register' | 'continue' | 'cancel';
           kind: 'visit';
           url: string;
           label: string;
@@ -110,8 +115,9 @@ type Action =
 
 /**
  * One ordered action list so the primary action always comes first in both
- * visual and tab order. Sign out is always last, and secondary unless it
- * is the only way forward (wrong_account).
+ * visual and tab order. Switch account leads on wrong_account, with Cancel
+ * after it. Sign out is always last, and secondary unless it is the only way
+ * forward.
  */
 const actions = computed<Action[]>(() => {
     const list: Action[] = [];
@@ -129,9 +135,18 @@ const actions = computed<Action[]>(() => {
         primaryTaken = true;
     }
 
+    if (knownState.value === 'wrong_account' && links.value.switchAccount) {
+        list.push({
+            key: 'switch',
+            kind: 'submit',
+            label: t('accept.switchAccount'),
+        });
+        primaryTaken = true;
+    }
+
     const account: Action[] = [];
     const push = (
-        key: 'login' | 'register' | 'continue',
+        key: 'login' | 'register' | 'continue' | 'cancel',
         url: string | null,
         label: string,
     ) => {
@@ -154,6 +169,9 @@ const actions = computed<Action[]>(() => {
         push('register', links.value.register, t('accept.register'));
     }
     push('continue', links.value.continue, t('accept.continue'));
+    if (knownState.value === 'wrong_account') {
+        push('cancel', links.value.cancel, t('accept.cancel'));
+    }
     list.push(...account);
 
     if (links.value.logout) {
@@ -180,6 +198,15 @@ function acceptInvitation() {
     }
 }
 
+function switchAccounts() {
+    if (links.value.switchAccount) {
+        void switchAccount.submit({
+            method: 'post',
+            url: links.value.switchAccount,
+        });
+    }
+}
+
 function signOut() {
     if (links.value.logout) {
         void logout.submit({ method: 'post', url: links.value.logout });
@@ -203,7 +230,12 @@ function signOut() {
                             {{ title }}
                         </h1>
                         <p
-                            v-if="email && knownState !== 'invalid'"
+                            v-if="
+                                email &&
+                                !['invalid', 'wrong_account'].includes(
+                                    knownState,
+                                )
+                            "
                             class="text-sm text-(--concierge-text-muted)"
                         >
                             {{ t('accept.invitedAs', params) }}
@@ -240,6 +272,13 @@ function signOut() {
                         {{ accept.failure.value }}
                     </Alert>
                     <Alert
+                        v-if="switchAccount.failure.value"
+                        variant="danger"
+                        live="assertive"
+                    >
+                        {{ switchAccount.failure.value }}
+                    </Alert>
+                    <Alert
                         v-if="logout.failure.value"
                         variant="danger"
                         live="assertive"
@@ -258,6 +297,12 @@ function signOut() {
                                 :tier="action.primary ? 'solid' : 'outline'"
                                 :href="action.url"
                                 @click="visit(action.url, $event)"
+                                >{{ action.label }}</Button
+                            >
+                            <Button
+                                v-else-if="action.key === 'switch'"
+                                :busy="switchAccount.pending.value"
+                                @click="switchAccounts"
                                 >{{ action.label }}</Button
                             >
                             <Button

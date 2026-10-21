@@ -266,8 +266,16 @@ final class MembersIndex
         $name = $user->conciergeDisplayName();
 
         $updateGrants !== null && $actions[] = new RowAction('change-role', __('Change role'), $updateGrants, 'put');
-        $suspend !== null && $actions[] = new RowAction('suspend', __('Suspend'), $suspend, 'post');
-        $reinstate !== null && $actions[] = new RowAction('reinstate', __('Reinstate'), $reinstate, 'post');
+        $suspend !== null && $actions[] = new RowAction('suspend', __('Suspend'), $suspend, 'post', false, new RowActionConfirm(
+            __('Suspend :name?', ['name' => $name]),
+            __('They lose access until reinstated. Their roles are kept.'),
+            __('Suspend member'),
+        ));
+        $reinstate !== null && $actions[] = new RowAction('reinstate', __('Reinstate'), $reinstate, 'post', false, new RowActionConfirm(
+            __('Reinstate :name?', ['name' => $name]),
+            __('They get their access and roles back.'),
+            __('Reinstate member'),
+        ));
         $transfer !== null && $actions[] = new RowAction('transfer-ownership', __('Transfer ownership'), $transfer, 'post', true, new RowActionConfirm(
             __('Transfer ownership to :name?', ['name' => $name]),
             __('They become the owner and you become an admin.'),
@@ -298,10 +306,16 @@ final class MembersIndex
         $roles = Roles::sort($invitation->roleNames());
         $manages = $policy->authorizeManagement($actor, $workspace)->allowed();
         $resend = $manages && $policy->authorizeGrant($actor, $workspace, new GrantSet($roles))->allowed() ? $this->url('invitation.resend', $invitation) : null;
+        $copy = $resend !== null ? $this->url('invitation.copyLink', $invitation) : null;
         $revoke = $manages ? $this->url('invitation.revoke', $invitation) : null;
         $actions = [];
 
         $resend !== null && $actions[] = new RowAction('resend', __('Resend'), $resend, 'put');
+        $copy !== null && $actions[] = new RowAction('copy_link', __('Copy link'), $copy, 'post', false, new RowActionConfirm(
+            __('Copy a new link for :email?', ['email' => $invitation->email]),
+            __('The previous link will stop working. No email is sent.'),
+            __('Copy link'),
+        ));
         $revoke !== null && $actions[] = new RowAction('revoke', __('Revoke'), $revoke, 'delete', true, new RowActionConfirm(
             __('Revoke the invitation to :email?', ['email' => $invitation->email]),
             __('The link stops working. You can invite them again later.'),
@@ -319,6 +333,7 @@ final class MembersIndex
             hasActions: $actions !== [],
             links: new InvitationLinks($resend, $revoke),
             actions: $actions,
+            message: $invitation->message,
         );
     }
 

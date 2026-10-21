@@ -127,16 +127,16 @@ it('builds the invitations tab, with its own sorts and the actions rank allows',
         ->and(array_column($props['table']['columns'], 'key'))->toBe(['email', 'roles', 'invitedBy', 'sent', 'expires', 'actions'])
         ->and($props['invitations'][0]['invitedBy'])->toBe('Owner')
         ->and($props['invitations'][0]['status'])->toBe('pending')
-        ->and(action_keys($props['invitations'][0]))->toBe(['resend', 'revoke'])
-        ->and($props['invitations'][0]['actions'][1]['destructive'])->toBeTrue()
-        ->and($props['invitations'][0]['actions'][1]['confirm']['confirmLabel'])->toBe('Revoke invitation')
+        ->and(action_keys($props['invitations'][0]))->toBe(['resend', 'copy_link', 'revoke'])
+        ->and($props['invitations'][0]['actions'][2]['destructive'])->toBeTrue()
+        ->and($props['invitations'][0]['actions'][2]['confirm']['confirmLabel'])->toBe('Revoke invitation')
         ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'sort' => '-email'])['invitations'], 'email'))->toBe(['dee@example.test', 'cy@example.test'])
         ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'dee']])['invitations'], 'email'))->toBe(['dee@example.test']);
 
     // An admin may resend what they could have sent (presenter), but not an admin invitation; both can be revoked.
     $asAdmin = members_index($this->admin, $this->workspace, ['tab' => 'invitations']);
 
-    expect(action_keys($asAdmin['invitations'][0]))->toBe(['resend', 'revoke'])
+    expect(action_keys($asAdmin['invitations'][0]))->toBe(['resend', 'copy_link', 'revoke'])
         ->and(action_keys($asAdmin['invitations'][1]))->toBe(['revoke']);
 
     expect(fn () => members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'sort' => 'name']))->toThrow(InvalidSortQuery::class);

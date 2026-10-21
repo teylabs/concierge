@@ -136,6 +136,7 @@ export const pending: InvitationRow = {
         revoke: '/workspaces/7/invitations/01JAB0000000000000000000PX',
     },
     actions: [],
+    message: null,
 };
 
 export const expired: InvitationRow = {
@@ -152,6 +153,7 @@ export const expired: InvitationRow = {
         revoke: null,
     },
     actions: [],
+    message: null,
 };
 
 const membersBase: MembersPageProps = {
@@ -562,11 +564,14 @@ function acceptFixtures(): Record<
         register: null,
         logout: null,
         continue: null,
+        switchAccount: null,
+        cancel: null,
     };
     const base = {
         workspace,
         email: 'linus@example.com',
         roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
+        signedInAs: null,
     };
     const make = (
         state: AcceptInvitationPageProps['state'],
@@ -589,7 +594,14 @@ function acceptFixtures(): Record<
             register: '/register',
             login: '/login',
         }),
-        wrong_account: make('wrong_account', { logout: '/logout' }),
+        wrong_account: make(
+            'wrong_account',
+            {
+                switchAccount: '/invitations/opaque-token/switch',
+                cancel: '/',
+            },
+            { signedInAs: 'mallory@example.com' },
+        ),
         unverified: make('unverified', {
             continue: '/email/verify',
             logout: '/logout',
@@ -627,11 +639,14 @@ function acceptAppFixtures(): Record<
         register: null,
         logout: null,
         continue: null,
+        switchAccount: null,
+        cancel: null,
     };
     const base = {
         workspace: null,
         email: 'linus@example.com',
         roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
+        signedInAs: null,
     };
 
     return {

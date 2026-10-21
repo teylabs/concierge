@@ -33,6 +33,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int|null $accepted_membership_id
  * @property CarbonInterface|null $revoked_at
  * @property int|null $revoked_by_id
+ * @property string|null $message
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
  * @property-read (Member&Model)|null $inviter

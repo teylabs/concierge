@@ -26,15 +26,16 @@ class InviteMember
 
     public function __construct(protected GrantPolicy $policy) {}
 
-    public function handle(Member $actor, Workspace $workspace, string $email, GrantSet $grants): IssuedInvitation
+    public function handle(Member $actor, Workspace $workspace, string $email, GrantSet $grants, ?string $message = null): IssuedInvitation
     {
         $email = InvitationRules::normalizeEmail($email);
+        $message = InvitationRules::message($message);
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw ValidationException::withMessages(['email' => __('Enter a valid email address.')]);
         }
 
-        return DB::transaction(function () use ($actor, $workspace, $email, $grants) {
+        return DB::transaction(function () use ($actor, $workspace, $email, $grants, $message) {
             $workspace = Locks::workspace($workspace->getKey());
 
             $this->policy->authorizeGrant($actor, $workspace, $grants)->authorize();
@@ -80,6 +81,7 @@ class InviteMember
                 'generation' => 1,
                 'status' => InvitationStatus::Pending,
                 'expires_at' => InvitationTokens::expiry(),
+                'message' => $message,
             ]);
 
             MemberInvited::dispatch($workspace->getKey(), $invitation->getKey(), $actor->getKey());

@@ -98,13 +98,26 @@ test('routes sign in and registration through host links', async ({ page }) => {
     ]);
 });
 
-test('signs out of the wrong account with POST', async ({ page }) => {
+test('names both accounts and switches with POST, or cancels', async ({
+    page,
+}) => {
     await openHarness(page, 'accept', 'wrong_account');
 
-    await expect(page.getByText('different account')).toBeVisible();
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(
+        page.getByText(
+            'This invitation is for linus@example.com. You are signed in as mallory@example.com.',
+        ),
+    ).toBeVisible();
+    await expect(
+        page
+            .getByTestId('accept-actions')
+            .getByRole('link', { name: 'Cancel' }),
+    ).toHaveAttribute('href', '/');
+    await page.getByRole('button', { name: 'Switch account' }).click();
 
-    expect(await requests(page)).toEqual([{ method: 'post', url: '/logout' }]);
+    expect(await requests(page)).toEqual([
+        { method: 'post', url: '/invitations/opaque-token/switch' },
+    ]);
 });
 
 test('reveals nothing about an invalid invitation', async ({ page }) => {
@@ -122,7 +135,7 @@ test.describe('action order', () => {
         ['sign_in_required', ['Sign in', 'Create account']],
         ['register_required', ['Create account', 'Sign in']],
         ['unverified', ['Continue', 'Sign out']],
-        ['wrong_account', ['Sign out']],
+        ['wrong_account', ['Switch account', 'Cancel']],
     ];
 
     for (const [state, expected] of cases) {
