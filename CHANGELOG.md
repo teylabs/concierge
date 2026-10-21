@@ -2,6 +2,28 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.8.0] - 2026-10-21
+
+### Added
+
+- **Switch account on invitations.** Someone signed in as a different email who opens an invitation sees who it is for, with Switch account and Cancel. Switching keeps a signed, short-lived invitation token through sign-out and sign-in (or registration) and returns them to accept it. A signed-out person with an existing account signs in and comes straight back to accept.
+- **No-workspace landing.** A member who is removed, leaves or is suspended is moved to their next active workspace, or to none, and sent to `workspaces.no_workspace_url` instead of an error.
+- `CopyInvitationLink` issues a new invitation link without sending an email, and the previous link stops working. `MembersIndex` offers it as a `copy_link` row action to people who may resend, with the confirmation "The previous link will stop working."
+- Invitations take an optional personal `message` (up to 500 characters), set by `InviteMember` and `ResendInvitation`. It's shown on the invitation, on member-list rows and in the invitation email.
+- Suspend and reinstate row actions ask for confirmation.
+- `docs/scenarios.md`: every membership and invitation scenario with the test that proves it, plus diagrams of accepting an invitation, the membership lifecycle and where a member lands after signing in.
+
+### Fixed
+
+- Searching members and invitations ignores case on every database. It was case-sensitive on PostgreSQL.
+
+### Upgrade notes
+
+- Publish and run the new migration (`update_concierge_invitations_with_message`).
+- Member-only workspace routes now return 404 to someone who was never a member (it was 403). A past member is redirected to `workspaces.no_workspace_url` instead.
+- The `accept.wrong_account` label has new wording. `accept.wrong_account_as`, `accept.switchAccount` and `accept.cancel` are new labels.
+- `MembersIndex` rows include a `copy_link` action when the host maps `invitation.copyLink`.
+
 ## [0.7.6] - 2026-10-20
 
 ### Fixed
