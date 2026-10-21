@@ -57,6 +57,6 @@ class InspectInvitation
             $state = InvitationRules::evaluate($invitation, $user, $this->concierge->membership($user, $workspace), $workspace);
         }
 
-        return new InvitationInspection($state ?? InvitationState::Ready, $invitation);
+        return new InvitationInspection($state ?? InvitationState::Ready, $invitation, $state === null && InvitationRules::otherEmail($invitation, $user));
     }
 }

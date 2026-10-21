@@ -111,6 +111,7 @@ class AcceptInvitation
             'pending_key' => null,
             'accepted_at' => now(),
             'accepted_by_id' => $user->getKey(),
+            'accepted_with_other_email' => InvitationRules::otherEmail($invitation, $user),
             'accepted_membership_id' => $membership->getKey(),
         ])->save();
 
@@ -168,6 +169,7 @@ class AcceptInvitation
                 'pending_key' => null,
                 'accepted_at' => now(),
                 'accepted_by_id' => $user->getKey(),
+                'accepted_with_other_email' => InvitationRules::otherEmail($invitation, $user),
             ])->save();
 
             InvitationAccepted::dispatch(null, $invitation->getKey(), null, (int) $user->getKey(), AcceptanceOutcome::Joined->value);

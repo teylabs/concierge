@@ -23,5 +23,9 @@ readonly class MemberRow extends Props
         public MemberLinks $links,
         /** @var list<RowAction> what the viewer may do to this member, decided by the grant rules */
         public array $actions = [],
+        /** True when this member accepted an invitation sent to another email (invitations.match_email false). */
+        public bool $acceptedWithOtherEmail = false,
+        /** The invited email in that case, so a host can show "accepted by {user.email}". */
+        public ?string $invitedEmail = null,
     ) {}
 }

@@ -42,6 +42,13 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | I34 | Email +alias policy | Opt-in alias folding; distinct by default | planned (part B) |
 | I35 | SSO or social accept | Requires a verified provider email | planned (part B) |
 | I36 | Mixed-case email | Matches end to end | planned (part B) |
+| I37 | Signed in as another email, `invitations.match_email` true (default) | Refused as the wrong account | `tests/Feature/JoinAsCurrentAccountTest.php::refuses another account by default` |
+| I38 | Join as the signed-in account, `match_email` false | A verified other email joins; the invitation records `accepted_by_id` and `accepted_with_other_email` | `tests/Feature/JoinAsCurrentAccountTest.php::lets a verified other account join when match_email is false and records it` |
+| I39 | Join as the signed-in account app-wide | The same, with teams off | `tests/AppMode/JoinAsCurrentAccountTest.php::grants a verified other account when match_email is false and records it` |
+| I40 | Join as: unverified, revoked or expired | Refused; every other check is unchanged | `tests/Feature/JoinAsCurrentAccountTest.php::still refuses an unverified other account and every other check` |
+| I41 | Join as: already a member | The invitation is consumed without grants | `tests/Feature/JoinAsCurrentAccountTest.php::consumes the invitation for an other account that is already a member` |
+| I42 | Join as on the page | "Join as {current email}" beside Switch account, with "This invitation was sent to {email}" | `tests/Browser/accept.spec.ts::offers to join as the signed-in account when the email may differ` |
+| I43 | Accepted by another email on the members index | The member row has `acceptedWithOtherEmail` and `invitedEmail` | `tests/Feature/JoinAsCurrentAccountTest.php::shows who accepted with another email on the member row` |
 
 ## Membership
 
@@ -89,7 +96,11 @@ flowchart TD
     state -- "expired: I14" --> expired["Expired screen"]
     state -- "already accepted: I6" --> done["Already a member"]
     state -- "valid" --> session{"Session"}
-    session -- "signed in as another email: I21" --> wrong["Wrong account screen: Switch account or Cancel"]
+    session -- "signed in as another email" --> match{"invitations.match_email?"}
+    match -- "true, the default: I21, I37" --> wrong["Wrong account screen: Switch account or Cancel"]
+    match -- "false: I38, I42" --> joinas["Join as the signed-in email, or Switch account"]
+    joinas -- "Join as" --> verified
+    joinas -- "Switch account" --> exists
     wrong -- "Switch account, token kept in handoff: I22" --> exists
     wrong -- "Cancel: I21" --> home["Home"]
     session -- "signed out: I24" --> exists{"Account exists?"}
@@ -98,7 +109,7 @@ flowchart TD
     signin --> state
     register --> state
     session -- "signed in as the invited email" --> verified{"Email verified?"}
-    verified -- "no: I7" --> unverified["Unverified screen"]
+    verified -- "no: I7, I40" --> unverified["Unverified screen"]
     verified -- "yes" --> workspace{"Workspace accepting members?"}
     workspace -- "no: I17" --> unavailable["Workspace unavailable screen"]
     workspace -- "yes" --> member{"Suspended in it?"}
@@ -108,6 +119,8 @@ flowchart TD
     inviter -- "grants changed: I16" --> changed["Grants changed screen"]
     inviter -- "yes: I4" --> accepted["Joined with the invited roles"]
 ```
+
+With `match_email` false, an accepting user whose email differs is recorded on the invitation (`accepted_with_other_email`, I38) and shown on the member row (I43).
 
 A handoff that is tampered with, forged or lapsed is ignored, and sign-in goes home (I26). An invitation that expires or is revoked during the switch shows its own screen on return (I25).
 

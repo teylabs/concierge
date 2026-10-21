@@ -181,6 +181,8 @@ export const defaultLabels = {
     'accept.roles': 'You will join with these roles:',
     'accept.ready': 'Accept the invitation to join {workspace}.',
     'accept.accept': 'Accept invitation',
+    'accept.joinAs': 'Join as {current}',
+    'accept.sentTo': 'This invitation was sent to {email}.',
     'accept.sign_in_required':
         'Sign in with {email} to accept this invitation.',
     'accept.register_required':

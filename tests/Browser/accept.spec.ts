@@ -120,6 +120,26 @@ test('names both accounts and switches with POST, or cancels', async ({
     ]);
 });
 
+test('offers to join as the signed-in account when the email may differ', async ({
+    page,
+}) => {
+    await openHarness(page, 'accept', 'join_as');
+
+    await expect(
+        page.getByText('This invitation was sent to linus@example.com.'),
+    ).toBeVisible();
+    await expect(
+        page.getByTestId('accept-actions').locator('a, button'),
+    ).toHaveText(['Join as mallory@example.com', 'Switch account']);
+    await page
+        .getByRole('button', { name: 'Join as mallory@example.com' })
+        .click();
+
+    expect(await requests(page)).toEqual([
+        { method: 'post', url: '/invitations/opaque-token/accept' },
+    ]);
+});
+
 test('reveals nothing about an invalid invitation', async ({ page }) => {
     await openHarness(page, 'accept', 'invalid');
 

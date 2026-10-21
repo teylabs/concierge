@@ -105,6 +105,8 @@ function serialization_member_row_array(): array
             'transferOwnership' => null,
         ],
         'actions' => [],
+        'acceptedWithOtherEmail' => false,
+        'invitedEmail' => null,
     ];
 }
 
@@ -282,6 +284,8 @@ dataset('page props', [
             'hasActions' => true,
             'links' => ['show' => null, 'updateGrants' => null, 'suspend' => null, 'reinstate' => null, 'remove' => '/members/9', 'transferOwnership' => null],
             'actions' => [['key' => 'remove', 'label' => 'Remove', 'url' => '/members/9', 'method' => 'delete', 'destructive' => true, 'confirm' => ['title' => 'Remove Grace?', 'body' => 'They lose access.', 'confirmLabel' => 'Remove member']]],
+            'acceptedWithOtherEmail' => false,
+            'invitedEmail' => null,
         ],
     ],
     'member page with grants' => fn () => [
@@ -364,6 +368,7 @@ dataset('page props', [
                 'accept' => '/accept', 'login' => null, 'register' => null, 'logout' => '/logout', 'continue' => null, 'switchAccount' => null, 'cancel' => null,
             ], 'appName' => 'Teylabs'],
             'signedInAs' => null,
+            'otherEmail' => false,
         ],
     ],
     'accept invitation page without a workspace' => fn () => [
@@ -383,6 +388,7 @@ dataset('page props', [
                 'accept' => null, 'login' => null, 'register' => null, 'logout' => null, 'continue' => '/', 'switchAccount' => null, 'cancel' => null,
             ], 'appName' => null],
             'signedInAs' => null,
+            'otherEmail' => false,
         ],
     ],
     'users page' => fn () => [

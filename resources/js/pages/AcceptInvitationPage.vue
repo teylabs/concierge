@@ -70,7 +70,19 @@ const title = computed(() => {
     );
 });
 
+// invitations.match_email is false: a different, verified account may accept.
+const joinAs = computed(
+    () =>
+        knownState.value === 'ready' &&
+        props.otherEmail &&
+        props.signedInAs !== null,
+);
+
 const message = computed(() => {
+    if (joinAs.value) {
+        return t('accept.sentTo', params.value);
+    }
+
     const keys = [
         ...(knownState.value === 'wrong_account' && props.signedInAs
             ? ['accept.wrong_account_as']
@@ -116,7 +128,7 @@ type Action =
 /**
  * One ordered action list so the primary action always comes first in both
  * visual and tab order. Switch account leads on wrong_account, with Cancel
- * after it. Sign out is always last, and secondary unless it is the only way
+ * after it, and follows Join as when another account may accept. Sign out is always last, and secondary unless it is the only way
  * forward.
  */
 const actions = computed<Action[]>(() => {
@@ -130,12 +142,17 @@ const actions = computed<Action[]>(() => {
             kind: 'submit',
             label: accept.failure.value
                 ? t('actions.retry')
-                : t('accept.accept'),
+                : joinAs.value
+                  ? t('accept.joinAs', params.value)
+                  : t('accept.accept'),
         });
         primaryTaken = true;
     }
 
-    if (knownState.value === 'wrong_account' && links.value.switchAccount) {
+    if (
+        (knownState.value === 'wrong_account' || joinAs.value) &&
+        links.value.switchAccount
+    ) {
         list.push({
             key: 'switch',
             kind: 'submit',
@@ -232,6 +249,7 @@ function signOut() {
                         <p
                             v-if="
                                 email &&
+                                !joinAs &&
                                 !['invalid', 'wrong_account'].includes(
                                     knownState,
                                 )
@@ -301,6 +319,8 @@ function signOut() {
                             >
                             <Button
                                 v-else-if="action.key === 'switch'"
+                                :variant="joinAs ? 'muted' : 'primary'"
+                                :tier="joinAs ? 'outline' : 'solid'"
                                 :busy="switchAccount.pending.value"
                                 @click="switchAccounts"
                                 >{{ action.label }}</Button

@@ -82,6 +82,8 @@ export const owner: MemberRow = {
     hasActions: false,
     links: { ...noLinks, show: '/workspaces/7/members/1' },
     actions: [],
+    acceptedWithOtherEmail: false,
+    invitedEmail: null,
 };
 
 export const admin: MemberRow = {
@@ -102,6 +104,8 @@ export const admin: MemberRow = {
         transferOwnership: '/workspaces/7/members/2/transfer-ownership',
     },
     actions: [],
+    acceptedWithOtherEmail: false,
+    invitedEmail: null,
 };
 
 export const suspended: MemberRow = {
@@ -120,6 +124,8 @@ export const suspended: MemberRow = {
         remove: '/workspaces/7/members/3',
     },
     actions: [],
+    acceptedWithOtherEmail: false,
+    invitedEmail: null,
 };
 
 export const pending: InvitationRow = {
@@ -555,7 +561,7 @@ export const fixtures = {
 };
 
 function acceptFixtures(): Record<
-    AcceptInvitationPageProps['state'],
+    AcceptInvitationPageProps['state'] | 'join_as',
     AcceptInvitationPageProps
 > {
     const noAcceptLinks: AcceptInvitationLinks = {
@@ -572,6 +578,7 @@ function acceptFixtures(): Record<
         email: 'linus@example.com',
         roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
         signedInAs: null,
+        otherEmail: false,
     };
     const make = (
         state: AcceptInvitationPageProps['state'],
@@ -586,6 +593,15 @@ function acceptFixtures(): Record<
 
     return {
         ready: make('ready', { accept: '/invitations/opaque-token/accept' }),
+        /** invitations.match_email is false and a different, verified account is signed in. */
+        join_as: make(
+            'ready',
+            {
+                accept: '/invitations/opaque-token/accept',
+                switchAccount: '/invitations/opaque-token/switch',
+            },
+            { signedInAs: 'mallory@example.com', otherEmail: true },
+        ),
         sign_in_required: make('sign_in_required', {
             login: '/login',
             register: '/register',
@@ -647,6 +663,7 @@ function acceptAppFixtures(): Record<
         email: 'linus@example.com',
         roles: [{ value: 'presenter', label: 'Presenter', variant: 'muted' }],
         signedInAs: null,
+        otherEmail: false,
     };
 
     return {

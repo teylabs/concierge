@@ -31,6 +31,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property CarbonInterface|null $accepted_at
  * @property int|null $accepted_by_id
  * @property int|null $accepted_membership_id
+ * @property bool $accepted_with_other_email
  * @property CarbonInterface|null $revoked_at
  * @property int|null $revoked_by_id
  * @property string|null $message
@@ -58,6 +59,7 @@ class Invitation extends Model
             'expires_at' => 'datetime',
             'last_sent_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'accepted_with_other_email' => 'boolean',
             'revoked_at' => 'datetime',
         ];
     }

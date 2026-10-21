@@ -89,6 +89,10 @@ return [
         'expires_after_days' => 7,
         'resend_cooldown_seconds' => 60,
         'deliver' => true,
+        // True: only the invited email may accept. False: a signed-in user with a
+        // different, verified email may accept ("Join as ..."); the invitation
+        // records who accepted and that the emails differed.
+        'match_email' => true,
     ],
 
     /*
