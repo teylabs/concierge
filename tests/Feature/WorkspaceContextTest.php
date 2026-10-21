@@ -4,10 +4,13 @@ use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tey\Concierge\Actions\LeaveWorkspace;
+use Tey\Concierge\Actions\RemoveMembership;
 use Tey\Concierge\Actions\SuspendMembership;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\CurrentWorkspace;
 use Tey\Concierge\Support\Roles;
 use Workbench\App\Models\User;
 use Workbench\App\Models\UuidWorkspace;
@@ -67,21 +70,56 @@ it('nests contexts and restores each level', function () {
     expect(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBeNull();
 });
 
-it('fails closed in middleware: 404 without context, 403 unless active', function () {
+it('fails closed in middleware: 404 without context or a membership, the no-workspace route once it is unavailable', function () {
     $context = app(WorkspaceContext::class);
     Route::middleware('concierge.member')->get('/workspace-probe', fn () => 'ok');
     Route::middleware(['concierge.member'])->get('/acme-probe', fn () => 'ok');
 
     $this->actingAs($this->alice)->get('/workspace-probe')->assertNotFound();
 
-    $call = fn (User $user) => $context->run($this->acme, fn () => $this->actingAs($user)->get('/acme-probe'));
+    $call = fn (User $user, array $headers = []) => $context->run($this->acme, fn () => $this->actingAs($user)->get('/acme-probe', $headers));
 
     $call($this->alice)->assertOk();
-    $call(host_user('stranger'))->assertForbidden();
+    $call(host_user('stranger'))->assertNotFound();
 
     SuspendMembership::run($this->owner, $this->alice->membershipIn($this->acme));
 
-    $call($this->alice)->assertForbidden();
+    $call($this->alice)->assertRedirect('/');
+    $call($this->alice, ['Accept' => 'application/json'])->assertForbidden();
+
+    config()->set('concierge.workspaces.no_workspace_url', '/no-workspace');
+    $call($this->alice)->assertRedirect('/no-workspace');
+});
+
+it('repoints the current workspace after remove, leave or suspend', function (string $how) {
+    $current = app(CurrentWorkspace::class);
+    $this->actingAs($this->alice);
+    $current->remember($this->acme);
+
+    expect($current->resolve($this->alice)?->is($this->acme))->toBeTrue();
+
+    $membership = $this->alice->membershipIn($this->acme);
+    match ($how) {
+        'remove' => RemoveMembership::run($this->owner, $membership),
+        'leave' => LeaveWorkspace::run($this->alice, $this->acme),
+        'suspend' => SuspendMembership::run($this->owner, $membership),
+    };
+
+    expect($current->resolve($this->alice)?->is($this->globex))->toBeTrue()
+        ->and($current->id())->toBe($this->globex->id);
+
+    RemoveMembership::run($this->globex->owner()->user, $this->alice->membershipIn($this->globex));
+
+    expect($current->resolve($this->alice))->toBeNull()
+        ->and($current->id())->toBeNull();
+})->with(['remove', 'leave', 'suspend']);
+
+it('never remembers a workspace the user is not an active member of', function () {
+    $current = app(CurrentWorkspace::class);
+    $this->actingAs($stranger = host_user('stranger'));
+    $current->remember($this->acme);
+
+    expect($current->resolve($stranger))->toBeNull();
 });
 
 it('refuses unsupported configuration', function () {

@@ -4,6 +4,8 @@ login: string | null,
 register: string | null,
 logout: string | null,
 continue: string | null,
+switchAccount: string | null,
+cancel: string | null,
 };
 export type AcceptInvitationMetadata = {
 links: AcceptInvitationLinks,
@@ -15,6 +17,7 @@ workspace: WorkspaceSummary | null,
 email: string | null,
 roles: RoleBadge[],
 metadata: AcceptInvitationMetadata,
+signedInAs: string | null,
 };
 export type CursorPaginatedDataCollection<TKey, TValue> = CursorPaginator<TKey, TValue>;
 export type CursorPaginator<TKey, TValue> = {
@@ -49,6 +52,7 @@ invitedBy: string | null,
 hasActions: boolean,
 links: InvitationLinks,
 actions: RowAction[],
+message: string | null,
 };
 export type InviteMemberLinks = {
 cancel: string,

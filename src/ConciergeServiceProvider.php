@@ -2,8 +2,10 @@
 
 namespace Tey\Concierge;
 
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
@@ -43,6 +45,7 @@ use Tey\Concierge\Support\ConciergeFrontend;
 use Tey\Concierge\Support\ConciergeMembershipSource;
 use Tey\Concierge\Support\ConfiguredAccountPolicy;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
+use Tey\Concierge\Support\InvitationHandoff;
 use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
@@ -62,7 +65,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $package
             ->name('concierge')
             ->hasConfigFile()
-            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table']);
+            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message']);
 
         // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {
@@ -148,6 +151,9 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
         $this->app->make(Router::class)->aliasMiddleware('concierge.active', EnsureAccountActive::class);
         Event::listen(Validated::class, RefuseDeactivatedUser::class);
+        Event::listen(Login::class, [InvitationHandoff::class, 'resume']);
+        // The handoff encrypts itself, so a host's cookie encryption must leave it alone.
+        EncryptCookies::except(InvitationHandoff::COOKIE);
         UserDeletionGuard::register();
 
         AboutCommand::add('Concierge', fn () => array_filter([

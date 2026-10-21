@@ -30,5 +30,5 @@ it('runs the full lifecycle for a host with exactly one workspace', function () 
     Route::middleware('concierge.member')->get('/dashboard', fn () => 'ok');
 
     $this->actingAs($alice)->get('/dashboard')->assertOk();
-    $this->actingAs(host_user('stranger'))->get('/dashboard')->assertForbidden();
+    $this->actingAs(host_user('stranger'))->get('/dashboard')->assertNotFound();
 });

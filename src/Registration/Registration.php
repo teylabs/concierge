@@ -10,6 +10,7 @@ use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\TenantInvitation;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\InvitationHandoff;
 use Tey\Concierge\Support\InvitationRules;
 
 /**
@@ -71,7 +72,8 @@ final class Registration
 
         $token = $request->hasSession() ? $request->session()->get(self::REMEMBERED_TOKEN) : null;
 
-        return is_string($token) && $token !== '' ? $token : null;
+        // After Switch account the session is new, so the invitation handoff stands in for the link.
+        return is_string($token) && $token !== '' ? $token : InvitationHandoff::pending($request)['token'] ?? null;
     }
 
     public static function forget(?Request $request = null): void

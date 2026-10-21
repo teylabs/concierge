@@ -52,6 +52,7 @@ class DeliverInvitation implements ShouldBeEncrypted, ShouldQueue
             workspaceName: $invitation->isAppWide() ? (string) config('app.name') : $invitation->workspace->conciergeName(),
             url: $url,
             expiresAt: $invitation->expires_at,
+            message: $invitation->message,
         ));
 
         ConciergeModels::invitation()::query()

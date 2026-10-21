@@ -9,12 +9,14 @@ use Tey\Concierge\Concerns\Runnable;
 use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
+use Tey\Concierge\Events\InvitationLinkCopied;
 use Tey\Concierge\Events\InvitationResent;
 use Tey\Concierge\Jobs\DeliverInvitation;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
 use Tey\Concierge\Support\GrantSnapshot;
+use Tey\Concierge\Support\InvitationRules;
 use Tey\Concierge\Support\InvitationTokens;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Support\Locks;
@@ -22,7 +24,8 @@ use Tey\Concierge\Support\ManagedAccount;
 
 /**
  * Rotates the token (old links die), renews expiry and re-captures grants
- * under the resending manager's current authority.
+ * under the resending manager's current authority. A message replaces the
+ * invitation's; null keeps it.
  */
 class ResendInvitation
 {
@@ -30,9 +33,15 @@ class ResendInvitation
 
     public function __construct(protected GrantPolicy $policy, protected AccountPolicy $accountPolicy) {}
 
-    public function handle(Member $actor, Invitation $invitation): IssuedInvitation
+    public function handle(Member $actor, Invitation $invitation, ?string $message = null): IssuedInvitation
     {
-        $mutate = function () use ($actor, $invitation) {
+        return $this->rotate($actor, $invitation, InvitationRules::message($message), deliver: true);
+    }
+
+    /** @internal shared with CopyInvitationLink */
+    public function rotate(Member $actor, Invitation $invitation, ?string $message, bool $deliver): IssuedInvitation
+    {
+        $mutate = function () use ($actor, $invitation, $message, $deliver) {
             $workspace = $invitation->isAppWide() ? null : Locks::workspace($invitation->workspace_id);
             $invitation = ConciergeModels::invitation()::query()->whereKey($invitation->getKey())->lockForUpdate()->firstOrFail();
             $grants = new GrantSet($invitation->roleNames());
@@ -42,12 +51,14 @@ class ResendInvitation
                 : $this->accountPolicy->authorizeGrant($actor, $grants))->authorize();
 
             if (! $invitation->isPending()) {
-                throw ValidationException::withMessages(['invitation' => __('Only pending invitations can be resent.')]);
+                throw ValidationException::withMessages(['invitation' => $deliver
+                    ? __('Only pending invitations can be resent.')
+                    : __('Only pending invitations have a link to copy.')]);
             }
 
             $cooldown = (int) config('concierge.invitations.resend_cooldown_seconds', 60);
 
-            if (($invitation->rotated_at ?? $invitation->created_at)->copy()->addSeconds($cooldown)->isFuture()) {
+            if ($deliver && ($invitation->rotated_at ?? $invitation->created_at)->copy()->addSeconds($cooldown)->isFuture()) {
                 Response::deny(__('Please wait before resending this invitation.'), 'cooldown')->authorize();
             }
 
@@ -64,10 +75,15 @@ class ResendInvitation
                 'grants' => $snapshot['grants'],
                 'grants_fingerprint' => $snapshot['fingerprint'],
                 'inviter_id' => $actor->getKey(),
+                ...($message === null ? [] : ['message' => $message]),
             ])->save();
 
-            InvitationResent::dispatch($workspace?->getKey(), $invitation->getKey(), $invitation->generation, $actor->getKey());
-            DeliverInvitation::queueFor($invitation, $token['token']);
+            if ($deliver) {
+                InvitationResent::dispatch($workspace?->getKey(), $invitation->getKey(), $invitation->generation, $actor->getKey());
+                DeliverInvitation::queueFor($invitation, $token['token']);
+            } else {
+                InvitationLinkCopied::dispatch($workspace?->getKey(), $invitation->getKey(), $invitation->generation, $actor->getKey());
+            }
 
             return new IssuedInvitation($invitation, $token['token']);
         };

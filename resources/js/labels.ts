@@ -186,7 +186,9 @@ export const defaultLabels = {
     'accept.register_required':
         'Create an account for {email} to accept this invitation.',
     'accept.wrong_account':
-        'You are signed in with a different account. Sign out, then sign in as {email}.',
+        'This invitation is for {email}. You are signed in with a different account.',
+    'accept.wrong_account_as':
+        'This invitation is for {email}. You are signed in as {current}.',
     'accept.unverified':
         'Verify your email address before accepting this invitation.',
     'accept.expired':
@@ -217,6 +219,8 @@ export const defaultLabels = {
     'accept.register': 'Create account',
     'accept.signOut': 'Sign out',
     'accept.continue': 'Continue',
+    'accept.switchAccount': 'Switch account',
+    'accept.cancel': 'Cancel',
     'errors.network':
         'We could not reach the server. Check your connection and try again.',
     'errors.server': 'Something went wrong on our side. Please try again.',

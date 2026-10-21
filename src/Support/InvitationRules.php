@@ -2,6 +2,7 @@
 
 namespace Tey\Concierge\Support;
 
+use Illuminate\Validation\ValidationException;
 use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
@@ -55,6 +56,18 @@ final class InvitationRules
             ! GrantSnapshot::stillValid($invitation) => InvitationState::GrantsChanged,
             default => null,
         };
+    }
+
+    /** An inviter's optional message: trimmed, blank as none, at most 500 characters. */
+    public static function message(?string $message): ?string
+    {
+        $message = $message === null ? null : trim($message);
+
+        if ($message !== null && mb_strlen($message) > 500) {
+            throw ValidationException::withMessages(['message' => __('The message may not be longer than 500 characters.')]);
+        }
+
+        return $message === '' ? null : $message;
     }
 
     public static function normalizeEmail(string $email): string

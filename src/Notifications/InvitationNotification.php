@@ -12,6 +12,7 @@ class InvitationNotification extends Notification
         public string $workspaceName,
         public string $url,
         public CarbonInterface $expiresAt,
+        public ?string $message = null,
     ) {}
 
     /** @return list<string> */
@@ -22,10 +23,15 @@ class InvitationNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('You have been invited to join :workspace', ['workspace' => $this->workspaceName]))
-            ->line(__('You have been invited to join :workspace.', ['workspace' => $this->workspaceName]))
-            ->action(__('View invitation'), $this->url)
+            ->line(__('You have been invited to join :workspace.', ['workspace' => $this->workspaceName]));
+
+        if ($this->message !== null) {
+            $mail->line($this->message);
+        }
+
+        return $mail->action(__('View invitation'), $this->url)
             ->line(__('This invitation expires :date.', ['date' => $this->expiresAt->toDayDateTimeString()]));
     }
 }
