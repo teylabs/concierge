@@ -28,7 +28,7 @@ final class InvitationRules
             $invitation->status === InvitationStatus::Accepted => InvitationState::Accepted,
             $invitation->status === InvitationStatus::Revoked => InvitationState::Revoked,
             $invitation->isExpired() => InvitationState::Expired,
-            ! hash_equals($invitation->email, self::normalizeEmail($user->conciergeEmail())) => InvitationState::WrongAccount,
+            ! self::emailAllowed($invitation, $user) => InvitationState::WrongAccount,
             ! $user->conciergeHasVerifiedEmail() => InvitationState::Unverified,
             ! $workspace->conciergeAcceptsMembers() => InvitationState::WorkspaceUnavailable,
             $membership?->status === MembershipStatus::Suspended => InvitationState::Suspended,
@@ -49,7 +49,7 @@ final class InvitationRules
             $invitation->status === InvitationStatus::Accepted => InvitationState::Accepted,
             $invitation->status === InvitationStatus::Revoked => InvitationState::Revoked,
             $invitation->isExpired() => InvitationState::Expired,
-            ! hash_equals($invitation->email, self::normalizeEmail($user->conciergeEmail())) => InvitationState::WrongAccount,
+            ! self::emailAllowed($invitation, $user) => InvitationState::WrongAccount,
             ! $user->conciergeHasVerifiedEmail() => InvitationState::Unverified,
             $account->status === AccountStatus::Deactivated => InvitationState::Suspended,
             ! self::inviterStillAuthorizedAppWide($invitation) => InvitationState::AuthorityLapsed,
@@ -68,6 +68,21 @@ final class InvitationRules
         }
 
         return $message === '' ? null : $message;
+    }
+
+    /** True when the signed-in user's email is not the invited one. */
+    public static function otherEmail(Invitation $invitation, Member $user): bool
+    {
+        return ! hash_equals($invitation->email, self::normalizeEmail($user->conciergeEmail()));
+    }
+
+    /**
+     * With invitations.match_email false, any signed-in account may accept;
+     * its own email must still be verified (checked next).
+     */
+    private static function emailAllowed(Invitation $invitation, Member $user): bool
+    {
+        return ! config('concierge.invitations.match_email', true) || ! self::otherEmail($invitation, $user);
     }
 
     public static function normalizeEmail(string $email): string

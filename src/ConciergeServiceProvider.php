@@ -65,7 +65,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $package
             ->name('concierge')
             ->hasConfigFile()
-            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message']);
+            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor']);
 
         // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {

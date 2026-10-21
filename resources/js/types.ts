@@ -18,6 +18,7 @@ email: string | null,
 roles: RoleBadge[],
 metadata: AcceptInvitationMetadata,
 signedInAs: string | null,
+otherEmail: boolean,
 };
 export type CursorPaginatedDataCollection<TKey, TValue> = CursorPaginator<TKey, TValue>;
 export type CursorPaginator<TKey, TValue> = {
@@ -155,6 +156,8 @@ joinedAt: string | null,
 hasActions: boolean,
 links: MemberLinks,
 actions: RowAction[],
+acceptedWithOtherEmail: boolean,
+invitedEmail: string | null,
 };
 export type MembersAbilities = {
 invite: boolean,

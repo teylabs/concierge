@@ -172,7 +172,7 @@ final class MembersIndex
             ->join($users, "{$users}.{$userKey}", '=', "{$memberships}.user_id")
             ->where("{$memberships}.workspace_id", $workspace->getKey())
             ->select("{$memberships}.*")
-            ->with('user');
+            ->with(['user', 'invitation']);
 
         // Members who have left are listed only when asked for.
         if (($filters['status'] ?? null) === null) {
@@ -264,6 +264,8 @@ final class MembersIndex
             && (int) $membership->user_id !== (int) $actor->getKey());
 
         $name = $user->conciergeDisplayName();
+        $otherEmail = $membership->invitation?->accepted_with_other_email === true
+            && (int) $membership->invitation->accepted_by_id === (int) $membership->user_id;
 
         $updateGrants !== null && $actions[] = new RowAction('change-role', __('Change role'), $updateGrants, 'put');
         $suspend !== null && $actions[] = new RowAction('suspend', __('Suspend'), $suspend, 'post', false, new RowActionConfirm(
@@ -298,6 +300,8 @@ final class MembersIndex
             hasActions: $actions !== [],
             links: new MemberLinks($this->url('member.show', $membership), $updateGrants, $suspend, $reinstate, $remove, $transfer),
             actions: $actions,
+            acceptedWithOtherEmail: $otherEmail,
+            invitedEmail: $otherEmail ? $membership->invitation->email : null,
         );
     }
 

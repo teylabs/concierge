@@ -17,7 +17,12 @@ readonly class AcceptInvitationPageProps extends Props
         /** @var list<RoleBadge> */
         public array $roles,
         public AcceptInvitationMetadata $metadata,
-        /** The signed-in user's email, named on the page when it is not the invited one (wrong_account). */
+        /** The signed-in user's email, named on the page when it is not the invited one (wrong_account, or ready with otherEmail). */
         public ?string $signedInAs = null,
+        /**
+         * Ready for a signed-in account with a different email (InvitationInspection::otherEmail,
+         * invitations.match_email false): the page offers "Join as {signedInAs}" beside Switch account.
+         */
+        public bool $otherEmail = false,
     ) {}
 }
