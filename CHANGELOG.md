@@ -2,6 +2,12 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.8.2] - 2026-10-25
+
+### Changed
+
+- Allows `tey/mod` 0.11, which adds removing and moving generated files on update and fixes discovery stopping production boots without dev dependencies (#130).
+
 ## [0.8.1] - 2026-10-21
 
 ### Added
