@@ -184,6 +184,22 @@ it('runs a callback with a team as the current one, and restores it afterwards',
         ->and($context->current())->toBeNull();
 });
 
+it('enters a team until the matching leave, nesting, and refuses to leave with nothing entered', function () {
+    [$acme, $globex] = [Team::query()->create(['name' => 'Acme']), Team::query()->create(['name' => 'Globex'])];
+    $context = app(WorkspaceContext::class);
+
+    $context->enter($acme);
+    expect($context->current()?->conciergeName())->toBe('Acme');
+    $context->enter($globex);
+    expect($context->current()?->conciergeName())->toBe('Globex');
+    $context->leave();
+    expect($context->current()?->conciergeName())->toBe('Acme');
+    $context->leave();
+
+    expect($context->current())->toBeNull()
+        ->and(fn () => $context->leave())->toThrow(LogicException::class, 'There is no workspace context to leave.');
+});
+
 it("refuses concierge's write actions on a kit team, naming the take-over issue", function (Closure $write) {
     $team = kit_team('Acme', ['olive' => TeamRole::Owner]);
     $olive = User::query()->where('name', 'Olive')->sole();

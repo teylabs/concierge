@@ -43,7 +43,11 @@ it('reports the mode on the facade and binds the app scope as the workspace cont
     $workspace = new Workspace(['name' => 'Acme']);
 
     expect(fn () => app(WorkspaceContext::class)->run($workspace, fn () => null))
-        ->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces; use the app-wide actions (InviteUser, EstablishOwner, ChangeUserRoles, RemoveUser).");
+        ->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces; use the app-wide actions (InviteUser, EstablishOwner, ChangeUserRoles, RemoveUser).")
+        ->and(fn () => app(WorkspaceContext::class)->enter($workspace))
+        ->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces")
+        ->and(fn () => app(WorkspaceContext::class)->leave())
+        ->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces");
 });
 
 it('requires Spatie teams off and refuses tenant invitations at boot', function () {
