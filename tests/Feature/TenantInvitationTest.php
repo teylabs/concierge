@@ -88,14 +88,12 @@ it('is idempotent for the same user and refuses anyone else afterwards', functio
         ->toThrow(tenant_rejected_as(InvitationState::Accepted));
 });
 
-it('rejects the wrong account, an unverified account and an unknown token without writing', function () {
+it('rejects the wrong account and an unknown token without writing', function () {
     $issued = invite_tenant();
     $workspaces = Workspace::query()->count();
 
     expect(fn () => AcceptTenantInvitation::run(host_user('stranger'), $issued->token))
         ->toThrow(tenant_rejected_as(InvitationState::WrongAccount));
-    expect(fn () => AcceptTenantInvitation::run(host_user('peer', verified: false), $issued->token))
-        ->toThrow(tenant_rejected_as(InvitationState::Unverified));
     expect(fn () => AcceptTenantInvitation::run(host_user('peer2'), 'nope'))
         ->toThrow(tenant_rejected_as(InvitationState::Invalid));
 
@@ -401,4 +399,15 @@ it('does not reveal whether an account exists for tokens that cannot be accepted
 
     expect($states)->toBe([InvitationState::Invalid, InvitationState::Revoked, InvitationState::Expired])
         ->and($states)->not->toContain(InvitationState::SignInRequired, InvitationState::RegisterRequired);
+});
+
+it('verifies the invited address when an unverified account accepts: the emailed token proves it', function () {
+    $issued = invite_tenant();
+    $peer = host_user('peer', verified: false);
+
+    $acceptance = AcceptTenantInvitation::run($peer, $issued->token);
+
+    expect($peer->fresh()->email_verified_at)->not->toBeNull()
+        ->and($acceptance->workspace->exists)->toBeTrue()
+        ->and($issued->invitation->fresh()->isPending())->toBeFalse();
 });

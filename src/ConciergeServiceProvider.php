@@ -3,6 +3,7 @@
 namespace Tey\Concierge;
 
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -37,6 +38,7 @@ use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\Kit\KitMembershipSource;
 use Tey\Concierge\Kit\KitWorkspaceContext;
 use Tey\Concierge\Listeners\RefuseDeactivatedUser;
+use Tey\Concierge\Listeners\VerifyEmailOnPasswordReset;
 use Tey\Concierge\LocalAuth\LocalAuthServiceProvider;
 use Tey\Concierge\Registration\RegistrationServiceProvider;
 use Tey\Concierge\Scaffolding\ConciergeScaffolds;
@@ -144,6 +146,9 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        // A reset through the emailed link proves the mailbox (README: Security).
+        Event::listen(PasswordReset::class, VerifyEmailOnPasswordReset::class);
+
         if (! static::membershipEnabled()) {
             return;
         }

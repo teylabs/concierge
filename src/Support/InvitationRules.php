@@ -29,7 +29,7 @@ final class InvitationRules
             $invitation->status === InvitationStatus::Revoked => InvitationState::Revoked,
             $invitation->isExpired() => InvitationState::Expired,
             ! self::emailAllowed($invitation, $user) => InvitationState::WrongAccount,
-            ! $user->conciergeHasVerifiedEmail() => InvitationState::Unverified,
+            ! self::emailProven($invitation, $user) => InvitationState::Unverified,
             ! $workspace->conciergeAcceptsMembers() => InvitationState::WorkspaceUnavailable,
             $membership?->status === MembershipStatus::Suspended => InvitationState::Suspended,
             $membership?->status === MembershipStatus::Active => InvitationState::AlreadyMember,
@@ -50,7 +50,7 @@ final class InvitationRules
             $invitation->status === InvitationStatus::Revoked => InvitationState::Revoked,
             $invitation->isExpired() => InvitationState::Expired,
             ! self::emailAllowed($invitation, $user) => InvitationState::WrongAccount,
-            ! $user->conciergeHasVerifiedEmail() => InvitationState::Unverified,
+            ! self::emailProven($invitation, $user) => InvitationState::Unverified,
             $account->status === AccountStatus::Deactivated => InvitationState::Suspended,
             ! self::inviterStillAuthorizedAppWide($invitation) => InvitationState::AuthorityLapsed,
             ! GrantSnapshot::stillValid($invitation) => InvitationState::GrantsChanged,
@@ -74,6 +74,27 @@ final class InvitationRules
     public static function otherEmail(Invitation $invitation, Member $user): bool
     {
         return ! hash_equals($invitation->email, self::normalizeEmail($user->conciergeEmail()));
+    }
+
+    /**
+     * Whether the account's email is proven for this invitation: verified, or the invited address itself, which the emailed token proves.
+     * An unverified account with another address (invitations.match_email false) still has to verify its own.
+     */
+    public static function emailProven(Invitation $invitation, Member $user): bool
+    {
+        return $user->conciergeHasVerifiedEmail() || ! self::otherEmail($invitation, $user);
+    }
+
+    /**
+     * Marks the account's email verified when it is the invited address: accepting the emailed token proves it. Call inside the accept transaction.
+     * Any other address, or an already verified one, is left as it is.
+     */
+    public static function verifyInvitedEmail(string $invitedEmail, Member $user): void
+    {
+        if ($user->conciergeHasVerifiedEmail() || ! hash_equals($invitedEmail, self::normalizeEmail($user->conciergeEmail()))) {
+            return;
+        }
+        VerifiedEmail::mark($user);
     }
 
     /**

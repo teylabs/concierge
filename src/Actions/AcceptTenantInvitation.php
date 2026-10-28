@@ -63,6 +63,9 @@ class AcceptTenantInvitation
                 throw new InvitationRejected($state);
             }
 
+            // The emailed token proves the invited address, which is this account's (WrongAccount above otherwise).
+            InvitationRules::verifyInvitedEmail($invitation->email, $user);
+
             $provisioner = $this->concierge->workspaceProvisioner()
                 ?? throw new UnsupportedConfiguration("Tenant invitations need Concierge::provisionWorkspaceUsing() to create the workspace; register a provisioner in a service provider's boot(), or set 'features.tenant_invitations' => false in config/concierge.php.");
 
@@ -103,7 +106,6 @@ class AcceptTenantInvitation
             $invitation->isExpired() => InvitationState::Expired,
             $user === null => null,
             ! hash_equals($invitation->email, InvitationRules::normalizeEmail($user->conciergeEmail())) => InvitationState::WrongAccount,
-            ! $user->conciergeHasVerifiedEmail() => InvitationState::Unverified,
             default => null,
         };
     }

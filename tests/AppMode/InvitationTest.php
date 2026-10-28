@@ -104,18 +104,20 @@ it('grants the roles to the account on acceptance and is idempotent', function (
         ->and(fn () => AcceptInvitation::run(host_user('mallory'), $issued->token))->toThrow(app_rejected_as(InvitationState::Accepted));
 });
 
-it('rejects the wrong account, unverified accounts and deactivated accounts without writing', function () {
+it('rejects the wrong account, an unverified other address and deactivated accounts without writing', function () {
     $issued = invite_user($this->owner, 'alice@example.test');
 
     expect(fn () => AcceptInvitation::run(host_user('mallory'), $issued->token))->toThrow(app_rejected_as(InvitationState::WrongAccount));
 
-    $alice = host_user('alice', verified: false);
+    config()->set('concierge.invitations.match_email', false);
+    $other = host_user('other', verified: false);
 
-    expect(fn () => AcceptInvitation::run($alice, $issued->token))->toThrow(app_rejected_as(InvitationState::Unverified))
-        ->and(Account::query()->find($alice->id))->toBeNull()
+    expect(fn () => AcceptInvitation::run($other, $issued->token))->toThrow(app_rejected_as(InvitationState::Unverified))
+        ->and(Account::query()->find($other->id))->toBeNull()
         ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Pending);
+    config()->set('concierge.invitations.match_email', true);
 
-    $alice->forceFill(['email_verified_at' => now()])->save();
+    $alice = host_user('alice');
     Account::query()->create(['user_id' => $alice->id, 'status' => AccountStatus::Deactivated]);
 
     expect(fn () => AcceptInvitation::run($alice, $issued->token))->toThrow(app_rejected_as(InvitationState::Suspended))
@@ -352,4 +354,14 @@ it('guards routes on an active account rather than a workspace', function () {
 
     $this->actingAs($alice)->get('/probe')->assertForbidden();
     expect(DB::table('concierge_accounts')->where('user_id', $stranger->id)->exists())->toBeFalse();
+});
+
+it('verifies the invited address when an unverified account accepts an app-wide invitation', function () {
+    $issued = invite_user($this->owner, 'alice@example.test');
+    $alice = host_user('alice', verified: false);
+
+    AcceptInvitation::run($alice, $issued->token);
+
+    expect($alice->fresh()->email_verified_at)->not->toBeNull()
+        ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Accepted);
 });
