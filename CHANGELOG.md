@@ -2,6 +2,14 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.8.3] - 2026-10-28
+
+### Fixed
+
+- An invited sign-up through Fortify's registration is created with its email verified when a remembered pending invitation (member or tenant) matches the address, so the invitee gets one email, not a second verification email.
+- Accepting an invitation as a signed-in, unverified account whose email is the invited address verifies it inside the accept transaction (member, app-wide and tenant invitations) and reports it Ready. A different address is still Unverified.
+- A successful password reset through the emailed signed link verifies the account, since it proves control of the mailbox. This covers the first owner created by `concierge:owners`. See README, Security (#134).
+
 ## [0.8.2] - 2026-10-25
 
 ### Changed
