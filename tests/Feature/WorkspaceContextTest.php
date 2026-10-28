@@ -70,6 +70,39 @@ it('nests contexts and restores each level', function () {
     expect(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBeNull();
 });
 
+it('enters a workspace until the matching leave, across calls, and restores each level', function () {
+    $context = app(WorkspaceContext::class);
+    $registrar = app(PermissionRegistrar::class);
+    $registrar->setPermissionsTeamId($this->globex->id);
+    $this->actingAs($this->alice);
+    $this->alice->load('roles');
+
+    $context->enter($this->acme);
+    expect($context->current()->is($this->acme))->toBeTrue()
+        ->and($registrar->getPermissionsTeamId())->toBe($this->acme->id)
+        ->and($this->alice->relationLoaded('roles'))->toBeFalse()
+        ->and($this->alice->hasRole('admin'))->toBeTrue();
+
+    $context->run($this->globex, fn () => expect($context->current()->is($this->globex))->toBeTrue());
+    expect($context->current()->is($this->acme))->toBeTrue()
+        ->and($registrar->getPermissionsTeamId())->toBe($this->acme->id);
+
+    $context->leave();
+    expect($context->current())->toBeNull()
+        ->and($registrar->getPermissionsTeamId())->toBe($this->globex->id)
+        ->and($this->alice->relationLoaded('roles'))->toBeFalse()
+        ->and($this->alice->hasRole('presenter'))->toBeTrue()
+        ->and($this->alice->hasRole('admin'))->toBeFalse();
+});
+
+it('refuses to leave with nothing entered, leaving the team as it was', function () {
+    $context = app(WorkspaceContext::class);
+    app(PermissionRegistrar::class)->setPermissionsTeamId($this->globex->id);
+
+    expect(fn () => $context->leave())->toThrow(LogicException::class, 'There is no workspace context to leave.')
+        ->and(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe($this->globex->id);
+});
+
 it('fails closed in middleware: 404 without context or a membership, the no-workspace route once it is unavailable', function () {
     $context = app(WorkspaceContext::class);
     Route::middleware('concierge.member')->get('/workspace-probe', fn () => 'ok');

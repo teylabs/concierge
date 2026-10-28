@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Support\ConciergeModels;
@@ -16,8 +17,8 @@ use Tey\Concierge\Support\ConciergeModels;
  * user's current_team_id. It never checks membership; the concierge.member
  * middleware does that through the membership source.
  *
- * Spatie teams is off under the kit engine, so run() only sets the current
- * workspace for the callback.
+ * Spatie teams is off under the kit engine, so run() and enter() only set the
+ * current workspace.
  */
 class KitWorkspaceContext implements WorkspaceContext
 {
@@ -26,6 +27,9 @@ class KitWorkspaceContext implements WorkspaceContext
     protected string $currentTeamColumn = 'current_team_id';
 
     protected ?Workspace $running = null;
+
+    /** @var list<?Workspace> */
+    protected array $entered = [];
 
     public function __construct(
         protected Container $app,
@@ -39,14 +43,28 @@ class KitWorkspaceContext implements WorkspaceContext
 
     public function run(Workspace $workspace, Closure $callback, iterable $refresh = []): mixed
     {
-        $previous = $this->running;
-        $this->running = $workspace;
+        $this->enter($workspace, $refresh);
 
         try {
             return $callback();
         } finally {
-            $this->running = $previous;
+            $this->leave();
         }
+    }
+
+    public function enter(Workspace $workspace, iterable $refresh = []): void
+    {
+        $this->entered[] = $this->running;
+        $this->running = $workspace;
+    }
+
+    public function leave(): void
+    {
+        if ($this->entered === []) {
+            throw new LogicException('There is no workspace context to leave.');
+        }
+
+        $this->running = array_pop($this->entered);
     }
 
     protected function fromRoute(): ?Workspace

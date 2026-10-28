@@ -26,7 +26,22 @@ class AppScope implements WorkspaceContext
 
     public function run(Workspace $workspace, Closure $callback, iterable $refresh = []): mixed
     {
-        throw new UnsupportedConfiguration(
+        throw $this->noWorkspaces();
+    }
+
+    public function enter(Workspace $workspace, iterable $refresh = []): void
+    {
+        throw $this->noWorkspaces();
+    }
+
+    public function leave(): void
+    {
+        throw $this->noWorkspaces();
+    }
+
+    private function noWorkspaces(): UnsupportedConfiguration
+    {
+        return new UnsupportedConfiguration(
             "concierge.mode = 'app' has no workspaces; use the app-wide actions (InviteUser, EstablishOwner, ChangeUserRoles, RemoveUser)."
         );
     }
