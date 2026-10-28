@@ -30,6 +30,11 @@ class ChangeMemberRoles
                 Response::deny(__('That person is no longer a member.'), 'not_member')->authorize();
             }
 
+            // A guest reaches only their scoped records; invite them to the workspace to give them roles here.
+            if ($this->concierge->isScopedGuest($membership)) {
+                Response::deny(__('A guest has no workspace roles; invite them to the workspace instead.'), 'guest')->authorize();
+            }
+
             $user = $membership->user;
 
             $this->concierge->context()->run(

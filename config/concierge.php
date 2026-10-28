@@ -3,6 +3,7 @@
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
+use Tey\Concierge\Models\MembershipScope;
 use Tey\Concierge\Models\Ownership;
 use Tey\Concierge\Models\TenantInvitation;
 
@@ -59,6 +60,7 @@ return [
         'user' => null,
         'workspace' => null,
         'membership' => Membership::class,
+        'membership_scope' => MembershipScope::class,
         'ownership' => Ownership::class,
         'invitation' => Invitation::class,
         'tenant_invitation' => TenantInvitation::class,
@@ -72,6 +74,11 @@ return [
      * NULL in workspace mode). In workspace mode assignments are scoped to a
      * workspace; in app mode they apply to the whole app and the owner role is
      * the top role, held by one or several owners.
+     *
+     * A role with 'scoped' => true is only for scoped invitations (one record in
+     * a workspace): it is never offered or granted workspace-wide, and should
+     * carry no permissions. For example, last in the list:
+     * 'guest' => ['label' => 'Guest', 'grantable_by' => ['owner', 'admin'], 'scoped' => true],
      */
     'roles' => [
         'owner' => ['label' => 'Owner', 'grantable_by' => []],

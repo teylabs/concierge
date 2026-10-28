@@ -29,12 +29,14 @@ use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\MembershipSource;
 use Tey\Concierge\Contracts\RecentAuthentication;
+use Tey\Concierge\Contracts\ScopedAccess;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Http\Middleware\EnsureAccountActive;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
+use Tey\Concierge\Http\Middleware\RequireScopedAccess;
 use Tey\Concierge\Kit\KitMembershipSource;
 use Tey\Concierge\Kit\KitWorkspaceContext;
 use Tey\Concierge\Listeners\RefuseDeactivatedUser;
@@ -48,6 +50,7 @@ use Tey\Concierge\Support\ConciergeMembershipSource;
 use Tey\Concierge\Support\ConfiguredAccountPolicy;
 use Tey\Concierge\Support\ConfiguredGrantPolicy;
 use Tey\Concierge\Support\InvitationHandoff;
+use Tey\Concierge\Support\MembershipScopedAccess;
 use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
@@ -67,7 +70,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $package
             ->name('concierge')
             ->hasConfigFile()
-            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor']);
+            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope']);
 
         // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {
@@ -122,6 +125,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $this->app->singleton(AppScope::class);
         $this->registerWorkspaceEngine($mode);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
+        $this->app->bindIf(ScopedAccess::class, MembershipScopedAccess::class);
         $this->app->bindIf(AccountPolicy::class, ConfiguredAccountPolicy::class);
         $this->app->bindIf(RecentAuthentication::class, SessionRecentAuthentication::class);
         $this->app->bindIf(AccountGuard::class, OpenAccountGuard::class);
@@ -155,6 +159,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
         $this->app->make(Router::class)->aliasMiddleware('concierge.member', RequireActiveMembership::class);
         $this->app->make(Router::class)->aliasMiddleware('concierge.active', EnsureAccountActive::class);
+        $this->app->make(Router::class)->aliasMiddleware('concierge.scoped', RequireScopedAccess::class);
         Event::listen(Validated::class, RefuseDeactivatedUser::class);
         Event::listen(Login::class, [InvitationHandoff::class, 'resume']);
         // The handoff encrypts itself, so a host's cookie encryption must leave it alone.

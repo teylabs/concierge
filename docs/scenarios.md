@@ -81,6 +81,27 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | M25 | Re-invite a deactivated user in workspace mode | Covered end to end | planned (part B) |
 | M26 | Pending invitations when a workspace becomes unavailable | Covered end to end | planned (part B) |
 
+## Scoped invitations
+
+| ID | Scenario | Desired behaviour | Test |
+| --- | --- | --- | --- |
+| S1 | Invite to one record | A scoped invitation names a record (morph alias and id); it needs scoped roles, and the record is in its grants fingerprint, so another record is another pending invitation | `tests/Feature/ScopedInvitationTest.php::stores the scope with a morph map alias and puts it in the grants fingerprint` |
+| S2 | Scoped roles | A role flagged `scoped` is never offered or granted workspace-wide, and only managers issue scoped invitations | `tests/Feature/ScopedInvitationTest.php::needs scoped roles for a scoped invitation and never grants them workspace-wide` |
+| S3 | Accept a scoped invitation | A guest membership with only the scoped role; access to that record alone, nothing workspace-wide, nothing in another workspace | `tests/Feature/ScopedInvitationTest.php::lets a scoped guest reach only the scoped record and nothing workspace-wide` |
+| S4 | Routes | `concierge.scoped:{param}` admits only the scoped record; `concierge.member` refuses guests with a 403 | `tests/Feature/ScopedInvitationTest.php::guards routes: concierge.scoped admits only the scoped record, concierge.member refuses guests` |
+| S5 | Second record, or a full member | A second scoped invitation adds a scope to the same guest membership; a full member gains the scope and stays a full member | `tests/Feature/ScopedInvitationTest.php::adds a second scope to the same guest membership, and a scope to a full member without making them a guest` |
+| S6 | Guest invited to the workspace | Accepting an unscoped invitation makes a guest a full member; their scopes stay | `tests/Feature/ScopedInvitationTest.php::makes a guest a full member when they accept an unscoped invitation, keeping their scopes` |
+| S7 | Revoke a scope | Immediate; pending invitations to that record for the member's email are revoked; the guest membership goes with its last scope; the account stays | `tests/Feature/ScopedInvitationTest.php::revokes a scope at once, killing pending links and removing the guest membership with its last scope` |
+| S8 | Revoke a full member's scope | The membership and roles stay; only managers revoke | `tests/Feature/ScopedInvitationTest.php::keeps a full member when their last scope is revoked, and only managers revoke` |
+| S9 | Remove a guest | Their scopes are revoked with the membership | `tests/Feature/ScopedInvitationTest.php::revokes the scopes of a removed guest` |
+| S10 | Ownership and roles | Never transferred to a guest; a guest's roles cannot be changed | `tests/Feature/ScopedInvitationTest.php::never transfers ownership to a scoped guest or changes their roles` |
+| S11 | Member lists | Guests are left out of the members index and MembershipSource::members() unless asked for | `tests/Feature/ScopedInvitationTest.php::leaves scoped guests out of member lists by default and lists them on request` |
+| S12 | Resend and expiry | The scope travels with the invitation through resend, expiry and reissue | `tests/Feature/ScopedInvitationTest.php::keeps the scope through resend and expiry, and offers resend on a scoped invitation` |
+| S13 | App-wide mode | Scopes are refused; nothing is scoped | `tests/AppMode/ScopedInvitationTest.php::refuses scoped invitations and allows no scoped access in app-wide mode` |
+| S14 | Full member with a scope | Still passes `concierge.member`; a guest-only member gets a 403 | `tests/Feature/ScopedInvitationTest.php::lets a full member who also holds a scope through concierge.member, and refuses a guest-only member` |
+| S15 | Record gone | Accepting refuses with `scope_missing` when the record was deleted or its type no longer resolves; nothing is written and the invitation stays pending | `tests/Feature/ScopedInvitationTest.php::refuses a scoped invitation whose record was deleted or whose type no longer resolves, writing nothing` |
+| S16 | Tampered record | A record swapped on the invitation fails the fingerprint at acceptance | `tests/Feature/ScopedInvitationTest.php::refuses a tampered scope at acceptance: the record is in the fingerprint` |
+
 ## Diagrams
 
 Every branch is labelled with the scenario row it stands for.

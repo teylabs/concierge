@@ -4,10 +4,13 @@ namespace Tey\Concierge;
 
 use Closure;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use SensitiveParameter;
 use Tey\Concierge\Contracts\BatchesMembershipReads;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
+use Tey\Concierge\Contracts\ScopedAccess;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Data\UI\UserAvatar;
@@ -16,11 +19,13 @@ use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
+use Tey\Concierge\Models\MembershipScope;
 use Tey\Concierge\Models\TenantInvitation;
 use Tey\Concierge\Support\AppScope;
 use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\MembershipDirectory;
 use Tey\Concierge\Support\Roles;
+use Tey\Concierge\Support\Scope;
 
 class Concierge
 {
@@ -128,6 +133,58 @@ class Concierge
             fn () => Roles::sort($user->roles()->pluck('name')->all()),
             [$user],
         );
+    }
+
+    /**
+     * Whether the membership is a scoped guest: it joined through a scoped
+     * invitation and reaches only the records it is scoped to. Full members
+     * who also hold scopes are not guests.
+     */
+    public function isScopedGuest(Membership $membership): bool
+    {
+        return $membership->guest === true;
+    }
+
+    /**
+     * The membership's active scopes, oldest first.
+     *
+     * @return Collection<int, MembershipScope>
+     */
+    public function scopes(Membership $membership): Collection
+    {
+        return $membership->scopes()->whereNull('revoked_at')->orderBy('id')->get();
+    }
+
+    /** The membership's active scope for exactly this record, if any. */
+    public function scopeFor(Membership $membership, Model|Scope $record): ?MembershipScope
+    {
+        $scope = Scope::of($record);
+
+        return $membership->scopes()
+            ->whereNull('revoked_at')
+            ->where('scope_type', $scope->type)
+            ->where('scope_id', $scope->id)
+            ->first();
+    }
+
+    public function scopedTo(Membership $membership, Model|Scope $record): bool
+    {
+        return $this->scopeFor($membership, $record) !== null;
+    }
+
+    /**
+     * The bound ScopedAccess, for code outside HTTP such as an MCP tool or a
+     * job: allowsScoped($user, $record) answers the same question as the
+     * concierge.scoped middleware.
+     */
+    public function scopedAccess(): ScopedAccess
+    {
+        return app(ScopedAccess::class);
+    }
+
+    public function allowsScoped(Member $user, Model $record, ?Workspace $workspace = null): bool
+    {
+        return $this->scopedAccess()->allows($user, $record, $workspace);
     }
 
     /**

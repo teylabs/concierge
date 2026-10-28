@@ -19,6 +19,22 @@ final class Roles
         return array_keys(config('concierge.roles', []));
     }
 
+    /**
+     * Roles flagged 'scoped' => true: only for scoped invitations, never
+     * granted workspace-wide.
+     *
+     * @return list<string>
+     */
+    public static function scoped(): array
+    {
+        return array_values(array_filter(self::configured(), self::isScoped(...)));
+    }
+
+    public static function isScoped(string $role): bool
+    {
+        return config("concierge.roles.{$role}.scoped", false) === true;
+    }
+
     public static function owner(): string
     {
         return config('concierge.owner_role', 'owner');

@@ -12,10 +12,26 @@ use Tey\Concierge\Models\Membership;
 
 /**
  * Concierge's own engine: concierge_memberships and concierge_ownerships, with
- * roles from Spatie assignments scoped to the workspace.
+ * roles from Spatie assignments scoped to the workspace. members() leaves
+ * scoped guests out; member() and workspacesOf() include them, since a guest
+ * still needs their workspace to reach their records.
  */
 class ConciergeMembershipSource implements MembershipSource
 {
+    protected bool $includeScopedGuests = false;
+
+    /**
+     * members() leaves scoped guests out unless asked: a copy that lists them
+     * too, for a page that manages guests.
+     */
+    public function includingScopedGuests(): static
+    {
+        $source = clone $this;
+        $source->includeScopedGuests = true;
+
+        return $source;
+    }
+
     public function managesMembers(Workspace $workspace): bool
     {
         return true;
@@ -23,7 +39,10 @@ class ConciergeMembershipSource implements MembershipSource
 
     public function members(Workspace $workspace): array
     {
-        return $this->describe($this->active()->where('workspace_id', $workspace->getKey())->get());
+        return $this->describe($this->active()
+            ->where('workspace_id', $workspace->getKey())
+            ->when(! $this->includeScopedGuests, fn (Builder $query) => $query->where('guest', false))
+            ->get());
     }
 
     public function member(Workspace $workspace, Member $user): ?WorkspaceMember

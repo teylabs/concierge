@@ -19,6 +19,8 @@ use Tey\Concierge\Support\CurrentWorkspace;
  * no-workspace route; a JSON request gets a 403. The kit engine cannot tell a
  * past member from a stranger, so anything but a member is a 403 there. App-wide
  * mode: there is no workspace to miss, so only the account must be active.
+ * A scoped guest is an active member but is refused with a 403: their routes
+ * use concierge.scoped instead.
  */
 class RequireActiveMembership
 {
@@ -60,6 +62,9 @@ class RequireActiveMembership
 
             return redirect((string) config('concierge.workspaces.no_workspace_url', '/'));
         }
+
+        // A scoped guest reaches only their records, through concierge.scoped.
+        abort_if($this->concierge->isScopedGuest($membership), 403);
 
         return $next($request);
     }

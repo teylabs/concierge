@@ -51,6 +51,10 @@ class TransferOwnership
                 Response::deny(__('Ownership can only pass to another active, verified member.'), 'recipient_invalid')->authorize();
             }
 
+            if ($this->concierge->isScopedGuest($recipient)) {
+                Response::deny(__('Ownership cannot pass to a guest.'), 'recipient_guest')->authorize();
+            }
+
             $ownership->forceFill([
                 'membership_id' => $recipient->getKey(),
                 'previous_membership_id' => $current->getKey(),

@@ -132,7 +132,7 @@ it('keeps the workspace-mode schema as it was before app-wide mode', function ()
     ];
 
     expect($shape('concierge_memberships'))->toBe([
-        'columns' => ['id:not null', 'workspace_id:not null', 'user_id:not null', 'status:not null', 'invitation_id:null', 'joined_at:null', 'suspended_at:null', 'suspended_by_id:null', 'suspension_reason:null', 'removed_at:null', 'removed_by_id:null', 'created_at:null', 'updated_at:null'],
+        'columns' => ['id:not null', 'workspace_id:not null', 'user_id:not null', 'status:not null', 'invitation_id:null', 'joined_at:null', 'suspended_at:null', 'suspended_by_id:null', 'suspension_reason:null', 'removed_at:null', 'removed_by_id:null', 'created_at:null', 'updated_at:null', 'guest:not null'],
         'indexes' => ['id unique', 'user_id,status', 'workspace_id,id unique', 'workspace_id,user_id unique'],
         'foreign' => ['invitation_id -> concierge_invitations(id) set null', 'removed_by_id -> users(id) set null', 'suspended_by_id -> users(id) set null', 'user_id -> users(id) restrict', 'workspace_id -> workspaces(id) restrict'],
     ])->and($shape('concierge_ownerships'))->toBe([
@@ -140,8 +140,8 @@ it('keeps the workspace-mode schema as it was before app-wide mode', function ()
         'indexes' => ['membership_id unique', 'workspace_id unique'],
         'foreign' => ['previous_membership_id -> concierge_memberships(id) set null', 'workspace_id -> workspaces(id) restrict', 'workspace_id,membership_id -> concierge_memberships(workspace_id,id) restrict'],
     ])->and($shape('concierge_invitations'))->toBe([
-        'columns' => ['id:not null', 'public_id:not null', 'workspace_id:not null', 'email:not null', 'pending_key:null', 'grants:not null', 'grants_fingerprint:not null', 'inviter_id:null', 'token_hash:not null', 'generation:not null', 'rotated_at:null', 'status:not null', 'expires_at:not null', 'last_sent_at:null', 'send_count:not null', 'accepted_at:null', 'accepted_by_id:null', 'accepted_membership_id:null', 'revoked_at:null', 'revoked_by_id:null', 'created_at:null', 'updated_at:null', 'accepted_with_other_email:not null', 'message:null'],
-        'indexes' => ['id unique', 'public_id unique', 'token_hash unique', 'workspace_id,email', 'workspace_id,pending_key unique', 'workspace_id,status'],
+        'columns' => ['id:not null', 'public_id:not null', 'workspace_id:not null', 'email:not null', 'pending_key:null', 'grants:not null', 'grants_fingerprint:not null', 'inviter_id:null', 'token_hash:not null', 'generation:not null', 'rotated_at:null', 'status:not null', 'expires_at:not null', 'last_sent_at:null', 'send_count:not null', 'accepted_at:null', 'accepted_by_id:null', 'accepted_membership_id:null', 'revoked_at:null', 'revoked_by_id:null', 'created_at:null', 'updated_at:null', 'accepted_with_other_email:not null', 'message:null', 'scope_type:null', 'scope_id:null'],
+        'indexes' => ['id unique', 'public_id unique', 'token_hash unique', 'workspace_id,email', 'workspace_id,pending_key unique', 'workspace_id,scope_type,scope_id', 'workspace_id,status'],
         'foreign' => ['accepted_by_id -> users(id) set null', 'accepted_membership_id -> concierge_memberships(id) set null', 'inviter_id -> users(id) set null', 'revoked_by_id -> users(id) set null', 'workspace_id -> workspaces(id) restrict'],
     ])->and(Schema::hasTable('concierge_accounts'))->toBeTrue();
 });

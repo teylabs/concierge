@@ -2,6 +2,9 @@
 
 namespace Tey\Concierge\Actions;
 
+use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
 use SensitiveParameter;
 use Tey\Concierge\Concerns\Runnable;
@@ -13,6 +16,7 @@ use Tey\Concierge\Enums\InvitationState;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Events\InvitationAccepted;
+use Tey\Concierge\Events\ScopeAccepted;
 use Tey\Concierge\Exceptions\InvitationRejected;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
@@ -22,11 +26,19 @@ use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\InvitationRules;
 use Tey\Concierge\Support\Locks;
 use Tey\Concierge\Support\Roles;
+use Tey\Concierge\Support\Scope;
 
 /**
  * Authoritative acceptance. A rejection throws and writes nothing. An
  * invitation with no workspace_id is app-wide and grants roles to the user's
  * account instead of creating a membership.
+ *
+ * A scoped invitation adds its record to the user's membership: an active
+ * member (full or guest) keeps their membership and gains the scope; anyone
+ * else gets a guest membership holding only the invitation's scoped roles.
+ * An unscoped invitation accepted by a guest makes them a full member. A
+ * scoped invitation whose record no longer exists (deleted, or its type no
+ * longer resolves) is refused with `scope_missing` and writes nothing.
  */
 class AcceptInvitation
 {
@@ -74,10 +86,36 @@ class AcceptInvitation
                 throw new InvitationRejected($state);
             }
 
+            // The record may have been deleted since the invitation was sent. Refused before
+            // anything is written; the invitation stays pending for a manager to revoke.
+            if ($invitation->isScoped() && ! $this->scopeExists($invitation->scope())) {
+                Response::deny(__('What this invitation was for no longer exists.'), 'scope_missing')->authorize();
+            }
+
             InvitationRules::verifyInvitedEmail($invitation->email, $user);
 
             if ($state === InvitationState::AlreadyMember) {
                 return $this->consume($invitation, $membership, $user, AcceptanceOutcome::AlreadyMember);
+            }
+
+            $scope = $invitation->scope();
+
+            if ($scope !== null && $membership?->isActive()) {
+                // Full members keep their roles; a guest adds the invitation's scoped roles to theirs.
+                if ($membership->guest) {
+                    $this->concierge->context()->run(
+                        $workspace,
+                        fn () => $user->syncRoles(Roles::resolve(array_values(array_unique([
+                            ...$user->roles()->pluck('name')->map(fn ($name) => (string) $name)->all(),
+                            ...$invitation->roleNames(),
+                        ])))),
+                        [$user],
+                    );
+                }
+
+                $this->grantScope($membership, $invitation, $scope);
+
+                return $this->consume($invitation, $membership, $user, AcceptanceOutcome::Joined);
             }
 
             $membership ??= ConciergeModels::membership()::make([
@@ -87,8 +125,9 @@ class AcceptInvitation
 
             $membership->forceFill([
                 'status' => MembershipStatus::Active,
+                'guest' => $scope !== null,
                 'invitation_id' => $invitation->getKey(),
-                'joined_at' => now(),
+                'joined_at' => $membership->isActive() ? $membership->joined_at : now(),
                 'suspended_at' => null,
                 'suspended_by_id' => null,
                 'suspension_reason' => null,
@@ -102,8 +141,47 @@ class AcceptInvitation
                 [$user],
             );
 
+            if ($scope !== null) {
+                $this->grantScope($membership, $invitation, $scope);
+            }
+
             return $this->consume($invitation, $membership, $user, AcceptanceOutcome::Joined);
         });
+    }
+
+    /** Whether the scoped record still exists: its type resolves to a model and a row has its key. */
+    protected function scopeExists(Scope $scope): bool
+    {
+        $class = Relation::getMorphedModel($scope->type) ?? $scope->type;
+
+        if (! class_exists($class) || ! is_subclass_of($class, Model::class)) {
+            return false;
+        }
+
+        return $class::query()->whereKey($scope->id)->exists();
+    }
+
+    protected function grantScope(Membership $membership, Invitation $invitation, Scope $scope): void
+    {
+        $record = ConciergeModels::membershipScope()::query()->create([
+            'membership_id' => $membership->getKey(),
+            'scope_type' => $scope->type,
+            'scope_id' => $scope->id,
+            'active' => true,
+            'invitation_id' => $invitation->getKey(),
+            'invited_by_id' => $invitation->inviter_id,
+            'accepted_at' => now(),
+        ]);
+
+        ScopeAccepted::dispatch(
+            (int) $membership->workspace_id,
+            (int) $membership->getKey(),
+            (int) $record->getKey(),
+            $scope->type,
+            $scope->id,
+            (int) $membership->user_id,
+            (int) $invitation->getKey(),
+        );
     }
 
     protected function consume(Invitation $invitation, Membership $membership, Member $user, AcceptanceOutcome $outcome): Acceptance

@@ -21,11 +21,12 @@ use Tey\Concierge\Support\InvitationTokens;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Support\Locks;
 use Tey\Concierge\Support\ManagedAccount;
+use Tey\Concierge\Support\ScopedGrants;
 
 /**
  * Rotates the token (old links die), renews expiry and re-captures grants
  * under the resending manager's current authority. A message replaces the
- * invitation's; null keeps it.
+ * invitation's; null keeps it. A scoped invitation keeps its record.
  */
 class ResendInvitation
 {
@@ -46,9 +47,11 @@ class ResendInvitation
             $invitation = ConciergeModels::invitation()::query()->whereKey($invitation->getKey())->lockForUpdate()->firstOrFail();
             $grants = new GrantSet($invitation->roleNames());
 
-            ($workspace
-                ? $this->policy->authorizeGrant($actor, $workspace, $grants)
-                : $this->accountPolicy->authorizeGrant($actor, $grants))->authorize();
+            (match (true) {
+                $workspace === null => $this->accountPolicy->authorizeGrant($actor, $grants),
+                $invitation->isScoped() => ScopedGrants::authorize($this->policy, $actor, $workspace, $grants),
+                default => $this->policy->authorizeGrant($actor, $workspace, $grants),
+            })->authorize();
 
             if (! $invitation->isPending()) {
                 throw ValidationException::withMessages(['invitation' => $deliver
@@ -62,7 +65,7 @@ class ResendInvitation
                 Response::deny(__('Please wait before resending this invitation.'), 'cooldown')->authorize();
             }
 
-            $snapshot = GrantSnapshot::capture($grants)
+            $snapshot = GrantSnapshot::capture($grants, $invitation->scope())
                 ?? throw ValidationException::withMessages(['roles' => __('One or more roles no longer exist.')]);
 
             $token = InvitationTokens::generate();

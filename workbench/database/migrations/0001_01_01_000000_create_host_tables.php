@@ -44,10 +44,19 @@ return new class extends Migration
             $table->boolean('accepts_members')->default(true);
             $table->timestamps();
         });
+
+        // A record a scoped invitation can reach (tests/Feature/ScopedInvitationTest.php).
+        Schema::create('documents', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('workspace_id')->nullable();
+            $table->string('title');
+            $table->timestamps();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('documents');
         Schema::dropIfExists('workspaces');
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
