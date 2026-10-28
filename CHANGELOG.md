@@ -2,6 +2,27 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.9.0] - 2026-10-28
+
+### Added
+
+- **Scoped invitations:** invite someone to act on one record with no other access in the workspace. An invitation takes an optional `scope` (a morph type and id, part of its fingerprint). Accepting it creates a guest-only membership plus a `concierge_membership_scopes` row (invited_by, accepted_at, revoked_at). A full member given a scope stays a full member and gains the scope (#138, closes issue 133).
+- `ScopedAccess` contract with a membership-backed implementation, a `concierge.scoped:{param}[,members]` middleware, and facade helpers, for routes, policies and MCP tools to share one access check.
+- `RevokeScope`: immediate. It kills a pending link, and removes the guest membership when it was the last scope; the account survives. `ScopeAccepted` and `ScopeRevoked` events.
+- Guest exclusions by default: scoped guests are left out of member lists, role pickers, role changes, ownership transfer and `concierge.member` (a guest-only membership gets 403).
+
+### Changed
+
+- Accepting a scoped invitation whose record was deleted refuses with `scope_missing`, writes nothing and leaves the invitation pending. A swapped record is refused as `GrantsChanged` through the fingerprint.
+
+### Upgrading
+
+- Run the new migration (`update_concierge_invitations_with_scope`). App mode refuses a scope.
+
+### Known limitations
+
+- No invite UI, `concierge:invite` option or TypeScript types for scopes yet; those follow.
+
 ## [0.8.4] - 2026-10-28
 
 ### Added
