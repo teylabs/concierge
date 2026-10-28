@@ -2,6 +2,16 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.8.4] - 2026-10-28
+
+### Added
+
+- `WorkspaceContext::enter($workspace, $refresh)` and `leave()`, an explicit enter/leave alongside the scoped `run()`. Entries nest, and `leave()` with nothing entered throws `LogicException`. `run()` is now enter, try, finally leave, with unchanged behaviour. This lets a tenant switch task (spatie/laravel-multitenancy) hold the workspace context across a job or command (#136).
+
+### Upgrading
+
+- An app with its own `WorkspaceContext` implementation must add `enter()` and `leave()`.
+
 ## [0.8.3] - 2026-10-28
 
 ### Fixed
