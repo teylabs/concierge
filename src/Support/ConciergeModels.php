@@ -12,6 +12,7 @@ use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
+use Tey\Concierge\Models\MembershipScope;
 use Tey\Concierge\Models\Ownership;
 use Tey\Concierge\Models\TenantInvitation;
 
@@ -43,6 +44,12 @@ final class ConciergeModels
     public static function membership(): string
     {
         return config('concierge.models.membership', Membership::class);
+    }
+
+    /** @return class-string<MembershipScope> */
+    public static function membershipScope(): string
+    {
+        return config('concierge.models.membership_scope', MembershipScope::class);
     }
 
     /** @return class-string<Ownership> */

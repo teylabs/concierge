@@ -11,6 +11,7 @@ use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Events\MembershipRemoved;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\ManagedMembership;
+use Tey\Concierge\Support\MembershipScopes;
 
 /**
  * Ends membership in one workspace only. The user row, authored content and
@@ -37,6 +38,8 @@ class RemoveMembership
                 $user->syncRoles([]);
                 $user->syncPermissions([]);
             }, [$user]);
+
+            MembershipScopes::revokeAll($membership, (int) $actor->getKey());
 
             $membership->forceFill([
                 'status' => MembershipStatus::Removed,

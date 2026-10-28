@@ -18,7 +18,23 @@ final class RankRules
         return array_values(array_filter(
             Roles::configured(),
             fn (string $role) => $role !== Roles::owner()
+                && ! Roles::isScoped($role)
                 && array_intersect(config("concierge.roles.{$role}.grantable_by", []), $held) !== [],
+        ));
+    }
+
+    /**
+     * The scoped roles (see Roles::scoped()) the held roles may grant with a
+     * scoped invitation. They are never part of grantable().
+     *
+     * @param  array<int, string>  $held
+     * @return list<string>
+     */
+    public static function grantableScoped(array $held): array
+    {
+        return array_values(array_filter(
+            Roles::scoped(),
+            fn (string $role) => array_intersect(config("concierge.roles.{$role}.grantable_by", []), $held) !== [],
         ));
     }
 

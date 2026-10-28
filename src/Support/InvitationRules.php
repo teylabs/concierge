@@ -32,7 +32,7 @@ final class InvitationRules
             ! self::emailProven($invitation, $user) => InvitationState::Unverified,
             ! $workspace->conciergeAcceptsMembers() => InvitationState::WorkspaceUnavailable,
             $membership?->status === MembershipStatus::Suspended => InvitationState::Suspended,
-            $membership?->status === MembershipStatus::Active => InvitationState::AlreadyMember,
+            $membership?->status === MembershipStatus::Active && ! self::addsAccess($invitation, $membership) => InvitationState::AlreadyMember,
             ! self::inviterStillAuthorized($invitation, $workspace) => InvitationState::AuthorityLapsed,
             ! GrantSnapshot::stillValid($invitation) => InvitationState::GrantsChanged,
             default => null,
@@ -106,19 +106,54 @@ final class InvitationRules
         return ! config('concierge.invitations.match_email', true) || ! self::otherEmail($invitation, $user);
     }
 
+    /**
+     * The key that keeps one pending invitation per email and workspace: the
+     * email itself, or for a scoped invitation a hash of the email and its
+     * record, so each record has its own pending invitation.
+     */
+    public static function pendingKey(string $email, ?Scope $scope = null): string
+    {
+        return $scope === null
+            ? $email
+            : 'scope:'.hash('sha256', json_encode([$email, $scope->type, $scope->id], JSON_THROW_ON_ERROR));
+    }
+
     public static function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
     }
 
+    /**
+     * Whether accepting gives an active member something they lack: a record
+     * they are not yet scoped to, or the whole workspace for a guest.
+     */
+    public static function addsAccess(Invitation $invitation, Membership $membership): bool
+    {
+        $scope = $invitation->scope();
+
+        if ($scope === null) {
+            return $membership->guest === true;
+        }
+
+        return ! $membership->scopes()
+            ->whereNull('revoked_at')
+            ->where('scope_type', $scope->type)
+            ->where('scope_id', $scope->id)
+            ->exists();
+    }
+
     private static function inviterStillAuthorized(Invitation $invitation, Workspace $workspace): bool
     {
         $inviter = $invitation->inviter;
+        $grants = new GrantSet($invitation->roleNames());
 
-        return $inviter instanceof Member
-            && app(GrantPolicy::class)
-                ->authorizeGrant($inviter, $workspace, new GrantSet($invitation->roleNames()))
-                ->allowed();
+        if (! $inviter instanceof Member) {
+            return false;
+        }
+
+        return ($invitation->isScoped()
+            ? ScopedGrants::authorize(app(GrantPolicy::class), $inviter, $workspace, $grants)
+            : app(GrantPolicy::class)->authorizeGrant($inviter, $workspace, $grants))->allowed();
     }
 
     private static function inviterStillAuthorizedAppWide(Invitation $invitation): bool

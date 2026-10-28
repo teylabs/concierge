@@ -67,6 +67,8 @@ final class MembersIndex
     /** @var (Closure(string, ?Model): ?string)|null */
     private ?Closure $urls = null;
 
+    private bool $includeScopedGuests = false;
+
     public function __construct(protected Concierge $concierge, protected GrantPolicy $policy) {}
 
     /**
@@ -78,6 +80,18 @@ final class MembersIndex
     public function urlsUsing(Closure $urls): static
     {
         $this->urls = $urls;
+
+        return $this;
+    }
+
+    /**
+     * Lists scoped guests too, for a page that manages them. They are left out
+     * by default, and their rows never offer a role change or an ownership
+     * transfer.
+     */
+    public function includingScopedGuests(bool $include = true): static
+    {
+        $this->includeScopedGuests = $include;
 
         return $this;
     }
@@ -94,7 +108,8 @@ final class MembersIndex
 
         $actorMembership = $this->concierge->membership($actor, $workspace);
 
-        if (! $actorMembership?->isActive()) {
+        // A scoped guest reaches only their records, never the workspace's member list.
+        if (! $actorMembership?->isActive() || $this->concierge->isScopedGuest($actorMembership)) {
             Response::deny(__('You are not an active member of this workspace.'), 'not_member')->authorize();
         }
 
@@ -172,7 +187,8 @@ final class MembersIndex
             ->join($users, "{$users}.{$userKey}", '=', "{$memberships}.user_id")
             ->where("{$memberships}.workspace_id", $workspace->getKey())
             ->select("{$memberships}.*")
-            ->with(['user', 'invitation']);
+            ->with(['user', 'invitation'])
+            ->when(! $this->includeScopedGuests, fn (Builder $q) => $q->where("{$memberships}.guest", false));
 
         // Members who have left are listed only when asked for.
         if (($filters['status'] ?? null) === null) {
@@ -214,7 +230,8 @@ final class MembersIndex
         $members = ConciergeModels::membership()::query()
             ->join($users, "{$users}.{$userKey}", '=', "{$memberships}.user_id")
             ->where("{$memberships}.workspace_id", $workspace->getKey())
-            ->where("{$memberships}.status", '!=', MembershipStatus::Removed->value);
+            ->where("{$memberships}.status", '!=', MembershipStatus::Removed->value)
+            ->when(! $this->includeScopedGuests, fn (Builder $q) => $q->where("{$memberships}.guest", false));
 
         $invitations = ConciergeModels::invitation()::query()
             ->where('workspace_id', $workspace->getKey())
@@ -254,12 +271,14 @@ final class MembersIndex
         $actions = [];
         $link = fn (string $name, bool $allowed) => $allowed ? $this->url('member.'.$name, $membership) : null;
 
-        $updateGrants = $link('updateGrants', $manageable && $policy->grantableRoles($actor, $workspace) !== []);
+        $guest = $this->concierge->isScopedGuest($membership);
+        $updateGrants = $link('updateGrants', $manageable && ! $guest && $policy->grantableRoles($actor, $workspace) !== []);
         $suspend = $link('suspend', $manageable && $membership->status === MembershipStatus::Active);
         $reinstate = $link('reinstate', $manageable && $membership->status === MembershipStatus::Suspended);
         $remove = $link('remove', $manageable);
         $transfer = $link('transferOwnership', $directory->isOwner($actorMembership)
             && $membership->status === MembershipStatus::Active
+            && ! $guest
             && ! $directory->isOwner($membership)
             && (int) $membership->user_id !== (int) $actor->getKey());
 
@@ -309,7 +328,10 @@ final class MembersIndex
     {
         $roles = Roles::sort($invitation->roleNames());
         $manages = $policy->authorizeManagement($actor, $workspace)->allowed();
-        $resend = $manages && $policy->authorizeGrant($actor, $workspace, new GrantSet($roles))->allowed() ? $this->url('invitation.resend', $invitation) : null;
+        $grant = $invitation->isScoped()
+            ? ScopedGrants::authorize($policy, $actor, $workspace, new GrantSet($roles))
+            : $policy->authorizeGrant($actor, $workspace, new GrantSet($roles));
+        $resend = $manages && $grant->allowed() ? $this->url('invitation.resend', $invitation) : null;
         $copy = $resend !== null ? $this->url('invitation.copyLink', $invitation) : null;
         $revoke = $manages ? $this->url('invitation.revoke', $invitation) : null;
         $actions = [];

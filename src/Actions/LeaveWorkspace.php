@@ -13,6 +13,7 @@ use Tey\Concierge\Events\MembershipRemoved;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Support\ManagedMembership;
+use Tey\Concierge\Support\MembershipScopes;
 
 /**
  * A member ends their own membership of one workspace. The owner cannot: ownership
@@ -52,6 +53,8 @@ class LeaveWorkspace
                 $user->syncRoles([]);
                 $user->syncPermissions([]);
             }, [$user]);
+
+            MembershipScopes::revokeAll($membership, (int) $user->getKey());
 
             $membership->forceFill([
                 'status' => MembershipStatus::Removed,

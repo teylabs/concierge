@@ -11,6 +11,7 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Enums\InvitationStatus;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\Scope;
 
 /**
  * @property int $id
@@ -18,7 +19,7 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property int|null $workspace_id null for an app-wide invitation
  * @property string $email
  * @property string|null $pending_key
- * @property array{roles: array<string, array{id: int, permissions: list<string>}>} $grants
+ * @property array{roles: array<string, array{id: int, permissions: list<string>}>, scope?: array{type: string, id: string}} $grants
  * @property string $grants_fingerprint
  * @property int|null $inviter_id
  * @property string $token_hash
@@ -35,6 +36,8 @@ use Tey\Concierge\Support\ConciergeModels;
  * @property CarbonInterface|null $revoked_at
  * @property int|null $revoked_by_id
  * @property string|null $message
+ * @property string|null $scope_type
+ * @property string|null $scope_id
  * @property CarbonInterface $created_at
  * @property CarbonInterface $updated_at
  * @property-read (Member&Model)|null $inviter
@@ -102,6 +105,17 @@ class Invitation extends Model
     public function isAppWide(): bool
     {
         return $this->workspace_id === null;
+    }
+
+    /** An invitation to one record in its workspace rather than the whole workspace. */
+    public function isScoped(): bool
+    {
+        return $this->scope_type !== null && $this->scope_id !== null;
+    }
+
+    public function scope(): ?Scope
+    {
+        return $this->isScoped() ? new Scope((string) $this->scope_type, (string) $this->scope_id) : null;
     }
 
     public function isPending(): bool

@@ -261,6 +261,45 @@ When the wrong account opens an invitation, the page names both emails and offer
 
 `ForcePasswordReset::run($actor, $membership, resetTwoFactor: true)` locks an account down when it may be compromised: the password becomes one nobody knows, the remember-me token is cycled, two-factor is cleared when asked, and the person receives a reset link through your password broker. The same manager and rank rules apply as for suspending, and never to yourself. With the `database` session driver the person's sessions are deleted; with any other driver, add Laravel's `AuthenticateSession` middleware so their sessions end when the password hash changes. API tokens are untouched; listen to `PasswordResetForced`. In app-wide mode pass the user instead of a membership, `ForcePasswordReset::run($actor, $user)`: the rules are those of `DeactivateUser`, a deactivated account is refused, and `PasswordResetForced` carries a null `workspaceId` and `membershipId` (so does the `membership` on the result).
 
+### Scoped Invitations
+
+Invite someone to one record in a workspace (a project, a document, a talk) and nothing else. Workspace mode only: app-wide mode refuses a scope.
+
+Add a scoped role, last in `roles`, and give it no permissions. It is never offered or granted workspace-wide, so `grantableRoles()` and your role pickers leave it out:
+
+```php
+'guest' => ['label' => 'Guest', 'grantable_by' => ['owner', 'admin'], 'scoped' => true],
+```
+
+Then pass the record as `scope` (or a `Tey\Concierge\Support\Scope` with a type and id):
+
+```php
+$issued = InviteMember::run($actor, $workspace, 'guest@example.test', new GrantSet(['guest']), scope: $talk);
+```
+
+The record is stored as its morph class (the morph map alias when you have one) and key, and is part of the grants fingerprint, so an invitation to another record is a separate pending invitation. A scoped invitation grants scoped roles only, and anyone who manages the workspace and may grant the role (`grantable_by`) may send it. Resend, copy link and expiry work as for any invitation, and the record travels with it.
+
+Accepting it adds a scope record (`concierge_membership_scopes`) to the invitee's membership and dispatches `ScopeAccepted`:
+
+- Someone with no active membership gets a **guest** membership holding only the scoped role. A second scoped invitation adds another record to the same guest membership.
+- An active full member keeps their membership and roles, and gains the scope. They are not a guest.
+- A guest who accepts an ordinary invitation becomes a full member with its roles; their scopes stay.
+
+Check access with the bound `Tey\Concierge\Contracts\ScopedAccess`. `Concierge::allowsScoped($user, $record)` is true only when the user holds an active scope for exactly that record, through an active membership of the record's workspace: the workspace you pass as the third argument, else the record's `workspace_id`, else the current workspace context. It says nothing about roles, so full members are not "scoped". Combine the two in your policy:
+
+```php
+public function present(User $user, Talk $talk): bool
+{
+    return $user->can('talks.present') || Concierge::allowsScoped($user, $talk);
+}
+```
+
+On routes, `concierge.scoped:talk` lets through only users scoped to the bound `{talk}` (403 otherwise); `concierge.scoped:talk,members` also lets through active full members of the current workspace, for a route both share, with their roles still yours to check. `concierge.member` refuses scoped guests with a 403, so a guest never reaches workspace-wide routes. Concierge ships no MCP server: from an MCP tool, a job or a command, call `Concierge::allowsScoped()` (or resolve `ScopedAccess`) the same way. Rebind `ScopedAccess` to change the rule.
+
+`Concierge::isScopedGuest($membership)`, `Concierge::scopes($membership)`, `Concierge::scopeFor($membership, $record)` and `Concierge::scopedTo($membership, $record)` read the rest. `RevokeScope::run($actor, Concierge::scopeFor($membership, $talk))` takes the record away at once: pending invitations to that record for the member's email are revoked too, and when it was a guest's last scope their guest membership is removed (the user account stays). It dispatches `ScopeRevoked`. Removing a member, or a member leaving, revokes their scopes as well.
+
+Scoped guests are left out of the members index and `MembershipSource::members()`; ask for them with `MembersIndex::includingScopedGuests()` and `ConciergeMembershipSource::includingScopedGuests()`. Their rows never offer a role change or an ownership transfer, `ChangeMemberRoles` refuses them, and ownership never passes to a guest.
+
 ### Tenant Invitations
 
 For an invite-only app: a platform owner invites an email, and accepting creates that person's own workspace, which they own. It is off by default and ships no routes; your app provides the workspace factory, the link and the register-or-sign-in pages. See [Tenant invitations](https://concierge.teylabs.com/features/tenant-invitations).
