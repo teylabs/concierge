@@ -131,7 +131,7 @@ php artisan optimize
 
 In workspace mode (Spatie teams on), configure **one owner** and replace the owners line with `php artisan concierge:owners --workspace=1 --no-interaction`, using the key of an existing workspace. Your app creates the workspace; the command never does. A missing or unknown `--workspace`, several configured owners for one workspace, or an existing different owner exits non-zero without changing ownership. Starter kit teams are read-only and cannot be established by this command.
 
-The command creates missing role definitions and looks up emails case-insensitively. For a new user it uses the email as the initial name, hashes a random password nobody knows, grants ownership and sends a set-password link through Laravel's default password broker. Configure that broker's user provider, mail delivery, `APP_URL` and your app's password-reset route before deploying. Email verification stays with your app's normal flow. Existing users keep their name, email, password, verification state and other role grants. Removing an email from the setting never removes a user or their ownership. `EstablishOwner` and `EstablishWorkspace` also preserve existing role grants when establishing ownership.
+The command creates missing role definitions and looks up emails case-insensitively. For a new user it uses the email as the initial name, hashes a random password nobody knows, grants ownership and sends a set-password link through Laravel's default password broker. Configure that broker's user provider, mail delivery, `APP_URL` and your app's password-reset route before deploying. Completing the set-password link verifies the owner's email (see [Security](#security)). Existing users keep their name, email, password, verification state and other role grants. Removing an email from the setting never removes a user or their ownership. `EstablishOwner` and `EstablishWorkspace` also preserve existing role grants when establishing ownership.
 
 **Only a user created by this invocation is emailed.** Later deploys never resend the link, even if it expired or the owner has not chosen a password yet. Use your app's forgot-password flow to request another link. A broker refusal rolls back that owner's creation and role changes and exits non-zero; earlier owners successfully processed in the same invocation remain.
 
@@ -390,6 +390,16 @@ See [CHANGELOG](CHANGELOG.md) for what has changed recently.
 ## Contributing
 
 See [CONTRIBUTING](https://github.com/teylabs/.github/blob/main/CONTRIBUTING.md). Questions and ideas go to [Discussions](https://github.com/teylabs/concierge/discussions).
+
+## Security
+
+Concierge marks an account's email verified only when it has proof of the mailbox, and never for an unproven address:
+
+- **Accepting an invitation** (member, app-wide or tenant) with the emailed token proves the invited address. An unverified account whose email is the invited one is verified inside the accept transaction, and `InspectInvitation` reports it as `Ready`. An unverified account with another address (`invitations.match_email` off) is still `Unverified`.
+- **Registering through an invitation** with Fortify (the token on the form or remembered from the register link, for that exact email) creates the account verified. Fortify's `Registered` → `SendEmailVerificationNotification` then sends nothing, so an invited person gets one email: the invitation.
+- **Resetting a password** through the emailed, signed link (Laravel's `PasswordReset` event) verifies an unverified account. This covers the first owner from `concierge:owners`, whose set-password link is a reset link, and anyone who resets before verifying.
+
+Everything else about verification stays your app's: changing an email doesn't clear `email_verified_at` or send a verification email.
 
 ## Security Vulnerabilities
 

@@ -1,5 +1,11 @@
 <?php
 
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Testing\TestResponse;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -11,6 +17,23 @@ use Tey\Concierge\Registration\Fortify\GatedRegisterView;
 use Tey\Concierge\Registration\Fortify\GatedUserCreator;
 use Tey\Concierge\Rules\MayRegister;
 use Workbench\App\Models\User;
+
+/** The same row as a user Laravel would send a verification email to. */
+class VerifyingUser extends User implements MustVerifyEmail
+{
+    use MustVerifyEmailTrait;
+
+    protected $table = 'users';
+}
+
+/** Laravel's own listener, as a host registers it, run for the newly registered account. */
+function registered_listener_sends_to(string $email): bool
+{
+    $user = VerifyingUser::query()->where('email', $email)->firstOrFail();
+    (new SendEmailVerificationNotification)->handle(new Registered($user));
+
+    return Notification::sent($user, VerifyEmail::class)->isNotEmpty();
+}
 
 function register(array $overrides = []): TestResponse
 {
@@ -68,9 +91,27 @@ it('registers the invitee when the request carries a valid token, then they can 
 
     $this->assertAuthenticatedAs($alice = User::query()->where('email', 'Alice@Example.test')->firstOrFail());
 
-    $alice->forceFill(['email_verified_at' => now()])->save();
-
     expect(AcceptInvitation::run($alice, $issued->token)->membership->isActive())->toBeTrue();
+});
+
+it('starts an invited registration verified, so Fortify sends no verification email', function () {
+    Notification::fake();
+    $issued = issue($this->owner, $this->workspace, 'alice@example.test');
+
+    register(['email' => 'Alice@Example.test', 'invitation' => $issued->token])->assertRedirect('/home');
+
+    expect(User::query()->where('email', 'Alice@Example.test')->firstOrFail()->email_verified_at)->not->toBeNull()
+        ->and(registered_listener_sends_to('Alice@Example.test'))->toBeFalse();
+});
+
+it('leaves an uninvited registration unverified, so Fortify still sends its verification email', function () {
+    config()->set('concierge.registration.mode', 'open');
+    Notification::fake();
+
+    register()->assertRedirect('/home');
+
+    expect(User::query()->where('email', 'alice@example.test')->firstOrFail()->email_verified_at)->toBeNull()
+        ->and(registered_listener_sends_to('alice@example.test'))->toBeTrue();
 });
 
 it('refuses a forged, expired or revoked token, and a token for another email', function () {

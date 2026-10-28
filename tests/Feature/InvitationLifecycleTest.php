@@ -8,6 +8,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tey\Concierge\Actions\AcceptInvitation;
 use Tey\Concierge\Actions\ChangeMemberRoles;
+use Tey\Concierge\Actions\InspectInvitation;
 use Tey\Concierge\Actions\RemoveMembership;
 use Tey\Concierge\Actions\ResendInvitation;
 use Tey\Concierge\Actions\RevokeInvitation;
@@ -59,18 +60,42 @@ it('lets an existing account accept the exact invitation with its roles', functi
         ->and($issued->invitation->fresh()->pending_key)->toBeNull();
 });
 
-it('rejects the wrong account and unverified accounts without writing anything', function () {
+it('rejects the wrong account, and an unverified other address, without writing anything', function () {
     $issued = issue($this->owner, $this->workspace, 'alice@example.test');
     $mallory = host_user('mallory');
 
     expect(fn () => AcceptInvitation::run($mallory, $issued->token))->toThrow(rejected_as(InvitationState::WrongAccount));
 
-    $alice = host_user('alice', verified: false);
+    // With match_email off any account may accept, but an unverified one with another address has proven nothing.
+    config()->set('concierge.invitations.match_email', false);
+    $other = host_user('other', verified: false);
 
-    expect(fn () => AcceptInvitation::run($alice, $issued->token))->toThrow(rejected_as(InvitationState::Unverified))
-        ->and($alice->fresh()->email_verified_at)->toBeNull()
+    expect(fn () => AcceptInvitation::run($other, $issued->token))->toThrow(rejected_as(InvitationState::Unverified))
+        ->and($other->fresh()->email_verified_at)->toBeNull()
         ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Pending)
         ->and(DB::table('concierge_memberships')->count())->toBe(1);
+});
+
+it('verifies the invited address when an unverified account accepts: the emailed token proves it', function () {
+    $issued = issue($this->owner, $this->workspace, 'Alice@Example.test');
+    $alice = host_user('alice', verified: false);
+
+    expect(InspectInvitation::run($alice, $issued->token)->state)->toBe(InvitationState::Ready);
+
+    $acceptance = AcceptInvitation::run($alice, $issued->token);
+
+    expect($acceptance->outcome)->toBe(AcceptanceOutcome::Joined)
+        ->and($alice->fresh()->email_verified_at)->not->toBeNull()
+        ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Accepted);
+});
+
+it('leaves the account unverified when the accept is rejected', function () {
+    $issued = issue($this->owner, $this->workspace, 'alice@example.test');
+    $issued->invitation->forceFill(['status' => InvitationStatus::Revoked])->save();
+    $alice = host_user('alice', verified: false);
+
+    expect(fn () => AcceptInvitation::run($alice, $issued->token))->toThrow(rejected_as(InvitationState::Revoked))
+        ->and($alice->fresh()->email_verified_at)->toBeNull();
 });
 
 it('rejects expired invitations without persisting the expiry', function () {

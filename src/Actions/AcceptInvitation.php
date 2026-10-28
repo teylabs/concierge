@@ -74,6 +74,8 @@ class AcceptInvitation
                 throw new InvitationRejected($state);
             }
 
+            InvitationRules::verifyInvitedEmail($invitation->email, $user);
+
             if ($state === InvitationState::AlreadyMember) {
                 return $this->consume($invitation, $membership, $user, AcceptanceOutcome::AlreadyMember);
             }
@@ -155,6 +157,8 @@ class AcceptInvitation
             if ($state !== null) {
                 throw new InvitationRejected($state);
             }
+
+            InvitationRules::verifyInvitedEmail($invitation->email, $user);
 
             $account->forceFill([
                 'status' => AccountStatus::Active,
