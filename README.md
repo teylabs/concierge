@@ -263,7 +263,7 @@ When the wrong account opens an invitation, the page names both emails and offer
 
 ### Scoped Invitations
 
-Invite someone to one record in a workspace (a project, a document, a talk) and nothing else. Workspace mode only: app-wide mode refuses a scope.
+Invite someone to one record in a workspace (a project or a document) and nothing else. Workspace mode only: app-wide mode refuses a scope.
 
 Add a scoped role, last in `roles`, and give it no permissions. It is never offered or granted workspace-wide, so `grantableRoles()` and your role pickers leave it out:
 
@@ -274,10 +274,12 @@ Add a scoped role, last in `roles`, and give it no permissions. It is never offe
 Then pass the record as `scope` (or a `Tey\Concierge\Support\Scope` with a type and id):
 
 ```php
-$issued = InviteMember::run($actor, $workspace, 'guest@example.test', new GrantSet(['guest']), scope: $talk);
+$issued = InviteMember::run($actor, $workspace, 'guest@example.test', new GrantSet(['guest']), scope: $document);
 ```
 
 The record is stored as its morph class (the morph map alias when you have one) and key, and is part of the grants fingerprint, so an invitation to another record is a separate pending invitation. A scoped invitation grants scoped roles only, and anyone who manages the workspace and may grant the role (`grantable_by`) may send it. Resend, copy link and expiry work as for any invitation, and the record travels with it.
+
+If the record has since been deleted, or its type no longer resolves, accepting is refused with an `AuthorizationException` coded `scope_missing`; nothing is written and the invitation stays pending, so revoke it. A record swapped on the invitation fails the fingerprint and is refused as grants changed.
 
 Accepting it adds a scope record (`concierge_membership_scopes`) to the invitee's membership and dispatches `ScopeAccepted`:
 
@@ -288,15 +290,15 @@ Accepting it adds a scope record (`concierge_membership_scopes`) to the invitee'
 Check access with the bound `Tey\Concierge\Contracts\ScopedAccess`. `Concierge::allowsScoped($user, $record)` is true only when the user holds an active scope for exactly that record, through an active membership of the record's workspace: the workspace you pass as the third argument, else the record's `workspace_id`, else the current workspace context. It says nothing about roles, so full members are not "scoped". Combine the two in your policy:
 
 ```php
-public function present(User $user, Talk $talk): bool
+public function edit(User $user, Document $document): bool
 {
-    return $user->can('talks.present') || Concierge::allowsScoped($user, $talk);
+    return $user->can('documents.edit') || Concierge::allowsScoped($user, $document);
 }
 ```
 
-On routes, `concierge.scoped:talk` lets through only users scoped to the bound `{talk}` (403 otherwise); `concierge.scoped:talk,members` also lets through active full members of the current workspace, for a route both share, with their roles still yours to check. `concierge.member` refuses scoped guests with a 403, so a guest never reaches workspace-wide routes. Concierge ships no MCP server: from an MCP tool, a job or a command, call `Concierge::allowsScoped()` (or resolve `ScopedAccess`) the same way. Rebind `ScopedAccess` to change the rule.
+On routes, `concierge.scoped:document` lets through only users scoped to the bound `{document}` (403 otherwise); `concierge.scoped:document,members` also lets through active full members of the current workspace, for a route both share, with their roles still yours to check. `concierge.member` refuses scoped guests with a 403, so a guest never reaches workspace-wide routes. Concierge ships no MCP server: from an MCP tool, a job or a command, call `Concierge::allowsScoped()` (or resolve `ScopedAccess`) the same way. Rebind `ScopedAccess` to change the rule.
 
-`Concierge::isScopedGuest($membership)`, `Concierge::scopes($membership)`, `Concierge::scopeFor($membership, $record)` and `Concierge::scopedTo($membership, $record)` read the rest. `RevokeScope::run($actor, Concierge::scopeFor($membership, $talk))` takes the record away at once: pending invitations to that record for the member's email are revoked too, and when it was a guest's last scope their guest membership is removed (the user account stays). It dispatches `ScopeRevoked`. Removing a member, or a member leaving, revokes their scopes as well.
+`Concierge::isScopedGuest($membership)`, `Concierge::scopes($membership)`, `Concierge::scopeFor($membership, $record)` and `Concierge::scopedTo($membership, $record)` read the rest. `RevokeScope::run($actor, Concierge::scopeFor($membership, $document))` takes the record away at once: pending invitations to that record for the member's email are revoked too, and when it was a guest's last scope their guest membership is removed (the user account stays). It dispatches `ScopeRevoked`. Removing a member, or a member leaving, revokes their scopes as well.
 
 Scoped guests are left out of the members index and `MembershipSource::members()`; ask for them with `MembersIndex::includingScopedGuests()` and `ConciergeMembershipSource::includingScopedGuests()`. Their rows never offer a role change or an ownership transfer, `ChangeMemberRoles` refuses them, and ownership never passes to a guest.
 

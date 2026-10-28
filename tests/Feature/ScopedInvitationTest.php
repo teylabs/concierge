@@ -39,10 +39,11 @@ use Tey\Concierge\Models\Membership;
 use Tey\Concierge\Models\MembershipScope;
 use Tey\Concierge\Support\ConciergeMembershipSource;
 use Tey\Concierge\Support\GrantSet;
+use Tey\Concierge\Support\GrantSnapshot;
 use Tey\Concierge\Support\IssuedInvitation;
 use Tey\Concierge\Support\MembersIndex;
 use Tey\Concierge\Support\Scope;
-use Workbench\App\Models\Talk;
+use Workbench\App\Models\Document;
 use Workbench\App\Models\User;
 use Workbench\App\Models\Workspace;
 
@@ -84,8 +85,8 @@ beforeEach(function () {
     $this->workspace = host_workspace('Acme', $this->owner);
     $this->admin = host_user('admin');
     $this->adminMembership = join_as($this->workspace, $this->owner, $this->admin, ['admin']);
-    $this->talk = Talk::query()->create(['workspace_id' => $this->workspace->id, 'title' => 'Keynote']);
-    $this->otherTalk = Talk::query()->create(['workspace_id' => $this->workspace->id, 'title' => 'Closing']);
+    $this->document = Document::query()->create(['workspace_id' => $this->workspace->id, 'title' => 'Handbook']);
+    $this->otherDocument = Document::query()->create(['workspace_id' => $this->workspace->id, 'title' => 'Policy']);
     $this->guest = host_user('guest');
     $this->concierge = app(Concierge::class);
 });
@@ -98,31 +99,31 @@ it('creates the scope table and its one-active-row index', function () {
 });
 
 it('lets a scoped guest reach only the scoped record and nothing workspace-wide', function () {
-    Permission::query()->create(['name' => 'talks.present', 'guard_name' => 'web']);
-    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    Permission::query()->create(['name' => 'documents.edit', 'guard_name' => 'web']);
+    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     $can = fn (string $ability) => $this->concierge->context()->run($this->workspace, fn () => $this->guest->fresh()->hasPermissionTo($ability));
 
     expect($membership->isActive())->toBeTrue()
         ->and($this->concierge->isScopedGuest($membership))->toBeTrue()
         ->and(roles_in($membership))->toBe(['guest'])
-        ->and($can('talks.present'))->toBeFalse()
-        ->and($this->concierge->allowsScoped($this->guest, $this->talk))->toBeTrue()
-        ->and($this->concierge->allowsScoped($this->guest, $this->otherTalk))->toBeFalse()
-        ->and($this->concierge->allowsScoped($this->admin, $this->talk))->toBeFalse()
-        ->and(app(ScopedAccess::class)->allows($this->guest, $this->talk))->toBeTrue()
-        ->and($this->concierge->scopedTo($membership, $this->talk))->toBeTrue()
-        ->and($this->concierge->scopes($membership)->map(fn (MembershipScope $s) => [$s->scope_type, $s->scope_id])->all())->toBe([[Talk::class, (string) $this->talk->id]]);
+        ->and($can('documents.edit'))->toBeFalse()
+        ->and($this->concierge->allowsScoped($this->guest, $this->document))->toBeTrue()
+        ->and($this->concierge->allowsScoped($this->guest, $this->otherDocument))->toBeFalse()
+        ->and($this->concierge->allowsScoped($this->admin, $this->document))->toBeFalse()
+        ->and(app(ScopedAccess::class)->allows($this->guest, $this->document))->toBeTrue()
+        ->and($this->concierge->scopedTo($membership, $this->document))->toBeTrue()
+        ->and($this->concierge->scopes($membership)->map(fn (MembershipScope $s) => [$s->scope_type, $s->scope_id])->all())->toBe([[Document::class, (string) $this->document->id]]);
 
     // The same record id in another workspace is not reached.
     $globex = host_workspace('Globex', host_user('globex-owner'));
-    $elsewhere = Talk::query()->create(['workspace_id' => $globex->id, 'title' => 'Elsewhere']);
-    $elsewhere->forceFill(['id' => $this->talk->id]);
+    $elsewhere = Document::query()->create(['workspace_id' => $globex->id, 'title' => 'Elsewhere']);
+    $elsewhere->forceFill(['id' => $this->document->id]);
     expect($this->concierge->allowsScoped($this->guest, $elsewhere))->toBeFalse()
-        ->and($this->concierge->allowsScoped($this->guest, $this->talk, $globex))->toBeFalse();
+        ->and($this->concierge->allowsScoped($this->guest, $this->document, $globex))->toBeFalse();
 
     // A record without workspace_id falls back to the current workspace context.
-    $loose = Talk::query()->create(['workspace_id' => null, 'title' => 'Loose']);
+    $loose = Document::query()->create(['workspace_id' => null, 'title' => 'Loose']);
     $looseMembership = join_scoped($this->workspace, $this->owner, $this->guest, $loose);
     expect($looseMembership->is($membership))->toBeTrue()
         ->and($this->concierge->allowsScoped($this->guest, $loose))->toBeFalse()
@@ -130,26 +131,26 @@ it('lets a scoped guest reach only the scoped record and nothing workspace-wide'
 });
 
 it('guards routes: concierge.scoped admits only the scoped record, concierge.member refuses guests', function () {
-    join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
     $presenter = host_user('presenter');
     join_as($this->workspace, $this->owner, $presenter);
 
-    Route::middleware([SubstituteBindings::class, 'concierge.scoped:talk'])->get('/talks/{talk}', fn (Talk $talk) => 'ok');
-    Route::middleware([SubstituteBindings::class, 'concierge.scoped:talk,members'])->get('/shared/{talk}', fn (Talk $talk) => 'ok');
+    Route::middleware([SubstituteBindings::class, 'concierge.scoped:document'])->get('/documents/{document}', fn (Document $document) => 'ok');
+    Route::middleware([SubstituteBindings::class, 'concierge.scoped:document,members'])->get('/shared/{document}', fn (Document $document) => 'ok');
     Route::middleware('concierge.member')->get('/workspace-home', fn () => 'ok');
 
     $inWorkspace = fn (Closure $call) => $this->concierge->context()->run($this->workspace, $call);
 
-    $this->actingAs($this->guest)->get("/talks/{$this->talk->id}")->assertOk();
-    $this->actingAs($this->guest)->get("/talks/{$this->otherTalk->id}")->assertForbidden();
+    $this->actingAs($this->guest)->get("/documents/{$this->document->id}")->assertOk();
+    $this->actingAs($this->guest)->get("/documents/{$this->otherDocument->id}")->assertForbidden();
     $inWorkspace(fn () => $this->actingAs($this->guest)->get('/workspace-home'))->assertForbidden();
     $inWorkspace(fn () => $this->actingAs($presenter)->get('/workspace-home'))->assertOk();
 
     // Full members are not scoped; the members flag lets them through a shared route.
-    $this->actingAs($presenter)->get("/talks/{$this->talk->id}")->assertForbidden();
-    $inWorkspace(fn () => $this->actingAs($presenter)->get("/shared/{$this->talk->id}"))->assertOk();
-    $inWorkspace(fn () => $this->actingAs($this->guest)->get("/shared/{$this->otherTalk->id}"))->assertForbidden();
-    $inWorkspace(fn () => $this->actingAs($this->guest)->get("/shared/{$this->talk->id}"))->assertOk();
+    $this->actingAs($presenter)->get("/documents/{$this->document->id}")->assertForbidden();
+    $inWorkspace(fn () => $this->actingAs($presenter)->get("/shared/{$this->document->id}"))->assertOk();
+    $inWorkspace(fn () => $this->actingAs($this->guest)->get("/shared/{$this->otherDocument->id}"))->assertForbidden();
+    $inWorkspace(fn () => $this->actingAs($this->guest)->get("/shared/{$this->document->id}"))->assertOk();
 });
 
 it('lets the host rebind ScopedAccess, and the service path follows it', function () {
@@ -157,42 +158,42 @@ it('lets the host rebind ScopedAccess, and the service path follows it', functio
     {
         public function allows(Member $user, Model $record, ?WorkspaceContract $workspace = null): bool
         {
-            return $record instanceof Talk && $record->title === 'Closing';
+            return $record instanceof Document && $record->title === 'Policy';
         }
     });
 
-    expect(ConciergeFacade::allowsScoped($this->guest, $this->otherTalk))->toBeTrue()
-        ->and(ConciergeFacade::scopedAccess()->allows($this->guest, $this->talk))->toBeFalse();
+    expect(ConciergeFacade::allowsScoped($this->guest, $this->otherDocument))->toBeTrue()
+        ->and(ConciergeFacade::scopedAccess()->allows($this->guest, $this->document))->toBeFalse();
 });
 
 it('denies at once once the membership is suspended', function () {
-    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     SuspendMembership::run($this->owner, $membership);
 
-    expect($this->concierge->allowsScoped($this->guest, $this->talk))->toBeFalse();
+    expect($this->concierge->allowsScoped($this->guest, $this->document))->toBeFalse();
 });
 
 it('stores the scope with a morph map alias and puts it in the grants fingerprint', function () {
-    Relation::morphMap(['talk' => Talk::class]);
+    Relation::morphMap(['document' => Document::class]);
 
     try {
-        $issued = invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->talk);
-        $keynote = $issued->invitation;
-        $closing = invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->otherTalk)->invitation;
+        $issued = invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->document);
+        $handbook = $issued->invitation;
+        $policy = invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->otherDocument)->invitation;
         $plain = issue($this->owner, $this->workspace, 'guest@example.test')->invitation;
 
-        expect([$keynote->scope_type, $keynote->scope_id])->toBe(['talk', (string) $this->talk->id])
-            ->and($keynote->grants['scope'])->toBe(['type' => 'talk', 'id' => (string) $this->talk->id])
-            ->and($keynote->grants_fingerprint)->not->toBe($closing->grants_fingerprint)
-            ->and($keynote->grants_fingerprint)->not->toBe(invite_scoped($this->owner, $this->workspace, 'other@example.test', new Scope('talk', 'x'))->invitation->grants_fingerprint)
+        expect([$handbook->scope_type, $handbook->scope_id])->toBe(['document', (string) $this->document->id])
+            ->and($handbook->grants['scope'])->toBe(['type' => 'document', 'id' => (string) $this->document->id])
+            ->and($handbook->grants_fingerprint)->not->toBe($policy->grants_fingerprint)
+            ->and($handbook->grants_fingerprint)->not->toBe(invite_scoped($this->owner, $this->workspace, 'other@example.test', new Scope('document', 'x'))->invitation->grants_fingerprint)
             ->and($plain->scope_type)->toBeNull()
             ->and($plain->isScoped())->toBeFalse()
-            ->and(fn () => invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->talk))
+            ->and(fn () => invite_scoped($this->owner, $this->workspace, 'guest@example.test', $this->document))
             ->toThrow(ValidationException::class, 'An invitation is already pending for that email.');
 
         // A scope swapped on the row no longer matches its snapshot.
-        $keynote->forceFill(['scope_id' => (string) $this->otherTalk->id])->save();
+        $handbook->forceFill(['scope_id' => (string) $this->otherDocument->id])->save();
         expect(InspectInvitation::run($this->guest, $issued->token)->state)->toBe(InvitationState::GrantsChanged);
     } finally {
         Relation::$morphMap = [];
@@ -202,45 +203,45 @@ it('stores the scope with a morph map alias and puts it in the grants fingerprin
 it('needs scoped roles for a scoped invitation and never grants them workspace-wide', function () {
     $presenter = join_as($this->workspace, $this->owner, host_user('presenter'));
 
-    expect(fn () => invite_scoped($this->owner, $this->workspace, 'x@example.test', $this->talk, ['presenter']))
+    expect(fn () => invite_scoped($this->owner, $this->workspace, 'x@example.test', $this->document, ['presenter']))
         ->toThrow(ValidationException::class, 'A scoped invitation grants scoped roles only.')
-        ->and(fn () => invite_scoped($this->owner, $this->workspace, 'x@example.test', $this->talk, []))
+        ->and(fn () => invite_scoped($this->owner, $this->workspace, 'x@example.test', $this->document, []))
         ->toThrow(ValidationException::class, 'A scoped invitation grants scoped roles only.')
         ->and(fn () => issue($this->owner, $this->workspace, 'x@example.test', ['guest']))->toThrow(scope_denied('not_grantable'))
         ->and(fn () => ChangeMemberRoles::run($this->owner, $presenter, new GrantSet(['guest'])))->toThrow(scope_denied('not_grantable'))
         ->and(app(GrantPolicy::class)->grantableRoles($this->owner, $this->workspace))->not->toContain('guest')
-        ->and(fn () => invite_scoped($presenter->user, $this->workspace, 'x@example.test', $this->talk))->toThrow(scope_denied('not_manager'));
+        ->and(fn () => invite_scoped($presenter->user, $this->workspace, 'x@example.test', $this->document))->toThrow(scope_denied('not_manager'));
 });
 
 it('adds a second scope to the same guest membership, and a scope to a full member without making them a guest', function () {
     Event::fake([ScopeAccepted::class]);
 
-    $first = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
-    $second = join_scoped($this->workspace, $this->admin, $this->guest, $this->otherTalk);
+    $first = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
+    $second = join_scoped($this->workspace, $this->admin, $this->guest, $this->otherDocument);
 
     expect($second->is($first))->toBeTrue()
-        ->and($this->concierge->scopes($second)->pluck('scope_id')->all())->toBe([(string) $this->talk->id, (string) $this->otherTalk->id])
+        ->and($this->concierge->scopes($second)->pluck('scope_id')->all())->toBe([(string) $this->document->id, (string) $this->otherDocument->id])
         ->and(roles_in($second))->toBe(['guest'])
-        ->and(fn () => invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->talk))
+        ->and(fn () => invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document))
         ->toThrow(ValidationException::class, 'That person already has access to it.');
 
-    $full = join_scoped($this->workspace, $this->owner, $this->admin, $this->talk);
+    $full = join_scoped($this->workspace, $this->owner, $this->admin, $this->document);
 
     expect($full->is($this->adminMembership))->toBeTrue()
         ->and($this->concierge->isScopedGuest($full->fresh()))->toBeFalse()
         ->and(roles_in($full))->toBe(['admin'])
-        ->and($this->concierge->allowsScoped($this->admin, $this->talk))->toBeTrue();
+        ->and($this->concierge->allowsScoped($this->admin, $this->document))->toBeTrue();
 
     Event::assertDispatched(ScopeAccepted::class, 3);
     Event::assertDispatched(ScopeAccepted::class, fn (ScopeAccepted $e) => $e->membershipId === $first->id
-        && $e->scopeType === Talk::class
-        && $e->scopeId === (string) $this->otherTalk->id
+        && $e->scopeType === Document::class
+        && $e->scopeId === (string) $this->otherDocument->id
         && $e->userId === $this->guest->id
         && $e->workspaceId === $this->workspace->id);
 });
 
 it('makes a guest a full member when they accept an unscoped invitation, keeping their scopes', function () {
-    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     $outcome = AcceptInvitation::run($this->guest, issue($this->owner, $this->workspace, $this->guest->email)->token);
 
@@ -248,78 +249,78 @@ it('makes a guest a full member when they accept an unscoped invitation, keeping
         ->and($outcome->membership->is($membership))->toBeTrue()
         ->and($this->concierge->isScopedGuest($outcome->membership->fresh()))->toBeFalse()
         ->and(roles_in($membership))->toBe(['presenter'])
-        ->and($this->concierge->scopedTo($membership, $this->talk))->toBeTrue();
+        ->and($this->concierge->scopedTo($membership, $this->document))->toBeTrue();
 });
 
 it('revokes a scope at once, killing pending links and removing the guest membership with its last scope', function () {
     Event::fake([ScopeRevoked::class, MembershipRemoved::class, InvitationRevoked::class]);
     config()->set('concierge.invitations.match_email', false);
 
-    // A pending invitation to the guest's own email for the keynote, issued before they reach it
+    // A pending invitation to the guest's own email for the handbook, issued before they reach it
     // through an invitation sent to another address.
-    $pending = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->talk);
-    $membership = AcceptInvitation::run($this->guest, invite_scoped($this->owner, $this->workspace, 'guest.alias@example.test', $this->talk)->token)->membership;
-    join_scoped($this->workspace, $this->owner, $this->guest, $this->otherTalk);
+    $pending = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document);
+    $membership = AcceptInvitation::run($this->guest, invite_scoped($this->owner, $this->workspace, 'guest.alias@example.test', $this->document)->token)->membership;
+    join_scoped($this->workspace, $this->owner, $this->guest, $this->otherDocument);
 
-    RevokeScope::run($this->admin, $this->concierge->scopeFor($membership, $this->talk));
+    RevokeScope::run($this->admin, $this->concierge->scopeFor($membership, $this->document));
 
-    expect($this->concierge->allowsScoped($this->guest, $this->talk))->toBeFalse()
-        ->and($this->concierge->allowsScoped($this->guest, $this->otherTalk))->toBeTrue()
+    expect($this->concierge->allowsScoped($this->guest, $this->document))->toBeFalse()
+        ->and($this->concierge->allowsScoped($this->guest, $this->otherDocument))->toBeTrue()
         ->and($membership->fresh()->status)->toBe(MembershipStatus::Active)
         ->and($pending->invitation->fresh()->status)->toBe(InvitationStatus::Revoked)
         ->and(fn () => AcceptInvitation::run($this->guest, $pending->token))->toThrow(InvitationRejected::class);
 
-    Event::assertDispatched(ScopeRevoked::class, fn (ScopeRevoked $e) => $e->scopeId === (string) $this->talk->id && ! $e->membershipRemoved && $e->actorId === $this->admin->id);
+    Event::assertDispatched(ScopeRevoked::class, fn (ScopeRevoked $e) => $e->scopeId === (string) $this->document->id && ! $e->membershipRemoved && $e->actorId === $this->admin->id);
     Event::assertDispatched(InvitationRevoked::class, fn (InvitationRevoked $e) => $e->invitationId === $pending->invitation->id);
     Event::assertNotDispatched(MembershipRemoved::class);
 
-    $last = $this->concierge->scopeFor($membership, $this->otherTalk);
+    $last = $this->concierge->scopeFor($membership, $this->otherDocument);
     RevokeScope::run($this->admin, $last);
     RevokeScope::run($this->admin, $last);
 
     expect($membership->fresh()->status)->toBe(MembershipStatus::Removed)
         ->and(roles_in($membership))->toBe([])
-        ->and($this->concierge->allowsScoped($this->guest, $this->otherTalk))->toBeFalse()
+        ->and($this->concierge->allowsScoped($this->guest, $this->otherDocument))->toBeFalse()
         ->and(User::query()->find($this->guest->id))->not->toBeNull()
         ->and($this->concierge->account($this->guest)->isActive())->toBeTrue()
         ->and(MembershipScope::query()->where('membership_id', $membership->id)->whereNotNull('revoked_at')->count())->toBe(2);
 
     Event::assertDispatched(ScopeRevoked::class, 2);
-    Event::assertDispatched(ScopeRevoked::class, fn (ScopeRevoked $e) => $e->scopeId === (string) $this->otherTalk->id && $e->membershipRemoved);
+    Event::assertDispatched(ScopeRevoked::class, fn (ScopeRevoked $e) => $e->scopeId === (string) $this->otherDocument->id && $e->membershipRemoved);
     Event::assertDispatched(MembershipRemoved::class, fn (MembershipRemoved $e) => $e->membershipId === $membership->id);
 
     // They can be invited to the record again.
-    $again = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    $again = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
     expect($again->is($membership))->toBeTrue()
         ->and($again->isActive())->toBeTrue()
-        ->and($this->concierge->allowsScoped($this->guest, $this->talk))->toBeTrue();
+        ->and($this->concierge->allowsScoped($this->guest, $this->document))->toBeTrue();
 });
 
 it('keeps a full member when their last scope is revoked, and only managers revoke', function () {
-    $full = join_scoped($this->workspace, $this->owner, $this->admin, $this->talk);
+    $full = join_scoped($this->workspace, $this->owner, $this->admin, $this->document);
     $presenter = join_as($this->workspace, $this->owner, host_user('presenter'));
 
-    expect(fn () => RevokeScope::run($presenter->user, $this->concierge->scopeFor($full, $this->talk)))->toThrow(scope_denied('not_manager'));
+    expect(fn () => RevokeScope::run($presenter->user, $this->concierge->scopeFor($full, $this->document)))->toThrow(scope_denied('not_manager'));
 
-    RevokeScope::run($this->owner, $this->concierge->scopeFor($full, $this->talk));
+    RevokeScope::run($this->owner, $this->concierge->scopeFor($full, $this->document));
 
     expect($full->fresh()->status)->toBe(MembershipStatus::Active)
         ->and(roles_in($full))->toBe(['admin'])
-        ->and($this->concierge->allowsScoped($this->admin, $this->talk))->toBeFalse();
+        ->and($this->concierge->allowsScoped($this->admin, $this->document))->toBeFalse();
 });
 
 it('revokes the scopes of a removed guest', function () {
-    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     RemoveMembership::run($this->admin, $membership);
 
     expect($this->concierge->scopes($membership))->toHaveCount(0)
-        ->and($this->concierge->allowsScoped($this->guest, $this->talk))->toBeFalse();
+        ->and($this->concierge->allowsScoped($this->guest, $this->document))->toBeFalse();
 });
 
 it('never transfers ownership to a scoped guest or changes their roles', function () {
     confirm_recent_authentication();
-    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    $membership = join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     expect(fn () => TransferOwnership::run($this->owner, $membership))->toThrow(scope_denied('recipient_guest'))
         ->and(fn () => ChangeMemberRoles::run($this->owner, $membership, new GrantSet(['admin'])))->toThrow(scope_denied('guest'))
@@ -327,7 +328,7 @@ it('never transfers ownership to a scoped guest or changes their roles', functio
 });
 
 it('leaves scoped guests out of member lists by default and lists them on request', function () {
-    join_scoped($this->workspace, $this->owner, $this->guest, $this->talk);
+    join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
 
     $default = scoped_members_index($this->owner, $this->workspace);
     $with = scoped_members_index($this->owner, $this->workspace, guests: true);
@@ -348,13 +349,13 @@ it('leaves scoped guests out of member lists by default and lists them on reques
 });
 
 it('keeps the scope through resend and expiry, and offers resend on a scoped invitation', function () {
-    $issued = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->talk);
+    $issued = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document);
     $fingerprint = $issued->invitation->grants_fingerprint;
 
     $this->travel(2)->minutes();
     $resent = ResendInvitation::run($this->admin, $issued->invitation);
 
-    expect($resent->invitation->scope()?->is(Scope::of($this->talk)))->toBeTrue()
+    expect($resent->invitation->scope()?->is(Scope::of($this->document)))->toBeTrue()
         ->and($resent->invitation->grants_fingerprint)->toBe($fingerprint)
         ->and(fn () => AcceptInvitation::run($this->guest, $issued->token))->toThrow(InvitationRejected::class);
 
@@ -365,17 +366,68 @@ it('keeps the scope through resend and expiry, and offers resend on a scoped inv
     expect(fn () => AcceptInvitation::run($this->guest, $resent->token))->toThrow(InvitationRejected::class);
 
     // Reissuing lazily expires the stale one for the same record.
-    $fresh = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->talk);
+    $fresh = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document);
     expect($resent->invitation->fresh()->status)->toBe(InvitationStatus::Expired);
 
     $membership = AcceptInvitation::run($this->guest, $fresh->token)->membership;
-    expect($this->concierge->scopedTo($membership, $this->talk))->toBeTrue();
+    expect($this->concierge->scopedTo($membership, $this->document))->toBeTrue();
 });
 
 it('refuses acceptance once the inviter can no longer grant the scoped role', function () {
-    $issued = invite_scoped($this->admin, $this->workspace, $this->guest->email, $this->talk);
+    $issued = invite_scoped($this->admin, $this->workspace, $this->guest->email, $this->document);
 
     config()->set('concierge.roles.guest.grantable_by', ['owner']);
 
     expect(InspectInvitation::run($this->guest, $issued->token)->state)->toBe(InvitationState::AuthorityLapsed);
+});
+
+it('lets a full member who also holds a scope through concierge.member, and refuses a guest-only member', function () {
+    join_scoped($this->workspace, $this->owner, $this->admin, $this->document);
+    join_scoped($this->workspace, $this->owner, $this->guest, $this->document);
+    Route::middleware('concierge.member')->get('/workspace-home', fn () => 'ok');
+
+    $inWorkspace = fn (User $user) => $this->concierge->context()->run($this->workspace, fn () => $this->actingAs($user)->get('/workspace-home'));
+
+    expect($this->concierge->allowsScoped($this->admin, $this->document))->toBeTrue();
+    $inWorkspace($this->admin)->assertOk();
+    $inWorkspace($this->guest)->assertForbidden();
+});
+
+it('refuses a scoped invitation whose record was deleted or whose type no longer resolves, writing nothing', function (string $how) {
+    $issued = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document);
+
+    match ($how) {
+        'deleted' => $this->document->delete(),
+        'unresolvable' => $issued->invitation->forceFill(['scope_type' => 'gone'])->save(),
+    };
+
+    if ($how === 'unresolvable') {
+        // Keep the snapshot consistent, so only the missing type is wrong.
+        $issued->invitation->forceFill([
+            'grants' => [...$issued->invitation->grants, 'scope' => ['type' => 'gone', 'id' => (string) $this->document->id]],
+            'grants_fingerprint' => GrantSnapshot::capture(new GrantSet(['guest']), new Scope('gone', (string) $this->document->id))['fingerprint'],
+        ])->save();
+    }
+
+    expect(fn () => AcceptInvitation::run($this->guest, $issued->token))->toThrow(scope_denied('scope_missing'))
+        ->and(Membership::query()->where('user_id', $this->guest->id)->exists())->toBeFalse()
+        ->and(MembershipScope::query()->count())->toBe(0)
+        ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Pending)
+        ->and($this->guest->fresh()->email_verified_at)->not->toBeNull();
+})->with(['deleted', 'unresolvable']);
+
+it('refuses a tampered scope at acceptance: the record is in the fingerprint', function () {
+    $issued = invite_scoped($this->owner, $this->workspace, $this->guest->email, $this->document);
+
+    // Swap the record on the row and in the snapshot, leaving the fingerprint as issued.
+    $issued->invitation->forceFill([
+        'scope_id' => (string) $this->otherDocument->id,
+        'grants' => [...$issued->invitation->grants, 'scope' => ['type' => Document::class, 'id' => (string) $this->otherDocument->id]],
+    ])->save();
+
+    expect(fn () => AcceptInvitation::run($this->guest, $issued->token))
+        ->toThrow(fn (InvitationRejected $e) => expect($e->state)->toBe(InvitationState::GrantsChanged))
+        ->and(Membership::query()->where('user_id', $this->guest->id)->exists())->toBeFalse()
+        ->and(MembershipScope::query()->count())->toBe(0)
+        ->and($this->concierge->allowsScoped($this->guest, $this->otherDocument))->toBeFalse();
 });

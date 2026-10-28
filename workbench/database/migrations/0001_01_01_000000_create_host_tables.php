@@ -46,7 +46,7 @@ return new class extends Migration
         });
 
         // A record a scoped invitation can reach (tests/Feature/ScopedInvitationTest.php).
-        Schema::create('talks', function (Blueprint $table) {
+        Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('workspace_id')->nullable();
             $table->string('title');
@@ -56,7 +56,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('talks');
+        Schema::dropIfExists('documents');
         Schema::dropIfExists('workspaces');
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');

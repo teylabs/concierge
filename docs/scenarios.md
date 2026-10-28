@@ -98,6 +98,9 @@ Each row is one scenario, the behaviour concierge promises, and the test that pr
 | S11 | Member lists | Guests are left out of the members index and MembershipSource::members() unless asked for | `tests/Feature/ScopedInvitationTest.php::leaves scoped guests out of member lists by default and lists them on request` |
 | S12 | Resend and expiry | The scope travels with the invitation through resend, expiry and reissue | `tests/Feature/ScopedInvitationTest.php::keeps the scope through resend and expiry, and offers resend on a scoped invitation` |
 | S13 | App-wide mode | Scopes are refused; nothing is scoped | `tests/AppMode/ScopedInvitationTest.php::refuses scoped invitations and allows no scoped access in app-wide mode` |
+| S14 | Full member with a scope | Still passes `concierge.member`; a guest-only member gets a 403 | `tests/Feature/ScopedInvitationTest.php::lets a full member who also holds a scope through concierge.member, and refuses a guest-only member` |
+| S15 | Record gone | Accepting refuses with `scope_missing` when the record was deleted or its type no longer resolves; nothing is written and the invitation stays pending | `tests/Feature/ScopedInvitationTest.php::refuses a scoped invitation whose record was deleted or whose type no longer resolves, writing nothing` |
+| S16 | Tampered record | A record swapped on the invitation fails the fingerprint at acceptance | `tests/Feature/ScopedInvitationTest.php::refuses a tampered scope at acceptance: the record is in the fingerprint` |
 
 ## Diagrams
 

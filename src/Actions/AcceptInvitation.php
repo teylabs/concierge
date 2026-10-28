@@ -2,6 +2,9 @@
 
 namespace Tey\Concierge\Actions;
 
+use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
 use SensitiveParameter;
 use Tey\Concierge\Concerns\Runnable;
@@ -33,7 +36,9 @@ use Tey\Concierge\Support\Scope;
  * A scoped invitation adds its record to the user's membership: an active
  * member (full or guest) keeps their membership and gains the scope; anyone
  * else gets a guest membership holding only the invitation's scoped roles.
- * An unscoped invitation accepted by a guest makes them a full member.
+ * An unscoped invitation accepted by a guest makes them a full member. A
+ * scoped invitation whose record no longer exists (deleted, or its type no
+ * longer resolves) is refused with `scope_missing` and writes nothing.
  */
 class AcceptInvitation
 {
@@ -79,6 +84,12 @@ class AcceptInvitation
 
             if ($state !== null && $state !== InvitationState::AlreadyMember) {
                 throw new InvitationRejected($state);
+            }
+
+            // The record may have been deleted since the invitation was sent. Refused before
+            // anything is written; the invitation stays pending for a manager to revoke.
+            if ($invitation->isScoped() && ! $this->scopeExists($invitation->scope())) {
+                Response::deny(__('What this invitation was for no longer exists.'), 'scope_missing')->authorize();
             }
 
             InvitationRules::verifyInvitedEmail($invitation->email, $user);
@@ -136,6 +147,18 @@ class AcceptInvitation
 
             return $this->consume($invitation, $membership, $user, AcceptanceOutcome::Joined);
         });
+    }
+
+    /** Whether the scoped record still exists: its type resolves to a model and a row has its key. */
+    protected function scopeExists(Scope $scope): bool
+    {
+        $class = Relation::getMorphedModel($scope->type) ?? $scope->type;
+
+        if (! class_exists($class) || ! is_subclass_of($class, Model::class)) {
+            return false;
+        }
+
+        return $class::query()->whereKey($scope->id)->exists();
     }
 
     protected function grantScope(Membership $membership, Invitation $invitation, Scope $scope): void

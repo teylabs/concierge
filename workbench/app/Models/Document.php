@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $workspace_id
  * @property string $title
  */
-class Talk extends Model
+class Document extends Model
 {
     protected $guarded = [];
 }
