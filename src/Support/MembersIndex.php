@@ -102,7 +102,7 @@ final class MembersIndex
             throw new UnsupportedConfiguration("The members index needs workspace mode; set 'mode' => 'workspaces' in config/concierge.php. App-wide mode lists users instead.");
         }
 
-        $tab = (string) $request->query('tab', 'members');
+        $tab = is_string($raw = $request->query('tab', 'members')) ? $raw : '';
 
         abort_unless(in_array($tab, self::TABS, true), 400, 'Unknown tab.');
 
@@ -113,7 +113,7 @@ final class MembersIndex
             Response::deny(__('You are not an active member of this workspace.'), 'not_member')->authorize();
         }
 
-        $search = trim((string) Arr::get((array) $request->query('filter', []), 'search', ''));
+        $search = is_string($raw = Arr::get((array) $request->query('filter', []), 'search')) ? trim($raw) : '';
         $perPage = min(max((int) $request->query('per_page', self::DEFAULT_PER_PAGE), 1), self::MAX_PER_PAGE);
         $page = max((int) $request->query('page', 1), 1);
 
@@ -214,10 +214,12 @@ final class MembersIndex
             $query->where("{$memberships}.status", '!=', MembershipStatus::Removed->value);
         }
 
+        // Search and role take one value: no delimiter, so `Viewer, Owner` stays one string instead of Spatie's comma-split array. A value that still arrives
+        // as an array (`filter[search][]=x`) is invalid input and is ignored, never cast to a string.
         return QueryBuilder::for($query, $request)
             ->allowedFilters(
-                AllowedFilter::callback('search', fn (Builder $q, $value) => $this->searchMembers($q, (string) $value)),
-                AllowedFilter::callback('role', fn (Builder $q, $value) => $this->withRole($q, $workspace, (string) $value)),
+                AllowedFilter::callback('search', fn (Builder $q, $value) => is_string($value) ? $this->searchMembers($q, $value) : $q)->delimiter(''),
+                AllowedFilter::callback('role', fn (Builder $q, $value) => is_string($value) ? $this->withRole($q, $workspace, $value) : $q)->delimiter(''),
                 AllowedFilter::exact('status', "{$memberships}.status"),
             )
             ->allowedSorts(AllowedSort::field('name', "{$users}.name"), AllowedSort::field('joined', "{$memberships}.joined_at"))
@@ -232,7 +234,7 @@ final class MembersIndex
             ->where('status', InvitationStatus::Pending->value);
 
         return QueryBuilder::for($query, $request)
-            ->allowedFilters(AllowedFilter::callback('search', fn (Builder $q, $value) => $q->whereLike('email', '%'.$this->escape((string) $value).'%', caseSensitive: false)))
+            ->allowedFilters(AllowedFilter::callback('search', fn (Builder $q, $value) => is_string($value) ? $q->whereLike('email', '%'.$this->escape($value).'%', caseSensitive: false) : $q)->delimiter(''))
             ->allowedSorts(AllowedSort::field('email'), AllowedSort::field('sent', 'last_sent_at'), AllowedSort::field('expires', 'expires_at'))
             ->defaultSort('expires_at', 'id');
     }
@@ -427,14 +429,15 @@ final class MembersIndex
 
     private function sort(Request $request, string $tab): TableSort
     {
-        $sort = ltrim((string) $request->query('sort', ''), '-');
+        $requested = is_string($raw = $request->query('sort')) ? $raw : '';
+        $sort = ltrim($requested, '-');
         $column = ['members' => ['name' => 'member', 'joined' => 'joined'], 'invitations' => ['email' => 'email', 'sent' => 'sent', 'expires' => 'expires']][$tab][$sort] ?? null;
 
         if ($column === null) {
             return new TableSort($tab === 'members' ? 'member' : 'expires', 'asc');
         }
 
-        return new TableSort($column, str_starts_with((string) $request->query('sort'), '-') ? 'desc' : 'asc');
+        return new TableSort($column, str_starts_with($requested, '-') ? 'desc' : 'asc');
     }
 
     /** @param  Builder<*>  $query */

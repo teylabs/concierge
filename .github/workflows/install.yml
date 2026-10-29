@@ -23,6 +23,10 @@ on:
       - 'composer.json'
       - '.github/workflows/install.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.draft }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   vue-kit:
     name: concierge:install on the Vue starter kit
