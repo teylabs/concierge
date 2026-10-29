@@ -2,6 +2,16 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.9.1] - 2026-10-29
+
+### Changed
+
+- The current workspace and a user's memberships are read once per request and remembered in a request-scoped `RequestMemo` (bound with `scoped()`, so it's dropped between requests, queued jobs and Octane requests; no cache store). It's cleared by writes to the membership, ownership, workspace, user and role tables, by a transaction rollback, and when the workspace context is entered or left. For 5 repeated calls in one request: `member()` 20 → 4 queries, `workspacesOf()` 25 → 5, `current()` 5 → 1 (#141, closes #128).
+
+### Known limitations
+
+- A host that writes those tables over another database connection, or with query events off, sees the remembered reads until the request ends.
+
 ## [0.9.0] - 2026-10-28
 
 ### Added

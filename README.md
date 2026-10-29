@@ -42,6 +42,8 @@ With `LocalLoginButton` on that page, it shows **Sign in as dev@example.test**. 
 
 The full documentation is at [concierge.teylabs.com](https://concierge.teylabs.com). What is planned on the way to 1.0 is in [ROADMAP.md](ROADMAP.md).
 
+For coding agents: [llms.txt](https://concierge.teylabs.com/llms.txt) indexes every docs page, and [llms-full.txt](https://concierge.teylabs.com/llms-full.txt) is the whole documentation as one Markdown file.
+
 ## Installation
 
 Concierge requires PHP 8.4 or 8.5 and Laravel 13.
