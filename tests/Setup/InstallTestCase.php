@@ -15,9 +15,16 @@ use Tey\Concierge\Tests\TestCase;
  */
 class InstallTestCase extends TestCase
 {
-    use OwnConfigPath;
+    use FreshDatabase, OwnConfigPath;
 
     protected ?string $fixturePath = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->setUpFreshDatabase();
+    }
 
     protected function resolveApplicationConfiguration($app)
     {
@@ -58,6 +65,7 @@ class InstallTestCase extends TestCase
     protected function tearDown(): void
     {
         $paths = [$this->fixturePath, $this->ownConfigPath];
+        $this->tearDownFreshDatabase();
 
         parent::tearDown();
 
