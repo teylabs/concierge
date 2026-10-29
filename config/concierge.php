@@ -117,6 +117,38 @@ return [
         'throttle' => ['inspect' => 30, 'accept' => 10, 'invite' => 20],
     ],
 
+    /*
+     * Concierge's own pages and endpoints for managing members and accepting
+     * invitations, named concierge.*. concierge:install turns them on; an app
+     * whose config has no 'routes' key keeps them off and keeps its own routes.
+     * Workspace mode (concierge's engine) gets every route; app-wide mode gets
+     * only the invitation pages for now; the kit engine gets none.
+     */
+    'routes' => [
+        'enabled' => false,
+
+        // Put in front of every path, e.g. 'team' gives /team/members.
+        'prefix' => '',
+
+        // For the member pages and actions. concierge.member is always added.
+        'middleware' => ['web', 'auth'],
+
+        // For the invitation page, which a signed-out visitor opens from the email.
+        // Accepting it always needs a signed-in user as well.
+        'invitation_middleware' => ['web'],
+
+        // Where Continue goes once an invitation is accepted or can't be.
+        'home' => '/',
+
+        // The Inertia components each page renders, as concierge:pages writes them.
+        'pages' => [
+            'members' => 'Concierge/Members',
+            'invite' => 'Concierge/InviteMember',
+            'member' => 'Concierge/Member',
+            'accept' => 'Concierge/AcceptInvitation',
+        ],
+    ],
+
     'recent_authentication_seconds' => null,
 
     /*

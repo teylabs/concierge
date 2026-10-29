@@ -178,6 +178,25 @@ final class MembersIndex
         );
     }
 
+    /**
+     * One member's row, as the index would list it, for the member page. The
+     * actor must be an active, full member of the membership's workspace.
+     */
+    public function row(Member $actor, Membership $membership): MemberRow
+    {
+        $workspace = $membership->workspace;
+        $actorMembership = $this->concierge->membership($actor, $workspace);
+
+        if (! $actorMembership?->isActive() || $this->concierge->isScopedGuest($actorMembership)) {
+            Response::deny(__('You are not an active member of this workspace.'), 'not_member')->authorize();
+        }
+
+        $directory = MembershipDirectory::load($this->concierge, $workspace, $actor, [$membership]);
+        $policy = $this->policy instanceof BatchesMembershipReads ? $this->policy->usingDirectory($directory) : $this->policy;
+
+        return $this->memberRow($membership, $actor, $workspace, $actorMembership, $directory, $policy);
+    }
+
     private function membersQuery(Workspace $workspace, Request $request): QueryBuilder
     {
         [$users, $memberships, $userKey] = $this->tables();
@@ -370,6 +389,17 @@ final class MembersIndex
      * @return list<RoleBadge>
      */
     private function badges(array $roles): array
+    {
+        return self::roleBadges($roles);
+    }
+
+    /**
+     * The badges for a list of role names, labelled from the config; the owner's stands out.
+     *
+     * @param  list<string>  $roles
+     * @return list<RoleBadge>
+     */
+    public static function roleBadges(array $roles): array
     {
         return array_map(fn (string $role) => new RoleBadge($role, (string) config("concierge.roles.{$role}.label", ucfirst($role)), $role === Roles::owner() ? 'primary-solid' : 'info'), $roles);
     }
