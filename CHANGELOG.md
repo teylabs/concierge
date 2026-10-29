@@ -2,7 +2,7 @@
 
 All notable changes to `concierge` will be documented in this file.
 
-## [Unreleased]
+## [0.9.2] - 2026-10-29
 
 ### Fixed
 
