@@ -1,0 +1,5 @@
+## Concierge
+
+This application uses `tey/concierge` for users, roles, invitations and workspaces. Don't write to concierge's tables or Spatie's role tables yourself: call the action in `Tey\Concierge\Actions` (`InviteMember`, `ChangeMemberRoles`, `SuspendMembership`, `RemoveMembership`, `TransferOwnership`, `InviteUser`, `ChangeUserRoles`, …) with `::run()`, passing the acting user first. The actions check who may grant which role; keep that check on the server for every request, because hiding a control in the UI is not authorization.
+
+Set concierge up with `php artisan concierge:install` (preview with `--dry-run --json`); until `config/concierge.php` exists it registers nothing. Every `concierge:*` command takes `--json`, and those that write take `--dry-run`. Use concierge's `concierge.*` routes rather than writing member controllers; override a controller by binding it, or a policy through the Gate. Load `concierge-development` for setup, inviting and granting roles, routes and overrides, events, and moving to workspaces.
