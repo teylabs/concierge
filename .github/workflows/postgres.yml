@@ -14,7 +14,6 @@ on:
       - 'composer.json'
       - 'composer.lock'
   pull_request:
-    branches: [main, '*.x']
     paths:
       - '**.php'
       - '.github/workflows/postgres.yml'
