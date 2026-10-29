@@ -6,8 +6,8 @@ use Tey\Concierge\Tests\TestCase;
 
 /**
  * A fresh app straight after `composer require tey/concierge`: no
- * config/concierge.php and no setup switch. Local login is turned on only to
- * prove that even an enabled feature stays unregistered.
+ * config/concierge.php and no setup switch. Local login and the routes are turned
+ * on only to prove that even an enabled feature stays unregistered.
  */
 class NotSetUpTestCase extends TestCase
 {
@@ -21,5 +21,6 @@ class NotSetUpTestCase extends TestCase
 
         $app['config']->offsetUnset('concierge.setup');
         $app['config']->set('concierge.local_login.enabled', true);
+        $app['config']->set('concierge.routes.enabled', true);
     }
 }
