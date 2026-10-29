@@ -17,6 +17,7 @@ use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Tey\Concierge\Commands\DeactivateUserCommand;
 use Tey\Concierge\Commands\ImportMembersCommand;
+use Tey\Concierge\Commands\InstallCommand;
 use Tey\Concierge\Commands\InviteCommand;
 use Tey\Concierge\Commands\OwnersCommand;
 use Tey\Concierge\Commands\PagesCommand;
@@ -37,6 +38,7 @@ use Tey\Concierge\Exceptions\UnsupportedConfiguration;
 use Tey\Concierge\Http\Middleware\EnsureAccountActive;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\Http\Middleware\RequireScopedAccess;
+use Tey\Concierge\Install\AppInspector;
 use Tey\Concierge\Kit\KitMembershipSource;
 use Tey\Concierge\Kit\KitWorkspaceContext;
 use Tey\Concierge\Listeners\RefuseDeactivatedUser;
@@ -124,6 +126,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        $this->app->bindIf(AppInspector::class, fn ($app) => new AppInspector($app->basePath(), $app->getNamespace().'Models\\'));
+
         if (! static::setUp()) {
             return;
         }
@@ -180,6 +184,10 @@ class ConciergeServiceProvider extends PackageServiceProvider
                 'Setup' => '<fg=yellow;options=bold>Not set up: run php artisan concierge:install</>',
             ]);
 
+            if ($this->app->runningInConsole()) {
+                $this->commands([InstallCommand::class]);
+            }
+
             return;
         }
 
@@ -216,7 +224,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         ConciergeFrontend::register($this->app->basePath());
 
         if ($this->app->runningInConsole()) {
-            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, RestoreUserCommand::class, RolesCommand::class, SyncRolesCommand::class]);
+            $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InstallCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, RestoreUserCommand::class, RolesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register();
         }
     }

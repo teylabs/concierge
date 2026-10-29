@@ -8,10 +8,18 @@ uses(TestCase::class);
 /**
  * A reviewed prompt site maps command => declaring class::method => option => reason.
  * Every option must exist on the command and answer that method's question;
- * the method must honour --no-interaction. No commands need an exception today.
+ * the method must honour --no-interaction.
  * Delegated prompts in mod are disabled by PagesCommand's --no-interaction.
  */
-const COMMAND_PROMPT_OPTIONS = [];
+const COMMAND_PROMPT_OPTIONS = [
+    'concierge:install' => [
+        'Tey\\Concierge\\Commands\\InstallCommand::choices' => [
+            'workspace-model' => 'Answers whether to adopt the team model it found.',
+            'mode' => 'Answers where invitations and roles apply.',
+            'local-login' => 'Answers whether to turn on local login when the app has no sign-in.',
+        ],
+    ],
+];
 
 it('gives every registered concierge command JSON and a flag for every prompt', function () {
     $commands = array_filter(Artisan::all(), fn ($command, $name) => str_starts_with($name, 'concierge:'), ARRAY_FILTER_USE_BOTH);
