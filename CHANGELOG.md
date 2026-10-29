@@ -2,6 +2,12 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **A comma in the members or invitations search no longer returns a 500.** `MembersIndex` registered its `search` and `role` filters with Spatie's default `,` delimiter and then cast the value with `(string)`, so `?filter[search]=Viewer, Owner` hit "Array to string conversion". Search and role now take one value (no delimiter). An array value (`filter[search][]=x`, `sort[]=x`, `tab[]=x`) is ignored as invalid input, or for `tab` refused as an unknown tab, and never cast to a string. This matches tey/kit 0.5.21's TableQuery fix.
+
 ## [0.9.1] - 2026-10-29
 
 ### Changed
