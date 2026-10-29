@@ -11,7 +11,23 @@ use Tey\Concierge\Tests\TestCase;
  */
 class NotSetUpTestCase extends TestCase
 {
-    use OwnConfigPath;
+    use FreshDatabase, OwnConfigPath;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->setUpFreshDatabase();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->tearDownFreshDatabase();
+
+        parent::tearDown();
+
+        $this->deleteOwnConfigPath();
+    }
 
     protected function resolveApplicationConfiguration($app)
     {
