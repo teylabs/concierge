@@ -47,6 +47,8 @@ class TestCase extends Orchestra
     {
         parent::resolveApplicationConfiguration($app);
 
+        // Testbench has no config/concierge.php, so the test host says it is set up.
+        $app['config']->set('concierge.setup', true);
         $app['config']->set('concierge.features', ['membership' => true, 'tenant_invitations' => true]);
         $app['config']->set('concierge.mode', 'workspaces');
         $app['config']->set('concierge.models.workspace', Workspace::class);
