@@ -10,6 +10,7 @@ use LogicException;
 use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Support\ConciergeModels;
+use Tey\Concierge\Support\RequestMemo;
 
 /**
  * The current team as a Laravel starter kit sees it: the team in the
@@ -19,6 +20,9 @@ use Tey\Concierge\Support\ConciergeModels;
  *
  * Spatie teams is off under the kit engine, so run() and enter() only set the
  * current workspace.
+ *
+ * Outside run() the route or user lookup is read once per request through
+ * RequestMemo, keyed by the route value and the user's current team.
  */
 class KitWorkspaceContext implements WorkspaceContext
 {
@@ -34,6 +38,7 @@ class KitWorkspaceContext implements WorkspaceContext
     public function __construct(
         protected Container $app,
         protected AuthFactory $auth,
+        protected ?RequestMemo $memo = null,
     ) {}
 
     public function current(): ?Workspace
@@ -56,6 +61,7 @@ class KitWorkspaceContext implements WorkspaceContext
     {
         $this->entered[] = $this->running;
         $this->running = $workspace;
+        $this->memo?->forget('kit.workspace.');
     }
 
     public function leave(): void
@@ -65,6 +71,7 @@ class KitWorkspaceContext implements WorkspaceContext
         }
 
         $this->running = array_pop($this->entered);
+        $this->memo?->forget('kit.workspace.');
     }
 
     protected function fromRoute(): ?Workspace
@@ -84,9 +91,10 @@ class KitWorkspaceContext implements WorkspaceContext
         }
 
         $model = ConciergeModels::workspace();
+        $read = fn () => $model::query()->where((new $model)->getRouteKeyName(), $team)->first();
 
         /** @var (Model&Workspace)|null */
-        return $model::query()->where((new $model)->getRouteKeyName(), $team)->first();
+        return $this->memo ? $this->memo->remember("kit.workspace.route.{$model}.{$team}", $read) : $read();
     }
 
     protected function fromUser(): ?Workspace
@@ -98,7 +106,10 @@ class KitWorkspaceContext implements WorkspaceContext
             return null;
         }
 
+        $model = ConciergeModels::workspace();
+        $read = fn () => $model::query()->find($id);
+
         /** @var (Model&Workspace)|null */
-        return ConciergeModels::workspace()::query()->find($id);
+        return $this->memo ? $this->memo->remember('kit.workspace.user.'.$model.'.'.(string) $id, $read) : $read();
     }
 }
