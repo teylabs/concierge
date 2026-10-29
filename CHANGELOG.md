@@ -2,6 +2,40 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.10.0] - 2026-10-29
+
+### Added
+
+- **`php artisan concierge:install`** detects the app, asks only what it can't detect, and sets concierge up, printing one line per step (#144).
+  - It detects the starter kit (Vue, React, Svelte, Livewire or none), WorkOS AuthKit, the sign-in, the user model, any team or organisation model, and Spatie's setup.
+  - It asks whether to adopt a team model, which mode to use, and whether to turn on local login, each with a flag; `--no-interaction` takes the defaults.
+  - It publishes and configures Spatie permission, writes `config/concierge.php`, migrates and syncs roles.
+  - It never rewrites models: one missing a contract gets the exact lines to add, and the command stops until you run it again.
+  - Running it again changes nothing that's already in place. `--dry-run --json` gives the plan.
+- **Default routes, controllers and policies**, each overridable (#145). Named `concierge.*` routes cover managing members (index, invite, member page, roles, suspend, reinstate, remove, transfer ownership, invitation resend and revoke) and accepting invitations.
+  - They're registered only when concierge is set up, membership is on and `concierge.routes.enabled` is true. `concierge:install` writes `'enabled' => true`; the package default is `false`.
+  - Override pieces through config (`routes.prefix`, `routes.middleware`, `routes.invitation_middleware`, `routes.home`, `routes.pages`), by binding a controller subclass, or through Gate abilities (`Tey\Concierge\Http\Abilities`). An app's own ability definition always wins.
+  - Pages render through the new `Contracts\PageResponder`: Inertia when installed, JSON otherwise.
+  - There are new page-prop builders (`MemberPage`, `InviteMemberPage`, `AcceptInvitationPage`, `RoleOptions`), plus `MembersIndex::row()` and `roleBadges()`.
+  - With the routes on, `Concierge::invitationUrl()` defaults to `concierge.invitations.show`; `invitationUrlUsing()` still wins.
+- **Laravel Boost guidance** (#146): a guideline and a `concierge-development` skill, so coding agents use concierge's actions and routes instead of rebuilding them. A test fails if a command, option, action or event ships without being named in the skill.
+- **Read-only Boost MCP tools** `concierge-status` and `concierge-plan` (#147). They're added to Boost's MCP server when Boost is installed, and they work before setup. Inviting, granting roles and creating owners stay with `php artisan concierge:*`.
+
+### Changed
+
+- **Concierge registers nothing until it's set up** (#142). Without the app's own `config/concierge.php` (or with `'setup' => false`), it registers no migrations, routes, middleware, listeners, bindings or commands other than `concierge:install`. So `composer require tey/concierge` followed by `php artisan migrate` creates no concierge tables. `php artisan about` shows the setup state.
+
+### Fixed
+
+- The scaffolding tests are safe under `pest --parallel`: each test process gets its own copy of the Testbench skeleton (#148).
+
+### Upgrading
+
+- **Existing apps: nothing changes.** Your `config/concierge.php` marks concierge as set up, so it registers exactly as before. Without a `routes` key, the new routes stay off, no Gate abilities are defined, and invitation links still come only from `invitationUrlUsing()`.
+- **To adopt the default routes**, copy the `routes` block from the package config into `config/concierge.php` with `'enabled' => true`, run `php artisan concierge:pages` if you haven't, and remove your own routes and controllers for the same pages. Check that `routes.prefix` doesn't clash with your paths; the default is no prefix, giving `/members` and `/invitations/{token}`. Add rate limiting through `routes.invitation_middleware` (for example `throttle:30,1`).
+- **With Laravel Boost**, run `php artisan boost:install` or `boost:update` to pick up the guidance and tools.
+- Running `concierge:install` on an app that's already set up is safe: it reports what's in place and changes nothing.
+
 ## [0.9.2] - 2026-10-29
 
 ### Fixed
