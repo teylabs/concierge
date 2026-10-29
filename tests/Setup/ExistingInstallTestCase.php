@@ -12,6 +12,13 @@ class ExistingInstallTestCase extends TestCase
 {
     use OwnConfigPath;
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        $this->deleteOwnConfigPath();
+    }
+
     protected function resolveApplicationConfiguration($app)
     {
         $this->useOwnConfigPath($app, withConciergeConfig: true);
