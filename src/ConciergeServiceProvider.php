@@ -54,6 +54,7 @@ use Tey\Concierge\Support\MembershipScopedAccess;
 use Tey\Concierge\Support\OpenAccountGuard;
 use Tey\Concierge\Support\PermissionWorkspaceContext;
 use Tey\Concierge\Support\PlatformOwners;
+use Tey\Concierge\Support\RequestMemo;
 use Tey\Concierge\Support\SessionRecentAuthentication;
 use Tey\Concierge\Support\UserDeletionGuard;
 
@@ -140,6 +141,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         $kit = $mode === Mode::Workspaces && WorkspaceEngine::configured() === WorkspaceEngine::Kit;
 
+        $this->app->scoped(RequestMemo::class);
         $this->app->scopedIf(WorkspaceContext::class, match (true) {
             $mode === Mode::App => AppScope::class,
             $kit => KitWorkspaceContext::class,
@@ -152,6 +154,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         // A reset through the emailed link proves the mailbox (README: Security).
         Event::listen(PasswordReset::class, VerifyEmailOnPasswordReset::class);
+        RequestMemo::listen($this->app);
 
         if (! static::membershipEnabled()) {
             return;

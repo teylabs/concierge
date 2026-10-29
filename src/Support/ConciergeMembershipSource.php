@@ -20,6 +20,9 @@ class ConciergeMembershipSource implements MembershipSource
 {
     protected bool $includeScopedGuests = false;
 
+    /** Reads are remembered for the request; see RequestMemo for when they are forgotten. */
+    public function __construct(protected ?RequestMemo $memo = null) {}
+
     /**
      * members() leaves scoped guests out unless asked: a copy that lists them
      * too, for a page that manages guests.
@@ -39,23 +42,34 @@ class ConciergeMembershipSource implements MembershipSource
 
     public function members(Workspace $workspace): array
     {
-        return $this->describe($this->active()
+        return $this->remember('members.'.(int) $this->includeScopedGuests.'.'.$workspace->getKey(), fn () => $this->describe($this->active()
             ->where('workspace_id', $workspace->getKey())
             ->when(! $this->includeScopedGuests, fn (Builder $query) => $query->where('guest', false))
-            ->get());
+            ->get()));
     }
 
     public function member(Workspace $workspace, Member $user): ?WorkspaceMember
     {
-        return $this->describe($this->active()
+        return $this->remember('member.'.$workspace->getKey().'.'.$user->getKey(), fn () => $this->describe($this->active()
             ->where('workspace_id', $workspace->getKey())
             ->where('user_id', $user->getKey())
-            ->get())[0] ?? null;
+            ->get())[0] ?? null);
     }
 
     public function workspacesOf(Member $user): array
     {
-        return $this->describe($this->active()->where('user_id', $user->getKey())->get());
+        return $this->remember('workspaces.'.$user->getKey(), fn () => $this->describe($this->active()->where('user_id', $user->getKey())->get()));
+    }
+
+    /**
+     * @template T
+     *
+     * @param  \Closure(): T  $read
+     * @return T
+     */
+    protected function remember(string $key, \Closure $read): mixed
+    {
+        return $this->memo ? $this->memo->remember('concierge.membership.'.$key, $read) : $read();
     }
 
     /** @return Builder<Membership> */
