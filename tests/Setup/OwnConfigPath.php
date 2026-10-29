@@ -28,13 +28,12 @@ trait OwnConfigPath
         $app->useConfigPath($this->ownConfigPath);
     }
 
-    protected function tearDown(): void
+    /** Call from tearDown(), after parent::tearDown(). */
+    protected function deleteOwnConfigPath(): void
     {
         if ($this->ownConfigPath !== null) {
             (new Filesystem)->deleteDirectory($this->ownConfigPath);
             $this->ownConfigPath = null;
         }
-
-        parent::tearDown();
     }
 }
