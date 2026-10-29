@@ -16,6 +16,7 @@ use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Data\UI\UserAvatar;
 use Tey\Concierge\Data\UI\UserColumn;
 use Tey\Concierge\Enums\Mode;
+use Tey\Concierge\Http\ConciergeRoutes;
 use Tey\Concierge\Models\Account;
 use Tey\Concierge\Models\Invitation;
 use Tey\Concierge\Models\Membership;
@@ -217,14 +218,19 @@ class Concierge
         return $this;
     }
 
+    /**
+     * The link an invitation email carries: the app's own from
+     * invitationUrlUsing(), else concierge's invitation page when its routes
+     * are on, else null and nothing is emailed.
+     */
     public function invitationUrl(Invitation $invitation, #[SensitiveParameter] string $token): ?string
     {
-        return $this->invitationUrl ? ($this->invitationUrl)($invitation, $token) : null;
+        return $this->invitationUrl ? ($this->invitationUrl)($invitation, $token) : ConciergeRoutes::invitationUrl($token);
     }
 
     public function deliversInvitations(): bool
     {
-        return $this->invitationUrl !== null && config('concierge.invitations.deliver', true);
+        return ($this->invitationUrl !== null || ConciergeRoutes::linksInvitations()) && config('concierge.invitations.deliver', true);
     }
 
     /** @param  Closure(TenantInvitation, string): string  $callback */

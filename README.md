@@ -60,7 +60,7 @@ Then set it up:
 php artisan concierge:install
 ```
 
-`concierge:install` detects your starter kit (Vue, React, Svelte, Livewire or none, and WorkOS AuthKit), your sign-in, your user model and any team or organisation model. It asks only what it can't detect: whether to use a team model it found as workspaces, app-wide or workspace mode (app-wide by default), and whether to turn on local login when the app has no sign-in. Every question has a flag, and `--no-interaction` takes the defaults. It then publishes and configures Spatie permission, writes `config/concierge.php`, migrates and creates the roles, printing one line per step. It never edits your models: if one is missing a contract, it prints the exact lines to add and stops, and you run it again. Running it again changes nothing that is already set up.
+`concierge:install` detects your starter kit (Vue, React, Svelte, Livewire or none, and WorkOS AuthKit), your sign-in, your user model and any team or organisation model. It asks only what it can't detect: whether to use a team model it found as workspaces, app-wide or workspace mode (app-wide by default), and whether to turn on local login when the app has no sign-in. Every question has a flag, and `--no-interaction` takes the defaults. It then publishes and configures Spatie permission, writes `config/concierge.php` with concierge's [routes](#routes) turned on, migrates and creates the roles, printing one line per step. It never edits your models: if one is missing a contract, it prints the exact lines to add and stops, and you run it again. Running it again changes nothing that is already set up.
 
 Until `config/concierge.php` exists, concierge registers nothing: no migrations, routes, middleware, listeners or commands other than `concierge:install`, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in the config to keep concierge unregistered anyway.
 
@@ -255,7 +255,7 @@ Restores a deactivated user as the `--as` user: the same `RestoreUser` action th
 
 ### Membership
 
-Every operation is an action class in `Tey\Concierge\Actions`, called with `::run()`: invite, resend, revoke and accept invitations; change roles; suspend, reinstate and remove members; leave a workspace (`LeaveWorkspace::run($user, $workspace)`: a member ends their own membership, and the owner must transfer ownership first); transfer ownership; force a password reset. Actions check the grant rules in `config/concierge.php` and dispatch events. Your app keeps its routes, controllers, policies and authentication, and protects routes with the `concierge.member` middleware. See [Membership](https://concierge.teylabs.com/features/membership).
+Every operation is an action class in `Tey\Concierge\Actions`, called with `::run()`: invite, resend, revoke and accept invitations; change roles; suspend, reinstate and remove members; leave a workspace (`LeaveWorkspace::run($user, $workspace)`: a member ends their own membership, and the owner must transfer ownership first); transfer ownership; force a password reset. Actions check the grant rules in `config/concierge.php` and dispatch events. Concierge's [routes](#routes) call them for you after `concierge:install`; your own routes call them the same way, protected with the `concierge.member` middleware. See [Membership](https://concierge.teylabs.com/features/membership).
 
 `concierge.member` returns 404 without a workspace and for a workspace the user never belonged to. Once a user is removed, leaves or is suspended, it repoints `CurrentWorkspace` (the session's current workspace) to their oldest other active membership, or to none, and redirects to `workspaces.no_workspace_url` (default `/`); JSON requests get a 403.
 
@@ -266,6 +266,58 @@ When the wrong account opens an invitation, the page names both emails and offer
 `DeactivateUser::run($actor, $user, reason: 'Left the company')` takes a user's access away and keeps their history; `RestoreUser::run($actor, $user)` gives it back. The state lives on the user's `concierge_accounts` row, not on the users table, so your own queries are untouched: filter on `status` when you want to hide deactivated people. The same rules as removal apply through the `AccountPolicy` and `AccountGuard`: not yourself, not the last owner, not someone of equal or higher rank. Roles and, in workspace mode, memberships stay as they are, so restoring brings back exactly what the user had, with no new invitation. A listener on Laravel's `Validated` event refuses a deactivated user with "This account is deactivated." on the `email` key once their credentials check out, which covers Fortify, the starter kits and `Auth::attempt`. Add the `concierge.active` middleware after your authentication middleware (for example `['auth:sanctum', 'concierge.active']`) to sign out a deactivated user on their next request; token requests get a 403 and the tokens are kept, so they work again after a restore. Deactivating also deletes the user's sessions when they live in the `database` driver and cycles the remember-me token; with other drivers the middleware ends the session. Workspace mode has no app-wide roles, so bind your own `AccountPolicy` to say who may deactivate. Listen to `UserDeactivated` and `UserRestored`.
 
 `ForcePasswordReset::run($actor, $membership, resetTwoFactor: true)` locks an account down when it may be compromised: the password becomes one nobody knows, the remember-me token is cycled, two-factor is cleared when asked, and the person receives a reset link through your password broker. The same manager and rank rules apply as for suspending, and never to yourself. With the `database` session driver the person's sessions are deleted; with any other driver, add Laravel's `AuthenticateSession` middleware so their sessions end when the password hash changes. API tokens are untouched; listen to `PasswordResetForced`. In app-wide mode pass the user instead of a membership, `ForcePasswordReset::run($actor, $user)`: the rules are those of `DeactivateUser`, a deactivated account is refused, and `PasswordResetForced` carries a null `workspaceId` and `membershipId` (so does the `membership` on the result).
+
+### Routes
+
+`concierge:install` writes `'routes' => ['enabled' => true]` into `config/concierge.php`, and concierge then serves its own pages and endpoints, named `concierge.*`. A fresh app can invite, accept, change roles, suspend, reinstate, remove and transfer ownership with no app code. In workspace mode on concierge's own engine:
+
+| Method | Path | Name |
+| --- | --- | --- |
+| GET | `members` | `concierge.members.index` |
+| GET, POST | `members/invite` | `concierge.members.create`, `concierge.members.store` |
+| GET | `members/{membership}` | `concierge.members.show` |
+| PUT | `members/{membership}/roles` | `concierge.members.roles` |
+| POST | `members/{membership}/suspend`, `/reinstate` | `concierge.members.suspend`, `concierge.members.reinstate` |
+| DELETE | `members/{membership}` | `concierge.members.destroy` |
+| POST | `members/{membership}/transfer-ownership` | `concierge.members.transfer-ownership` |
+| POST or PUT | `members/invitations/{invitation}/resend` | `concierge.invitations.resend` |
+| DELETE | `members/invitations/{invitation}` | `concierge.invitations.destroy` |
+| GET | `invitations/{token}` | `concierge.invitations.show` |
+| POST | `invitations/{token}/accept`, `/switch-account` | `concierge.invitations.accept`, `concierge.invitations.switch-account` |
+
+App-wide mode gets only the three `invitations/{token}` routes for now; the Users pages follow in a later release. The kit engine gets none, since concierge doesn't write a starter kit's teams yet ([#57](https://github.com/teylabs/concierge/issues/57)).
+
+- **Workspace.** The member routes take no workspace parameter. They use the bound `WorkspaceContext`: if your middleware already entered a workspace, that one; otherwise the session's `CurrentWorkspace`, which falls back to the user's oldest active membership. Anything else in the URL is looked up inside that workspace, so another workspace's id is a 404. `concierge.member` runs on every member route.
+- **Config.** `routes.prefix` goes in front of every path (`'team'` gives `/team/members`). `routes.middleware` (default `['web', 'auth']`) wraps the member routes and `routes.invitation_middleware` (default `['web']`) the invitation page, which a signed-out visitor opens. `routes.home` is where Continue goes, and `routes.pages` names the Inertia component for each page; the defaults are the wrappers `concierge:pages` writes.
+- **Pages.** With Inertia installed, pages render with `Inertia::render()`; without it they return the props as JSON. Bind `Tey\Concierge\Contracts\PageResponder` to render another way. Concierge's PHP does not require Inertia.
+- **Invitation emails.** With the routes on, an invitation emails a link to `concierge.invitations.show` unless you call `Concierge::invitationUrlUsing()`, which still wins. With them off, nothing changes: nothing is emailed until you set a URL. A signed-out visitor is offered your `login` and `register` routes and comes back to the invitation afterwards.
+- **Ownership transfer** goes through Laravel's `password.confirm` when your app has that route, and `TransferOwnership` still refuses until the password was confirmed recently.
+- **Security.** Every endpoint checks a Gate ability first, and the action then checks the grant rules again. A hidden button is never the only check.
+
+An app whose `config/concierge.php` has no `routes` key, which is every app set up before this release, keeps the routes off. Each piece can be replaced on its own.
+
+Turn the routes off and keep your own:
+
+```php
+// config/concierge.php
+'routes' => ['enabled' => false],
+```
+
+Replace a controller by binding your subclass; the routes resolve controllers from the container:
+
+```php
+// AppServiceProvider::register()
+$this->app->bind(\Tey\Concierge\Http\Controllers\MembersController::class, \App\Http\Controllers\MembersController::class);
+```
+
+Override a policy by defining the Gate ability yourself; concierge only defines the ones you haven't:
+
+```php
+// AppServiceProvider::boot()
+Gate::define(\Tey\Concierge\Http\Abilities::MANAGE_MEMBER, fn (User $user, Membership $membership) => $user->is_admin);
+```
+
+The abilities are `VIEW_MEMBERS` and `INVITE_MEMBERS` (given the workspace), `MANAGE_MEMBER` (roles, suspend, reinstate and remove) and `TRANSFER_OWNERSHIP` (given the membership), and `MANAGE_INVITATION` (resend and revoke). An ability can narrow what the routes allow but never widen it, because the actions check the grant rules too; bind your own `GrantPolicy` to change those. `MemberPage`, `InviteMemberPage` and `AcceptInvitationPage` in `Tey\Concierge\Support` build the props for your own controllers, as `MembersIndex` does for the list.
 
 ### Scoped Invitations
 
@@ -335,7 +387,7 @@ Optional Vue 3 pages (`MembersPage`, `InviteMemberPage`, `MemberPage`, `UsersPag
 
 #### TypeScript types
 
-Type your own Members, Member, invite and accept pages against the generated page props your controllers supply. Vue apps can import them from `@tey/concierge`; plain TypeScript or other frontends can use `@tey/concierge/types`, which imports no Vue components and needs no Vue tooling. Both entries export the same generated types, including the Users page props and row types. Mod's existing `@tey/concierge/*` TypeScript path covers `/types`; no extra wiring is needed. The `types.ts` contract will be frozen at 1.0 ([#36](https://github.com/teylabs/concierge/issues/36)).
+Type your own Members, Member, invite and accept pages against the generated page props that concierge's controllers (or yours) supply. Vue apps can import them from `@tey/concierge`; plain TypeScript or other frontends can use `@tey/concierge/types`, which imports no Vue components and needs no Vue tooling. Both entries export the same generated types, including the Users page props and row types. Mod's existing `@tey/concierge/*` TypeScript path covers `/types`; no extra wiring is needed. The `types.ts` contract will be frozen at 1.0 ([#36](https://github.com/teylabs/concierge/issues/36)).
 
 ```ts
 import type { MembersPageProps } from '@tey/concierge';
@@ -354,7 +406,7 @@ import type {
 
 #### Users Pages (App-Wide Mode)
 
-`UsersPage` lists everyone with search, a role filter and a status filter (Active by default, Deactivated, or both), paginated; set `metadata.status` to `null` or `'active'` to hide deactivated users, `'deactivated'` for only them and `'all'` for everyone. `UserPage` edits a user's name, email and roles and links to removal, and `InviteUserPage` sends the app-wide invitation. Their props are `UsersPageProps`, `UserPageProps` and `InviteUserPageProps` in `types.ts`, and they never say "workspace". Concierge ships no routes yet ([#28](https://github.com/teylabs/concierge/issues/28)), so your controllers build the props and supply every link; a `null` link hides its control. Wire them to `ChangeUserRoles`, `RemoveUser`, `InviteUser` and `UpdateUser`. Changing an email does not clear `email_verified_at` or send a verification email; that is your app's call. Removal calls `delete()` on the user model, so a model with `SoftDeletes` is soft deleted. `UserPage` and the rows of `UsersPage` offer Deactivate (with an optional reason, sent as `reason`) and Restore when `UserLinks` carries a `deactivate` or `restore` link; both POST, so point them at routes that call `DeactivateUser` and `RestoreUser`. They also offer Force password reset when `UserLinks` carries a `forcePasswordReset` link (hidden for yourself and for deactivated users): it POSTs to a route that calls `ForcePasswordReset`, and sends `resetTwoFactor: true` when the person ticked "Also reset two-factor authentication", a box shown only when the row's `twoFactorResettable` is true. Your controller decides which users to list: filter on the account `status` to match the metadata.
+`UsersPage` lists everyone with search, a role filter and a status filter (Active by default, Deactivated, or both), paginated; set `metadata.status` to `null` or `'active'` to hide deactivated users, `'deactivated'` for only them and `'all'` for everyone. `UserPage` edits a user's name, email and roles and links to removal, and `InviteUserPage` sends the app-wide invitation. Their props are `UsersPageProps`, `UserPageProps` and `InviteUserPageProps` in `types.ts`, and they never say "workspace". Concierge ships no routes for the Users pages yet (app-wide mode gets only the [invitation routes](#routes) for now), so your controllers build the props and supply every link; a `null` link hides its control. Wire them to `ChangeUserRoles`, `RemoveUser`, `InviteUser` and `UpdateUser`. Changing an email does not clear `email_verified_at` or send a verification email; that is your app's call. Removal calls `delete()` on the user model, so a model with `SoftDeletes` is soft deleted. `UserPage` and the rows of `UsersPage` offer Deactivate (with an optional reason, sent as `reason`) and Restore when `UserLinks` carries a `deactivate` or `restore` link; both POST, so point them at routes that call `DeactivateUser` and `RestoreUser`. They also offer Force password reset when `UserLinks` carries a `forcePasswordReset` link (hidden for yourself and for deactivated users): it POSTs to a route that calls `ForcePasswordReset`, and sends `resetTwoFactor: true` when the person ticked "Also reset two-factor authentication", a box shown only when the row's `twoFactorResettable` is true. Your controller decides which users to list: filter on the account `status` to match the metadata.
 
 `UpdateUser::run($actor, $user, name: ..., email: ...)` edits another user's name and email under the same rules as removal; your own profile stays with your app's profile page. A `null` argument leaves that field alone. The name is required (255 characters at most) and the email must be valid and unique on the users table, ignoring case, or a `ValidationException` keyed `name` or `email` is thrown. It writes the model's `name` and `email` attributes, which `conciergeDisplayName()` and `conciergeEmail()` read, and dispatches `UserUpdated` with the old and new value of each changed field.
 
@@ -414,7 +466,7 @@ Who may register is one setting, `CONCIERGE_REGISTRATION` (`open` by default, `d
 
 ### What Does My App Still Provide?
 
-Routes, controllers and policies that call the actions; authentication; and your layout. Each [feature page](https://concierge.teylabs.com/guide/introduction) lists exactly what it expects.
+Authentication, your layout and the wrapper pages (`concierge:pages` writes them). In workspace mode concierge's [routes](#routes) cover the members pages and invitations; in app-wide mode, the Users pages still need your routes and controllers. Each [feature page](https://concierge.teylabs.com/guide/introduction) lists exactly what it expects.
 
 ## Documentation
 

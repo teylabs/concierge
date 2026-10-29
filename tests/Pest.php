@@ -19,6 +19,9 @@ use Tey\Concierge\Tests\Fortify\FortifyAppWideTestCase;
 use Tey\Concierge\Tests\Fortify\FortifyTestCase;
 use Tey\Concierge\Tests\Import\ImportTestCase;
 use Tey\Concierge\Tests\Kit\KitTestCase;
+use Tey\Concierge\Tests\Routes\AppModeRoutesTestCase;
+use Tey\Concierge\Tests\Routes\KitRoutesTestCase;
+use Tey\Concierge\Tests\Routes\RoutesTestCase;
 use Tey\Concierge\Tests\Scaffolding\ModulesScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ReactScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
@@ -40,6 +43,9 @@ uses(FortifyTestCase::class, RefreshDatabase::class)->in('Fortify/FortifyDeactiv
 // The app-wide Fortify leg has its own schema, so DatabaseMigrations (see AppModeTestCase).
 uses(FortifyAppWideTestCase::class, DatabaseMigrations::class)->in('Fortify/AppWide');
 uses(KitTestCase::class, RefreshDatabase::class)->in('Kit');
+uses(RoutesTestCase::class, RefreshDatabase::class)->in('Routes/MemberRoutesTest.php', 'Routes/AcceptRoutesTest.php', 'Routes/OverrideRoutesTest.php');
+uses(KitRoutesTestCase::class, RefreshDatabase::class)->in('Routes/KitRoutesTest.php');
+uses(AppModeRoutesTestCase::class, DatabaseMigrations::class)->in('Routes/AppModeRoutesTest.php');
 uses(ImportTestCase::class, RefreshDatabase::class)->in('Import');
 uses(RefreshDatabase::class)->in('Feature');
 uses(TestCase::class, RefreshDatabase::class)->in('Boost');

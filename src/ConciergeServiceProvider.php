@@ -30,12 +30,16 @@ use Tey\Concierge\Contracts\AccountPolicy;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Contracts\MembershipSource;
+use Tey\Concierge\Contracts\PageResponder;
 use Tey\Concierge\Contracts\RecentAuthentication;
 use Tey\Concierge\Contracts\ScopedAccess;
 use Tey\Concierge\Contracts\WorkspaceContext;
 use Tey\Concierge\Enums\Mode;
 use Tey\Concierge\Enums\WorkspaceEngine;
 use Tey\Concierge\Exceptions\UnsupportedConfiguration;
+use Tey\Concierge\Http\Abilities;
+use Tey\Concierge\Http\ConciergeRoutes;
+use Tey\Concierge\Http\InertiaPageResponder;
 use Tey\Concierge\Http\Middleware\EnsureAccountActive;
 use Tey\Concierge\Http\Middleware\RequireActiveMembership;
 use Tey\Concierge\Http\Middleware\RequireScopedAccess;
@@ -158,6 +162,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $this->app->bindIf(AccountPolicy::class, ConfiguredAccountPolicy::class);
         $this->app->bindIf(RecentAuthentication::class, SessionRecentAuthentication::class);
         $this->app->bindIf(AccountGuard::class, OpenAccountGuard::class);
+        $this->app->bindIf(PageResponder::class, InertiaPageResponder::class);
     }
 
     /**
@@ -226,6 +231,12 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
         ConciergeFrontend::register($this->app->basePath());
 
+        // Off unless the app's config says so; concierge:install writes it.
+        if (ConciergeRoutes::enabled()) {
+            Abilities::define();
+            ConciergeRoutes::register($this->app->make(Router::class));
+        }
+
         if ($this->app->runningInConsole()) {
             $this->commands([DeactivateUserCommand::class, ImportMembersCommand::class, InstallCommand::class, InviteCommand::class, OwnersCommand::class, PagesCommand::class, RestoreUserCommand::class, RolesCommand::class, SyncRolesCommand::class]);
             ConciergeScaffolds::register();
@@ -234,7 +245,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     /**
      * Rate limiters are named for the host to apply to its own tenant-less routes;
-     * the package registers no routes. Keys combine IP, token hash and user id.
+     * the package registers no tenant routes. Keys combine IP, token hash and user id.
      */
     protected function bootTenantInvitations(): void
     {
