@@ -228,6 +228,8 @@ class InstallCommand extends Command
         $set("/('user' => )null/", $choices['user_model'] ? '\\'.ltrim($choices['user_model'], '\\').'::class' : 'null');
         $set("/('workspace' => )null/", $choices['workspace_model'] ? '\\'.ltrim($choices['workspace_model'], '\\').'::class' : 'null');
         $set("/('local_login' => \\[\\s*'enabled' => )false/", $choices['local_login'] ? 'true' : 'false');
+        // A fresh install gets concierge's routes; an app without the key keeps its own.
+        $set("/('routes' => \\[\\s*'enabled' => )false/", 'true');
 
         file_put_contents(config_path('concierge.php'), $contents);
         config()->set('concierge', require config_path('concierge.php'));

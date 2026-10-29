@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tey\Concierge\Tests\Setup\Fixtures\PlainUser;
 use Workbench\App\Models\Organisation;
@@ -40,6 +41,18 @@ it('sets a fresh app up app-wide with no questions', function () {
         ->and(Schema::hasTable('roles'))->toBeTrue()
         ->and(Schema::hasTable('concierge_invitations'))->toBeTrue()
         ->and(DB::table('roles')->pluck('name')->all())->toContain('owner');
+});
+
+it('turns concierge routes on for a fresh install', function () {
+    install(['--workspace-model' => Workspace::class]);
+
+    $config = require config_path('concierge.php');
+
+    expect($config['routes']['enabled'])->toBeTrue()
+        ->and($config['routes']['middleware'])->toBe(['web', 'auth'])
+        ->and(config('concierge.routes.enabled'))->toBeTrue()
+        ->and(Route::has('concierge.members.index'))->toBeTrue()
+        ->and(Route::has('concierge.invitations.show'))->toBeTrue();
 });
 
 it('changes nothing on a second run', function () {
