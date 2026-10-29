@@ -69,8 +69,14 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('concierge')
-            ->hasConfigFile()
-            ->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope']);
+            ->hasConfigFile();
+
+        // Before setup the config stays publishable and nothing else exists.
+        if (! static::setUp()) {
+            return;
+        }
+
+        $package->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope']);
 
         // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {
@@ -82,6 +88,19 @@ class ConciergeServiceProvider extends PackageServiceProvider
         if (static::membershipEnabled()) {
             $package->runsMigrations();
         }
+    }
+
+    /**
+     * Concierge is set up once the host has its own config/concierge.php, which
+     * every install made before 0.10 already has. Until then it registers no
+     * migrations, routes, listeners or middleware. A host may force either state
+     * with concierge.setup; it is read while the provider registers.
+     */
+    public static function setUp(): bool
+    {
+        $setting = config('concierge.setup');
+
+        return is_bool($setting) ? $setting : file_exists(config_path('concierge.php'));
     }
 
     /**
@@ -104,6 +123,10 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        if (! static::setUp()) {
+            return;
+        }
+
         $this->app->register(LocalAuthServiceProvider::class);
         $this->app->register(RegistrationServiceProvider::class);
 
@@ -150,6 +173,14 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        if (! static::setUp()) {
+            AboutCommand::add('Concierge', fn () => [
+                'Setup' => '<fg=yellow;options=bold>Not set up: run php artisan concierge:install</>',
+            ]);
+
+            return;
+        }
+
         // A reset through the emailed link proves the mailbox (README: Security).
         Event::listen(PasswordReset::class, VerifyEmailOnPasswordReset::class);
 
@@ -167,6 +198,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
         UserDeletionGuard::register();
 
         AboutCommand::add('Concierge', fn () => array_filter([
+            'Setup' => 'Done',
             'Mode' => Mode::configured()->value,
             'Workspace engine' => Mode::configured() === Mode::Workspaces ? WorkspaceEngine::configured()->value : null,
             'Deprecated' => Mode::inferred()
