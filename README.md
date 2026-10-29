@@ -123,6 +123,15 @@ The command creates missing role definitions and looks up emails case-insensitiv
 
 The command never prompts. `--dry-run` previews without writing any rows or sending links. `--json` returns an array with exactly `email`, `outcome` and boolean `linkSent` per email. Outcomes are `created`, `role_added` or `already_owner`; dry-run uses `would_create`, `would_add_role` or `already_owner`, always with `linkSent: false`. Errors return an `error` object and a non-zero exit code. An empty list (with a valid `--workspace` in workspace mode) or already-established owners exits 0. `concierge.owners` and `tenant_invitations.platform_owners` are separate settings: owning an app or workspace does not authorize inviting tenants.
 
+## Coding Agents
+
+Concierge ships [Laravel Boost](https://laravel.com/docs/boost) guidance: `php artisan boost:install` picks up a short guideline and the `concierge-development` skill. With Boost installed, its MCP server also gains two read-only tools:
+
+- `concierge-status`: whether concierge is set up, the mode and engine, the models and their key types, the configured roles, the owners and the `concierge:install` steps not yet in place. Owner emails are listed only in the `local` environment.
+- `concierge-plan`: the `concierge:install --dry-run --json` plan.
+
+The tools never write. Inviting, granting roles and creating owners stay with the `concierge:*` commands, so a person reviews every write.
+
 ## Command reference
 
 Run these as `php artisan concierge:<command>`. Apart from `concierge:install`, they are registered once concierge is set up and `concierge.features.membership` is enabled. Every command runs without prompts under Laravel's `--no-interaction` (`-n`), and only `concierge:install` ever prompts. Missing input or a refused operation exits non-zero and names the flag, configuration setting or command that fixes it. `--json` emits one JSON value without progress output; `--dry-run` makes no writes or deliveries. Laravel's standard options, including `--help`, `--quiet` and `--no-ansi`, also apply.

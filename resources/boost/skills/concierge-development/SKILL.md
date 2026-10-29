@@ -20,6 +20,13 @@ Concierge is glue over Laravel, spatie/laravel-permission and tey/mod. It owns i
 
 ## Setting up
 
+With Laravel Boost, two read-only MCP tools answer without parsing command output:
+
+- `concierge-status`: `{set_up, mode, engine, models, roles, owners, pending}`. `owners` is `{count, emails}`; emails are listed only in the local environment, and `owners` is null on the kit engine. `pending` lists the install steps not yet in place.
+- `concierge-plan`: the `concierge:install --dry-run --json` plan; pass `mode` and `workspace_model` as the flags would.
+
+Writing stays with `php artisan concierge:*`, the same reviewable path a person uses: the tools never invite, grant roles or create owners.
+
 Run `php artisan concierge:install`. It detects the starter kit, sign-in, user model, any team model and Spatie's setup, asks only what it can't detect, and reports one line per step (`done`, `already`, `would`, `skipped`, `manual`, `blocked`, `info`). Run it again after a `manual` step; a second run changes nothing that is in place.
 
 - `concierge:install --dry-run --json` shows `{detected, choices, steps, set_up}` without changing anything.

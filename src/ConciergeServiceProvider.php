@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Tey\Concierge\Boost\ToolRegistrar;
 use Tey\Concierge\Commands\DeactivateUserCommand;
 use Tey\Concierge\Commands\ImportMembersCommand;
 use Tey\Concierge\Commands\InstallCommand;
@@ -184,6 +185,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        ToolRegistrar::register($this->app);
+
         if (! static::setUp()) {
             AboutCommand::add('Concierge', fn () => [
                 'Setup' => '<fg=yellow;options=bold>Not set up: run php artisan concierge:install</>',
