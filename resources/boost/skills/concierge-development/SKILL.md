@@ -49,13 +49,24 @@ Tenant invitations (a platform owner invites someone to their own new workspace)
 
 `SyncRoleDefinitions` is what `concierge:sync-roles` runs.
 
-Invitations are emailed only when the app sets `Concierge::invitationUrlUsing(fn ($invitation, string $token) => url("/invitations/{$token}"))`.
+With concierge's routes off, invitations are emailed only when the app sets `Concierge::invitationUrlUsing(fn ($invitation, string $token) => url("/invitations/{$token}"))`.
 
 ## Protecting routes
 
 - `concierge.member` allows only an active member of the current workspace: 404 with no current workspace, 403 for anyone else.
 - `concierge.active` refuses deactivated accounts; `concierge.scoped` allows a scoped guest only on their records.
 - The current workspace comes from the bound `WorkspaceContext`: the current Spatie team on concierge's engine, or `{current_team}` / `current_team_id` on the kit engine.
+
+## Routes, controllers and policies
+
+Apps set up by `concierge:install` get concierge's own routes (`'routes' => ['enabled' => true]`), named `concierge.*`: the members list, invite, member page, role changes, suspend, reinstate, remove, transfer ownership, resend and revoke, and the invitation page with accept and switch account. Prefer them over writing your own. Apps set up before 0.10 have no `routes` key and keep them off. App-wide mode gets only the invitation routes, and the kit engine none.
+
+- List them with `php artisan route:list --name=concierge`. Change paths with `routes.prefix`, wrap them with `routes.middleware` and `routes.invitation_middleware`, and name the Inertia components with `routes.pages`.
+- Turn them off with `'routes' => ['enabled' => false]` and write your own controllers that call the actions.
+- Replace one controller by binding your subclass in a service provider's `register()`: `$this->app->bind(\Tey\Concierge\Http\Controllers\MembersController::class, \App\Http\Controllers\MembersController::class)`.
+- Narrow who may do what by defining the Gate abilities in `Tey\Concierge\Http\Abilities` yourself (`VIEW_MEMBERS`, `INVITE_MEMBERS`, `MANAGE_MEMBER`, `TRANSFER_OWNERSHIP`, `MANAGE_INVITATION`); concierge defines only those you haven't. An ability can't widen access, because the actions check the grant rules again; bind your own `GrantPolicy` for that.
+- Render pages another way by binding `Tey\Concierge\Contracts\PageResponder`. Build props for your own controllers with `MembersIndex`, `MemberPage`, `InviteMemberPage` and `AcceptInvitationPage` in `Tey\Concierge\Support`.
+- With the routes on, invitation emails link to `concierge.invitations.show` unless the app sets `Concierge::invitationUrlUsing()`.
 
 ## Pages
 
