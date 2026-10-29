@@ -11,8 +11,12 @@ use Tey\Concierge\Tests\TestCase;
  */
 class NotSetUpTestCase extends TestCase
 {
+    use OwnConfigPath;
+
     protected function resolveApplicationConfiguration($app)
     {
+        $this->useOwnConfigPath($app, withConciergeConfig: false);
+
         parent::resolveApplicationConfiguration($app);
 
         $app['config']->offsetUnset('concierge.setup');

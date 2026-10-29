@@ -10,19 +10,14 @@ use Tey\Concierge\Tests\TestCase;
  */
 class ExistingInstallTestCase extends TestCase
 {
+    use OwnConfigPath;
+
     protected function resolveApplicationConfiguration($app)
     {
-        file_put_contents($app->configPath('concierge.php'), "<?php\n\nreturn [];\n");
+        $this->useOwnConfigPath($app, withConciergeConfig: true);
 
         parent::resolveApplicationConfiguration($app);
 
         $app['config']->offsetUnset('concierge.setup');
-    }
-
-    protected function tearDown(): void
-    {
-        @unlink(config_path('concierge.php'));
-
-        parent::tearDown();
     }
 }

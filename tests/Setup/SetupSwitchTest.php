@@ -3,9 +3,16 @@
 use Illuminate\Support\Facades\File;
 use Tey\Concierge\ConciergeServiceProvider;
 
+beforeEach(function () {
+    $this->configPath = sys_get_temp_dir().'/concierge-switch-'.getmypid().'-'.bin2hex(random_bytes(4));
+    File::ensureDirectoryExists($this->configPath);
+    $this->sharedConfigPath = app()->configPath();
+    app()->useConfigPath($this->configPath);
+});
+
 afterEach(function () {
-    File::delete(config_path('concierge.php'));
-    config()->offsetUnset('concierge.setup');
+    app()->useConfigPath($this->sharedConfigPath);
+    File::deleteDirectory($this->configPath);
 });
 
 it('lets the switch force either state', function () {
