@@ -28,7 +28,24 @@ class ScaffoldTestCase extends TestCase
     {
         if (self::$skeleton === null) {
             self::$skeleton = sys_get_temp_dir().'/concierge-scaffold-'.getmypid().'-'.bin2hex(random_bytes(4));
-            (new Filesystem)->copyDirectory(parent::applicationBasePath(), self::$skeleton);
+            $files = new Filesystem;
+            $source = parent::applicationBasePath();
+
+            // The skeleton's vendor is a link to this checkout's vendor, which holds the
+            // skeleton again; copy everything else and give the copy an empty vendor.
+            foreach ($files->glob($source.'/{,.}[!.,!..]*', GLOB_BRACE) as $path) {
+                $target = self::$skeleton.'/'.basename($path);
+
+                if (basename($path) === 'vendor') {
+                    $files->ensureDirectoryExists($target);
+                } elseif (is_dir($path)) {
+                    $files->copyDirectory($path, $target);
+                } else {
+                    $files->ensureDirectoryExists(self::$skeleton);
+                    $files->copy($path, $target);
+                }
+            }
+
             register_shutdown_function(fn () => (new Filesystem)->deleteDirectory((string) self::$skeleton));
         }
 
