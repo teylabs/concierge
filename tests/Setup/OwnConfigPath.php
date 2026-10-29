@@ -19,7 +19,7 @@ trait OwnConfigPath
         $files = new Filesystem;
         $this->ownConfigPath = sys_get_temp_dir().'/concierge-setup-'.getmypid().'-'.bin2hex(random_bytes(4));
         $files->copyDirectory($app->configPath(), $this->ownConfigPath);
-        $files->delete($this->ownConfigPath.'/concierge.php');
+        $files->delete(array_filter([$this->ownConfigPath.'/concierge.php'], 'file_exists'));
 
         if ($withConciergeConfig) {
             $files->put($this->ownConfigPath.'/concierge.php', "<?php\n\nreturn [];\n");
