@@ -52,9 +52,9 @@ class InstallCommand extends Command
         $this->permissionConfig($detected, $choices);
         $this->permissionMigrations($detected);
         $this->conciergeConfig($detected, $choices);
-        $this->contract('user-model', $choices['user_model'], Member::class, "use Spatie\\Permission\\Traits\\HasRoles;\nuse Tey\\Concierge\\Concerns\\InteractsWithMemberships;\nuse Tey\\Concierge\\Contracts\\Member;\n\nclass User extends Authenticatable implements Member\n{\n    use HasRoles, InteractsWithMemberships;");
+        $this->contract('user-model', $choices['user_model'], Member::class, "use Spatie\\Permission\\Traits\\HasRoles;\nuse Tey\\Concierge\\Concerns\\InteractsWithMemberships;\nuse Tey\\Concierge\\Contracts\\Member;\n\nAdd Member to the class's implements list (after any interfaces it has),\nand HasRoles, InteractsWithMemberships to its use line.");
         if ($choices['mode'] === 'workspaces') {
-            $this->contract('workspace-model', $choices['workspace_model'], Workspace::class, "use Tey\\Concierge\\Concerns\\ActsAsWorkspace;\nuse Tey\\Concierge\\Contracts\\Workspace;\n\nclass ".class_basename((string) $choices['workspace_model'])." extends Model implements Workspace\n{\n    use ActsAsWorkspace;");
+            $this->contract('workspace-model', $choices['workspace_model'], Workspace::class, "use Tey\\Concierge\\Concerns\\ActsAsWorkspace;\nuse Tey\\Concierge\\Contracts\\Workspace;\n\nAdd Workspace to the class's implements list (after any interfaces it has),\nand ActsAsWorkspace to its use line.");
         }
         $this->migrateAndSyncRoles();
         $this->firstOwner($choices);

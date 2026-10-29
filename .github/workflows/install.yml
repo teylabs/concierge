@@ -1,0 +1,44 @@
+name: install
+
+# End-to-end proof of the main install path: a new app on the official Vue
+# starter kit requires this checkout and runs concierge:install. The other
+# starter kits are covered by fixtures in tests/Setup.
+
+on:
+  push:
+    branches: [main, '*.x']
+    paths:
+      - 'src/**'
+      - 'config/**'
+      - 'database/**'
+      - 'tests/Install/**'
+      - 'composer.json'
+      - '.github/workflows/install.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'config/**'
+      - 'database/**'
+      - 'tests/Install/**'
+      - 'composer.json'
+      - '.github/workflows/install.yml'
+
+jobs:
+  vue-kit:
+    name: concierge:install on the Vue starter kit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl, fileinfo
+          coverage: none
+          tools: laravel/installer
+
+      - name: Prove the install
+        run: bash tests/Install/prove-vue-kit.sh "$RUNNER_TEMP"
