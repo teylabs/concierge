@@ -121,7 +121,7 @@ it('says what to add to a user model without the contract, and stops before migr
 
     $this->artisan('concierge:install', ['--no-interaction' => true])
         ->expectsOutputToContain('user-model: manual')
-        ->expectsOutputToContain('class User extends Authenticatable implements Member')
+        ->expectsOutputToContain("Add Member to the class's implements list")
         ->expectsOutputToContain('migrate: blocked')
         ->assertFailed();
 

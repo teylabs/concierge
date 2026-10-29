@@ -25,7 +25,6 @@ on:
       - 'composer.json'
       - '.github/workflows/ui.yml'
   pull_request:
-    branches: [main, '*.x']
     paths:
       - 'resources/js/**'
       - 'resources/css/**'
