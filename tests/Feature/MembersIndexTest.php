@@ -109,6 +109,18 @@ it('pages with a capped per-page size and reports the range', function () {
         ->and(members_index($this->owner, $this->workspace, ['per_page' => 0])['table']['pagination']['perPage'])->toBe(1);
 });
 
+it('keeps a comma in a search or role as one value, and ignores an array value instead of returning a 500', function () {
+    expect(members_index($this->owner, $this->workspace, ['filter' => ['search' => 'Ana, Bo']])['table']['emptyState'])->toBe('no-results')
+        ->and(members_index($this->owner, $this->workspace, ['filter' => ['role' => 'Viewer, Owner']])['table']['emptyState'])->toBe('no-results')
+        ->and(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'dee, cy']])['invitations'])->toBe([])
+        ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['search' => ['an']]])))->toBe(member_names(members_index($this->owner, $this->workspace)))
+        ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['role' => ['admin']]])))->toBe(member_names(members_index($this->owner, $this->workspace)))
+        ->and(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => ['dee']]])['invitations'])->toHaveCount(2);
+
+    expect(members_index($this->owner, $this->workspace, ['sort' => ['-joined']])['table']['sort'])->toBe(['column' => 'member', 'direction' => 'asc'])
+        ->and(fn () => members_index($this->owner, $this->workspace, ['tab' => ['members']]))->toThrow(HttpException::class);
+});
+
 it('counts the tabs from the server, following the active search and nothing else', function () {
     $searched = members_index($this->owner, $this->workspace, ['filter' => ['search' => 'cy', 'role' => 'admin'], 'sort' => '-joined']);
 
