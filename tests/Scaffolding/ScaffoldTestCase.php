@@ -2,6 +2,7 @@
 
 namespace Tey\Concierge\Tests\Scaffolding;
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
 use Tey\Concierge\Tests\TestCase;
 
@@ -9,6 +10,8 @@ use Tey\Concierge\Tests\TestCase;
  * The testbench skeleton plays the host app. Mod reads the app's stack
  * (package.json, tsconfig.json) when its layout compiles at boot, so the
  * stack files are written before the application is created and removed after.
+ * Each test process works in its own copy of the skeleton, so scaffolding tests
+ * in parallel workers never see each other's files.
  */
 class ScaffoldTestCase extends TestCase
 {
@@ -18,6 +21,19 @@ class ScaffoldTestCase extends TestCase
     protected static bool $typescript = true;
 
     public const PAGES = 'resources/js/pages/Concierge';
+
+    private static ?string $skeleton = null;
+
+    public static function applicationBasePath()
+    {
+        if (self::$skeleton === null) {
+            self::$skeleton = sys_get_temp_dir().'/concierge-scaffold-'.getmypid().'-'.bin2hex(random_bytes(4));
+            (new Filesystem)->copyDirectory(parent::applicationBasePath(), self::$skeleton);
+            register_shutdown_function(fn () => (new Filesystem)->deleteDirectory((string) self::$skeleton));
+        }
+
+        return self::$skeleton;
+    }
 
     protected function setUp(): void
     {
