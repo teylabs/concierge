@@ -22,6 +22,7 @@ const COMMAND_REFERENCE_WRITING_COMMANDS = [
     'concierge:deactivate', // Deactivates the user's account and ends their sessions.
     'concierge:roles', // Replaces a user's app-wide role assignments.
     'concierge:restore', // Restores a deactivated user's account.
+    'concierge:install', // Writes config, publishes Spatie's config and migrations, migrates and syncs roles.
 ];
 
 it('keeps the README command reference in step with registered commands and options', function () {

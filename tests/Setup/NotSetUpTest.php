@@ -32,8 +32,8 @@ it('registers no routes, middleware, listeners or bindings', function () {
         ->and(app()->bound(Concierge::class))->toBeFalse();
 });
 
-it('registers no concierge commands', function () {
-    expect(collect(Artisan::all())->keys()->filter(fn ($name) => str_starts_with($name, 'concierge:'))->all())->toBe([]);
+it('registers only the install command', function () {
+    expect(collect(Artisan::all())->keys()->filter(fn ($name) => str_starts_with($name, 'concierge:'))->values()->all())->toBe(['concierge:install']);
 });
 
 it('says how to set up in about', function () {

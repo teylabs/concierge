@@ -54,11 +54,15 @@ composer require tey/concierge
 
 Composer also installs [tey/mod](https://github.com/teylabs/mod), which concierge uses to write files into your app. Your app needs no setup for it and no `config/mod.php`: it gains the `mod:*` Artisan commands, and `php artisan optimize` caches mod's discovery.
 
-The service provider is registered through package discovery. Publish the configuration to choose features and models:
+Then set it up:
 
 ```bash
-php artisan vendor:publish --tag="concierge-config"
+php artisan concierge:install
 ```
+
+`concierge:install` detects your starter kit (Vue, React, Svelte, Livewire or none, and WorkOS AuthKit), your sign-in, your user model and any team or organisation model. It asks only what it can't detect: whether to use a team model it found as workspaces, app-wide or workspace mode (app-wide by default), and whether to turn on local login when the app has no sign-in. Every question has a flag, and `--no-interaction` takes the defaults. It then publishes and configures Spatie permission, writes `config/concierge.php`, migrates and creates the roles, printing one line per step. It never edits your models: if one is missing a contract, it prints the exact lines to add and stops, and you run it again. Running it again changes nothing that is already set up.
+
+Until `config/concierge.php` exists, concierge registers nothing: no migrations, routes, middleware, listeners or commands other than `concierge:install`, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in the config to keep concierge unregistered anyway.
 
 | Feature | Switch | Default |
 | --- | --- | --- |
@@ -72,29 +76,7 @@ The switches are read while the package provider registers, so set them in `conf
 
 ## Quick Start
 
-Membership is on by default, and its migration reads your user and workspace models, so set those up **before** you migrate:
-
-1. Implement `Tey\Concierge\Contracts\Member` on your user model (with Spatie's `HasRoles`) and `Tey\Concierge\Contracts\Workspace` on your workspace model. Both tables need incrementing integer keys.
-2. Publish the [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) config and migrations, and set `permission.teams` to `true`.
-3. Set workspace mode and the two models in `config/concierge.php`:
-
-    ```php
-    'mode' => 'workspaces',
-
-    'models' => [
-        'user' => App\Models\User::class,
-        'workspace' => App\Models\Workspace::class,
-    ],
-    ```
-
-4. Migrate, then create the configured roles:
-
-    ```bash
-    php artisan migrate
-    php artisan concierge:sync-roles
-    ```
-
-Then make someone the owner of a workspace:
+After `concierge:install`, make someone the owner of a workspace:
 
 ```php
 use App\Models\User;
@@ -109,9 +91,9 @@ EstablishWorkspace::run($workspace, $owner);
 
 `$owner` now holds the `owner` role in that workspace and can invite others. [Membership](https://concierge.teylabs.com/features/membership) has the contract methods and the rest of the setup.
 
-An app that only wants local login sets `'features' => ['membership' => false]` first; then `migrate` needs no workspace or permission setup.
+An app that only wants local login sets `'features' => ['membership' => false]` in `config/concierge.php`; then `migrate` needs no workspace or permission setup.
 
-**App-wide mode** is for the app with one organisation: invitations and roles apply to the whole app, there is no workspace model or table, and Spatie teams stay off. Set `'mode' => 'app'`, leave `models.workspace` null, migrate and sync the roles as above, then make the first owner with `EstablishOwner::run($owner)`. The actions are `InviteUser`, `ChangeUserRoles` and `RemoveUser`; `AcceptInvitation`, `ResendInvitation`, `RevokeInvitation` and the `concierge.member` middleware work in both modes. Owner is the top role and several owners are allowed; granting it is how ownership passes on, and the last owner can never be removed or demoted. Your app's own "delete account" keeps working: deleting a user model removes their concierge row first, and the last owner is refused with a validation message on the `password` field. The Users pages and the upgrade to workspaces follow in 0.8 ([#19](https://github.com/teylabs/concierge/issues/19)).
+**App-wide mode** is for the app with one organisation: invitations and roles apply to the whole app, there is no workspace model or table, and Spatie teams stay off. It is what `concierge:install` sets up by default; make the first owner with `EstablishOwner::run($owner)`. The actions are `InviteUser`, `ChangeUserRoles` and `RemoveUser`; `AcceptInvitation`, `ResendInvitation`, `RevokeInvitation` and the `concierge.member` middleware work in both modes. Owner is the top role and several owners are allowed; granting it is how ownership passes on, and the last owner can never be removed or demoted. Your app's own "delete account" keeps working: deleting a user model removes their concierge row first, and the last owner is refused with a validation message on the `password` field. The Users pages and the upgrade to workspaces follow in 0.8 ([#19](https://github.com/teylabs/concierge/issues/19)).
 
 `ResendInvitation::run($actor, $invitation)` and `RevokeInvitation::run($actor, $invitation)` use the `AccountPolicy` for app-wide invitations. Resending requires authority to grant every invitation role, rotates the token, renews expiry and honours the resend cooldown; revoking requires management authority and is idempotent. Accepted invitations cannot be resent or revoked. An elapsed invitation still marked pending can be resent; one already marked expired cannot. The actions dispatch `InvitationResent` and `InvitationRevoked` with a null `workspaceId` in app-wide mode.
 
@@ -143,7 +125,20 @@ The command never prompts. `--dry-run` previews without writing any rows or send
 
 ## Command reference
 
-Run these as `php artisan concierge:<command>`. They are registered when `concierge.features.membership` is enabled. Every command runs without prompts, including with Laravel's `--no-interaction` (`-n`). Missing input or a refused operation exits non-zero and names the flag, configuration setting or command that fixes it. `--json` emits one JSON value without progress output; `--dry-run` makes no writes or deliveries. Laravel's standard options, including `--help`, `--quiet` and `--no-ansi`, also apply.
+Run these as `php artisan concierge:<command>`. Apart from `concierge:install`, they are registered once concierge is set up and `concierge.features.membership` is enabled. Every command runs without prompts under Laravel's `--no-interaction` (`-n`), and only `concierge:install` ever prompts. Missing input or a refused operation exits non-zero and names the flag, configuration setting or command that fixes it. `--json` emits one JSON value without progress output; `--dry-run` makes no writes or deliveries. Laravel's standard options, including `--help`, `--quiet` and `--no-ansi`, also apply.
+
+### `concierge:install`
+
+Sets concierge up; see [Installation](#installation). It is registered before setup, and it is the one command that asks questions, each paired with a flag. Every step reports `done`, `already`, `would` (dry run), `skipped`, `manual` (you must do it; the detail says what) or `blocked` (an earlier manual step stops it), and the command exits non-zero when a manual step stops it before migrating. Creating the first owner and setting the local-login account stay yours to do. On an app that is already set up it reads the mode and models from `config/concierge.php` and changes nothing it finds in place.
+
+| Option | Behaviour |
+| --- | --- |
+| `--mode=` | `app` or `workspaces`. Default `app`, or `workspaces` with `--workspace-model`. |
+| `--workspace-model=` | The model to use as workspaces. A starter kit's `Team` with a `team_members` pivot uses the kit engine, which reads the kit's teams and leaves Spatie teams off. |
+| `--local-login` | Turn on local login when the app has no sign-in; you then set `local_login.account.email`. |
+| `--no-migrate` | Write config, but don't migrate or create roles. |
+| `--dry-run` | Show the plan and change nothing. |
+| `--json` | `{detected, choices, steps, set_up}`; each step is `{step, status, detail}`. Errors: `{error, detected}`. |
 
 ### `concierge:sync-roles`
 
