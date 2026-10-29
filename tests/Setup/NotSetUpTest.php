@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Mcp\Request;
+use Tey\Concierge\Boost\StatusTool;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\ConciergeServiceProvider;
 
@@ -44,4 +46,14 @@ it('says how to set up in about', function () {
 
 it('keeps the config publishable', function () {
     expect(ConciergeServiceProvider::pathsToPublish(ConciergeServiceProvider::class, 'concierge-config'))->not->toBeEmpty();
+});
+
+it('reports not set up through the Boost status tool', function () {
+    $tool = app(StatusTool::class);
+    $data = json_decode($tool->handle(new Request([]))->content()->toTool($tool)['text'], true);
+
+    expect($data['set_up'])->toBeFalse()
+        ->and($data['mode'])->toBeNull()
+        ->and($data['owners'])->toBeNull()
+        ->and(collect($data['pending'])->pluck('step'))->toContain('concierge-config');
 });

@@ -42,6 +42,7 @@ uses(FortifyAppWideTestCase::class, DatabaseMigrations::class)->in('Fortify/AppW
 uses(KitTestCase::class, RefreshDatabase::class)->in('Kit');
 uses(ImportTestCase::class, RefreshDatabase::class)->in('Import');
 uses(RefreshDatabase::class)->in('Feature');
+uses(TestCase::class, RefreshDatabase::class)->in('Boost');
 // No RefreshDatabase: on a shared PostgreSQL database whichever class migrates first decides the
 // schema, and this one boots without the tenant migration. It must not touch the database.
 uses(TenantInvitationsOffTestCase::class)->in('TenantOff');

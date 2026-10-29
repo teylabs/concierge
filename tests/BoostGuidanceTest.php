@@ -60,7 +60,7 @@ it('covers every command and option', function () {
             }
 
             $flag = '--'.$option->getName();
-            $covered = in_array($option->getName(), ['json', 'dry-run'], true) && str_contains($skill, "Commands that write take `--dry-run`");
+            $covered = in_array($option->getName(), ['json', 'dry-run'], true) && str_contains($skill, 'Commands that write take `--dry-run`');
 
             foreach ($lines as $line) {
                 $covered = $covered || (boost_mentions($line, $name) && boost_mentions($line, $flag));
