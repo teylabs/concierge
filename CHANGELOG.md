@@ -2,12 +2,6 @@
 
 All notable changes to `concierge` will be documented in this file.
 
-## [Unreleased]
-
-### Added
-
-- **`MembersIndex::scopeMembersUsing($scope)`**: a host narrows the members the index lists with its own rule, a `function (Builder $memberships, Workspace $workspace): void`. It applies to the Members tab's rows and to its count alike, so they agree, and runs in a nested `where`, so it can't widen the workspace's own constraints. The Invitations tab is untouched.
-
 ## [0.10.0] - 2026-10-29
 
 ### Added
