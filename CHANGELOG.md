@@ -2,6 +2,12 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.9.3] - 2026-10-30
+
+### Added
+
+- **`MembersIndex::scopeMembersUsing($scope)`**: a host narrows the members the index lists and counts with its own rule (a `function (Builder $memberships, Workspace $workspace): void`). It's applied to both the rows and the Members tab count, inside a nested `where`, so the host's `orWhere` can't widen the workspace, guest or status constraints. Without a scope, the index behaves as before.
+
 ## [0.10.0] - 2026-10-29
 
 ### Added
@@ -12,12 +18,14 @@ All notable changes to `concierge` will be documented in this file.
   - It publishes and configures Spatie permission, writes `config/concierge.php`, migrates and syncs roles.
   - It never rewrites models: one missing a contract gets the exact lines to add, and the command stops until you run it again.
   - Running it again changes nothing that's already in place. `--dry-run --json` gives the plan.
+  
 - **Default routes, controllers and policies**, each overridable (#145). Named `concierge.*` routes cover managing members (index, invite, member page, roles, suspend, reinstate, remove, transfer ownership, invitation resend and revoke) and accepting invitations.
   - They're registered only when concierge is set up, membership is on and `concierge.routes.enabled` is true. `concierge:install` writes `'enabled' => true`; the package default is `false`.
   - Override pieces through config (`routes.prefix`, `routes.middleware`, `routes.invitation_middleware`, `routes.home`, `routes.pages`), by binding a controller subclass, or through Gate abilities (`Tey\Concierge\Http\Abilities`). An app's own ability definition always wins.
   - Pages render through the new `Contracts\PageResponder`: Inertia when installed, JSON otherwise.
   - There are new page-prop builders (`MemberPage`, `InviteMemberPage`, `AcceptInvitationPage`, `RoleOptions`), plus `MembersIndex::row()` and `roleBadges()`.
   - With the routes on, `Concierge::invitationUrl()` defaults to `concierge.invitations.show`; `invitationUrlUsing()` still wins.
+  
 - **Laravel Boost guidance** (#146): a guideline and a `concierge-development` skill, so coding agents use concierge's actions and routes instead of rebuilding them. A test fails if a command, option, action or event ships without being named in the skill.
 - **Read-only Boost MCP tools** `concierge-status` and `concierge-plan` (#147). They're added to Boost's MCP server when Boost is installed, and they work before setup. Inviting, granting roles and creating owners stay with `php artisan concierge:*`.
 
