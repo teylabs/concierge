@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Tey\Concierge\Actions\ReinstateMembership;
 use Tey\Concierge\Actions\SuspendMembership;
 use Tey\Concierge\Concierge;
 use Tey\Concierge\Enums\InvitationStatus;
@@ -152,6 +153,21 @@ it('changes roles for a manager, and refuses everyone else', function () {
         ->assertRedirect('/members');
 
     expect(roles_in($this->carolship))->toBe(['admin']);
+});
+
+it('refuses a role change for a suspended member and accepts it once reinstated', function () {
+    SuspendMembership::run($this->owner, $this->carolship);
+    $before = roles_in($this->carolship);
+
+    json_as($this->owner)->put("/members/{$this->carolship->id}/roles", ['roles' => ['admin']])->assertForbidden();
+
+    expect(roles_in($this->carolship->fresh()))->toBe($before);
+
+    ReinstateMembership::run($this->owner, $this->carolship);
+
+    json_as($this->owner)->put("/members/{$this->carolship->id}/roles", ['roles' => ['admin']])->assertSuccessful();
+
+    expect(roles_in($this->carolship->fresh()))->toBe(['admin']);
 });
 
 it('suspends, reinstates and removes for a manager, and refuses everyone else', function (string $verb, string $path) {
