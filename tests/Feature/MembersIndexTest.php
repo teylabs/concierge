@@ -2,6 +2,7 @@
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\Exceptions\InvalidFilterQuery;
 use Spatie\QueryBuilder\Exceptions\InvalidSortQuery;
@@ -10,7 +11,9 @@ use Tey\Concierge\Actions\ChangeMemberRoles;
 use Tey\Concierge\Actions\ReinstateMembership;
 use Tey\Concierge\Actions\RemoveMembership;
 use Tey\Concierge\Actions\SuspendMembership;
+use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
+use Tey\Concierge\Support\MemberPage;
 use Tey\Concierge\Support\MembersIndex;
 
 /** The index for $actor, as the request's query string asks for it. */
@@ -330,4 +333,19 @@ it('narrows the members and their count with the host scope, in this workspace o
 
     // Without a scope, everyone is listed as before.
     expect(member_names(members_index($this->owner, $this->workspace)))->toBe(['Admin', 'Ana', 'Bo', 'Owner', 'Second-admin']);
+});
+
+it('treats a member the host scope hides as not found on their own row', function () {
+    $hideAna = fn (Builder $memberships) => $memberships->where('user_id', '!=', $this->ana->getKey());
+    $anaMembership = ConciergeModels::membership()::query()
+        ->where('workspace_id', $this->workspace->getKey())->where('user_id', $this->ana->getKey())->firstOrFail();
+    $boMembership = ConciergeModels::membership()::query()
+        ->where('workspace_id', $this->workspace->getKey())->where('user_id', $this->bo->getKey())->firstOrFail();
+
+    expect(fn () => app(MembersIndex::class)->scopeMembersUsing($hideAna)->row($this->owner, $anaMembership))
+        ->toThrow(ModelNotFoundException::class)
+        ->and(fn () => app(MemberPage::class)->scopeMembersUsing($hideAna)->props($this->owner, $anaMembership))
+        ->toThrow(ModelNotFoundException::class)
+        ->and(app(MembersIndex::class)->scopeMembersUsing($hideAna)->row($this->owner, $boMembership)->user->name)->toBe('Bo')
+        ->and(app(MembersIndex::class)->row($this->owner, $anaMembership)->user->name)->toBe('Ana');
 });
