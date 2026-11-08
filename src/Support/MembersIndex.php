@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +70,9 @@ final class MembersIndex
 
     private bool $includeScopedGuests = false;
 
+    /** @var (Closure(Builder, Workspace): void)|null */
+    private ?Closure $memberScope = null;
+
     public function __construct(protected Concierge $concierge, protected GrantPolicy $policy) {}
 
     /**
@@ -80,6 +84,20 @@ final class MembersIndex
     public function urlsUsing(Closure $urls): static
     {
         $this->urls = $urls;
+
+        return $this;
+    }
+
+    /**
+     * Narrows the members the index lists and counts with the host's own rule (hiding a support role, say). The
+     * scope is given the memberships query, already joined to the users table, and the workspace. It applies to the
+     * Members tab's rows and to its count alike, so the two always agree; the Invitations tab is untouched.
+     *
+     * @param  Closure(Builder, Workspace): void  $scope
+     */
+    public function scopeMembersUsing(Closure $scope): static
+    {
+        $this->memberScope = $scope;
 
         return $this;
     }
@@ -180,7 +198,9 @@ final class MembersIndex
 
     /**
      * One member's row, as the index would list it, for the member page. The
-     * actor must be an active, full member of the membership's workspace.
+     * actor must be an active, full member of the membership's workspace. A
+     * member the host scope hides is not found here either (a 404), so the
+     * scope can't be stepped around by opening the member directly.
      */
     public function row(Member $actor, Membership $membership): MemberRow
     {
@@ -189,6 +209,10 @@ final class MembersIndex
 
         if (! $actorMembership?->isActive() || $this->concierge->isScopedGuest($actorMembership)) {
             Response::deny(__('You are not an active member of this workspace.'), 'not_member')->authorize();
+        }
+
+        if (! $this->withinMemberScope($membership, $workspace)) {
+            throw (new ModelNotFoundException)->setModel($membership::class, [$membership->getKey()]);
         }
 
         $directory = MembershipDirectory::load($this->concierge, $workspace, $actor, [$membership]);
@@ -208,6 +232,7 @@ final class MembersIndex
             ->select("{$memberships}.*")
             ->with(['user', 'invitation'])
             ->when(! $this->includeScopedGuests, fn (Builder $q) => $q->where("{$memberships}.guest", false));
+        $this->applyMemberScope($query, $workspace);
 
         // Members who have left are listed only when asked for.
         if (($filters['status'] ?? null) === null) {
@@ -253,6 +278,7 @@ final class MembersIndex
             ->where("{$memberships}.workspace_id", $workspace->getKey())
             ->where("{$memberships}.status", '!=', MembershipStatus::Removed->value)
             ->when(! $this->includeScopedGuests, fn (Builder $q) => $q->where("{$memberships}.guest", false));
+        $this->applyMemberScope($members, $workspace);
 
         $invitations = ConciergeModels::invitation()::query()
             ->where('workspace_id', $workspace->getKey())
@@ -464,6 +490,31 @@ final class MembersIndex
             ->where("{$roles}.name", $role)
             ->when(Config::teamsEnabled(), fn ($sub) => $sub->where("{$pivot}.{$team}", $workspace->getKey()))
             ->select("{$pivot}.{$morphKey}"));
+    }
+
+    /** Whether the host's scope, applied to the same joined query the index lists from, keeps this membership. */
+    private function withinMemberScope(Membership $membership, Workspace $workspace): bool
+    {
+        if ($this->memberScope === null) {
+            return true;
+        }
+
+        [$users, $memberships, $userKey] = $this->tables();
+        $query = ConciergeModels::membership()::query()
+            ->join($users, "{$users}.{$userKey}", '=', "{$memberships}.user_id")
+            ->where("{$memberships}.workspace_id", $workspace->getKey())
+            ->where("{$memberships}.{$membership->getKeyName()}", $membership->getKey());
+        $this->applyMemberScope($query, $workspace);
+
+        return $query->exists();
+    }
+
+    /** The host's scope, in a nested where so an `orWhere` in it can't widen the workspace's own constraints. */
+    private function applyMemberScope(Builder $query, Workspace $workspace): void
+    {
+        if ($this->memberScope !== null) {
+            $query->where(fn (Builder $nested) => ($this->memberScope)($nested, $workspace));
+        }
     }
 
     /** @return array{0: string, 1: string, 2: string} */

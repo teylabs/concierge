@@ -3,9 +3,11 @@
 namespace Tey\Concierge\Support;
 
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Tey\Concierge\Contracts\GrantPolicy;
 use Tey\Concierge\Contracts\Member;
+use Tey\Concierge\Contracts\Workspace;
 use Tey\Concierge\Data\UI\MemberGrants;
 use Tey\Concierge\Data\UI\MemberGrantsMetadata;
 use Tey\Concierge\Data\UI\MemberGrantsPayload;
@@ -33,6 +35,19 @@ final class MemberPage
     {
         $this->urls = $urls;
         $this->index->urlsUsing($urls);
+
+        return $this;
+    }
+
+    /**
+     * The host's member scope, as MembersIndex::scopeMembersUsing() takes it. A member it hides is not found on this
+     * page (a 404), so the page and the index agree on who can be seen.
+     *
+     * @param  Closure(Builder, Workspace): void  $scope
+     */
+    public function scopeMembersUsing(Closure $scope): static
+    {
+        $this->index->scopeMembersUsing($scope);
 
         return $this;
     }
