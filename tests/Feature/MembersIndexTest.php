@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\Exceptions\InvalidFilterQuery;
 use Spatie\QueryBuilder\Exceptions\InvalidSortQuery;
@@ -9,7 +11,9 @@ use Tey\Concierge\Actions\ChangeMemberRoles;
 use Tey\Concierge\Actions\ReinstateMembership;
 use Tey\Concierge\Actions\RemoveMembership;
 use Tey\Concierge\Actions\SuspendMembership;
+use Tey\Concierge\Support\ConciergeModels;
 use Tey\Concierge\Support\GrantSet;
+use Tey\Concierge\Support\MemberPage;
 use Tey\Concierge\Support\MembersIndex;
 
 /** The index for $actor, as the request's query string asks for it. */
@@ -299,4 +303,49 @@ it('searches members and invitations without regard to case, on every database',
         ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'VIEWER-INVITE']])['invitations'], 'email'))->toBe(['viewer-invite@example.test'])
         ->and(array_column(members_index($this->owner, $this->workspace, ['tab' => 'invitations', 'filter' => ['search' => 'VIEW']])['tabs'], 'count'))->toBe([1, 1])
         ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['search' => 'VIEW_']])))->toBe([]);
+});
+
+it('narrows the members and their count with the host scope, in this workspace only', function () {
+    $otherOwner = host_user('other-owner');
+    $elsewhere = host_user('elsewhere');
+    join_as(host_workspace('Other', $otherOwner), $otherOwner, $elsewhere, ['presenter']);
+    $seen = [];
+    $index = function (array $query = []) use (&$seen, $elsewhere) {
+        return app(MembersIndex::class)
+            ->scopeMembersUsing(function (Builder $memberships, $workspace) use (&$seen, $elsewhere) {
+                $seen[] = $workspace->getKey();
+                // An orWhere stays inside the scope: it can't reach a member of another workspace.
+                $memberships->whereNotIn('user_id', [$this->ana->getKey(), $this->bo->getKey()])->orWhere('user_id', $elsewhere->getKey());
+            })
+            ->props($this->owner, $this->workspace, Request::create('/members', 'GET', $query))->toArray();
+    };
+
+    $props = $index();
+    expect(member_names($props))->toBe(['Admin', 'Owner', 'Second-admin'])
+        ->and(array_column($props['tabs'], 'count'))->toBe([3, 2])
+        ->and($props['table']['pagination']['total'])->toBe(3)
+        ->and(array_unique($seen))->toBe([$this->workspace->getKey()]);
+
+    // The search narrows the scoped rows and their count together.
+    $searched = $index(['filter' => ['search' => 'adm']]);
+    expect(member_names($searched))->toBe(['Admin', 'Second-admin'])
+        ->and(array_column($searched['tabs'], 'count'))->toBe([2, 0]);
+
+    // Without a scope, everyone is listed as before.
+    expect(member_names(members_index($this->owner, $this->workspace)))->toBe(['Admin', 'Ana', 'Bo', 'Owner', 'Second-admin']);
+});
+
+it('treats a member the host scope hides as not found on their own row', function () {
+    $hideAna = fn (Builder $memberships) => $memberships->where('user_id', '!=', $this->ana->getKey());
+    $anaMembership = ConciergeModels::membership()::query()
+        ->where('workspace_id', $this->workspace->getKey())->where('user_id', $this->ana->getKey())->firstOrFail();
+    $boMembership = ConciergeModels::membership()::query()
+        ->where('workspace_id', $this->workspace->getKey())->where('user_id', $this->bo->getKey())->firstOrFail();
+
+    expect(fn () => app(MembersIndex::class)->scopeMembersUsing($hideAna)->row($this->owner, $anaMembership))
+        ->toThrow(ModelNotFoundException::class)
+        ->and(fn () => app(MemberPage::class)->scopeMembersUsing($hideAna)->props($this->owner, $anaMembership))
+        ->toThrow(ModelNotFoundException::class)
+        ->and(app(MembersIndex::class)->scopeMembersUsing($hideAna)->row($this->owner, $boMembership)->user->name)->toBe('Bo')
+        ->and(app(MembersIndex::class)->row($this->owner, $anaMembership)->user->name)->toBe('Ana');
 });
