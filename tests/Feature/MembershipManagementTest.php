@@ -91,6 +91,13 @@ it('removes membership in one workspace only', function () {
         ->and(fn () => ChangeMemberRoles::run($this->owner, $removed, new GrantSet(['presenter'])))->toThrow(denied_with('not_member'));
 });
 
+it('refuses to change the roles of a suspended member', function () {
+    SuspendMembership::run($this->owner, $this->presenterMembership);
+
+    expect(fn () => ChangeMemberRoles::run($this->owner, $this->presenterMembership, new GrantSet(['admin'])))->toThrow(denied_with('not_active'))
+        ->and(roles_in($this->presenterMembership->fresh()))->toBe(['presenter']);
+});
+
 it('isolates tenants: managers of one workspace cannot touch another', function () {
     $other = host_workspace('Other', $otherOwner = host_user('other-owner'));
     $foreign = join_as($other, $otherOwner, host_user('foreigner'));

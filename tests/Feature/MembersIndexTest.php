@@ -6,6 +6,7 @@ use Spatie\QueryBuilder\Exceptions\InvalidFilterQuery;
 use Spatie\QueryBuilder\Exceptions\InvalidSortQuery;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tey\Concierge\Actions\ChangeMemberRoles;
+use Tey\Concierge\Actions\ReinstateMembership;
 use Tey\Concierge\Actions\RemoveMembership;
 use Tey\Concierge\Actions\SuspendMembership;
 use Tey\Concierge\Support\GrantSet;
@@ -193,7 +194,8 @@ it('swaps suspend for reinstate, shows removed members only when asked, and conf
 
     expect(member_names($props))->not->toContain('Ana')
         ->and($bo['status'])->toBe('suspended')
-        ->and(action_keys($bo))->toBe(['change-role', 'reinstate', 'remove'])
+        ->and(action_keys($bo))->toBe(['reinstate', 'remove'])
+        ->and($bo['links']['updateGrants'] ?? null)->toBeNull()
         ->and(array_column(members_index($this->owner, $this->workspace)['tabs'], 'count')[0])->toBe(4)
         ->and(member_names(members_index($this->owner, $this->workspace, ['filter' => ['status' => 'removed']])))->toBe(['Ana'])
         ->and(action_keys(members_index($this->owner, $this->workspace, ['filter' => ['status' => 'removed']])['members'][0]))->toBe([])
@@ -204,7 +206,21 @@ it('swaps suspend for reinstate, shows removed members only when asked, and conf
     expect($remove)->toMatchArray(['method' => 'delete', 'destructive' => true])
         ->and($remove['confirm'])->toBe(['title' => 'Remove Bo?', 'body' => 'They lose access to this workspace straight away. You can invite them again later.', 'confirmLabel' => 'Remove member'])
         ->and(collect(collect(members_index($this->owner, $this->workspace)['members'])->firstWhere('user.name', 'Second-admin')['actions'])->firstWhere('key', 'transfer-ownership')['confirm']['title'])->toBe('Transfer ownership to Second-admin?')
-        ->and(collect($bo['actions'])->firstWhere('key', 'change-role')['destructive'])->toBeFalse();
+        ->and(collect(collect($props['members'])->firstWhere('user.name', 'Second-admin')['actions'])->firstWhere('key', 'change-role')['destructive'])->toBeFalse();
+});
+
+it('offers change role on an active member and not on a suspended one', function () {
+    $bo = fn () => collect(members_index($this->owner, $this->workspace)['members'])->firstWhere('user.name', 'Bo');
+
+    expect(action_keys($bo()))->toContain('change-role');
+
+    SuspendMembership::run($this->owner, $this->boMembership);
+
+    expect(action_keys($bo()))->not->toContain('change-role')->toBe(['reinstate', 'remove']);
+
+    ReinstateMembership::run($this->owner, $this->boMembership);
+
+    expect(action_keys($bo()))->toContain('change-role');
 });
 
 it('decides the empty states on the server and reports what the query was', function () {

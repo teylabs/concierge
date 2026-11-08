@@ -293,7 +293,7 @@ final class MembersIndex
         $link = fn (string $name, bool $allowed) => $allowed ? $this->url('member.'.$name, $membership) : null;
 
         $guest = $this->concierge->isScopedGuest($membership);
-        $updateGrants = $link('updateGrants', $manageable && ! $guest && $policy->grantableRoles($actor, $workspace) !== []);
+        $updateGrants = $link('updateGrants', $manageable && $membership->status === MembershipStatus::Active && ! $guest && $policy->grantableRoles($actor, $workspace) !== []);
         $suspend = $link('suspend', $manageable && $membership->status === MembershipStatus::Active);
         $reinstate = $link('reinstate', $manageable && $membership->status === MembershipStatus::Suspended);
         $remove = $link('remove', $manageable);
