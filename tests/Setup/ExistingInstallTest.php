@@ -1,6 +1,10 @@
 <?php
 
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Validated;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tey\Concierge\Concierge;
@@ -14,7 +18,11 @@ it('migrates and registers as before', function () {
     $this->artisan('migrate')->assertSuccessful();
 
     expect(Schema::hasTable('concierge_memberships'))->toBeTrue()
-        ->and(app(Router::class)->getMiddleware())->toHaveKey('concierge.member');
+        ->and(app(Router::class)->getMiddleware())->toHaveKeys(['concierge.member', 'concierge.active', 'concierge.scoped'])
+        ->and(Event::hasListeners(Login::class))->toBeTrue()
+        ->and(Event::hasListeners(Validated::class))->toBeTrue()
+        ->and(Event::hasListeners(PasswordReset::class))->toBeTrue()
+        ->and(app()->bound(Concierge::class))->toBeTrue();
 });
 
 it('keeps concierge routes off when its config has no routes key', function () {

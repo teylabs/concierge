@@ -26,7 +26,9 @@ use Tey\Concierge\Tests\Scaffolding\ModulesScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ReactScaffoldTestCase;
 use Tey\Concierge\Tests\Scaffolding\ScaffoldTestCase;
 use Tey\Concierge\Tests\Setup\ExistingInstallTestCase;
+use Tey\Concierge\Tests\Setup\HostBindingTestCase;
 use Tey\Concierge\Tests\Setup\InstallTestCase;
+use Tey\Concierge\Tests\Setup\LateSetupTestCase;
 use Tey\Concierge\Tests\Setup\NotSetUpTestCase;
 use Tey\Concierge\Tests\Standalone\StandaloneTestCase;
 use Tey\Concierge\Tests\TenantOff\TenantInvitationsOffTestCase;
@@ -53,6 +55,8 @@ uses(TestCase::class, RefreshDatabase::class)->in('Boost');
 // schema, and this one boots without the tenant migration. It must not touch the database.
 uses(TenantInvitationsOffTestCase::class)->in('TenantOff');
 uses(NotSetUpTestCase::class)->in('Setup/NotSetUpTest.php');
+uses(LateSetupTestCase::class)->in('Setup/LateSetupTest.php');
+uses(HostBindingTestCase::class)->in('Setup/HostBindingTest.php');
 uses(InstallTestCase::class)->in('Setup/InstallTest.php');
 uses(ExistingInstallTestCase::class, RefreshDatabase::class)->in('Setup/ExistingInstallTest.php');
 uses(TestCase::class)->in('Setup/SetupSwitchTest.php');

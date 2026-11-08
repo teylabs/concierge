@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\LocalAuth\Controllers\LocalLoginController;
 use Tey\Concierge\LocalAuth\Middleware\EnsureLocalLoginAvailable;
 
@@ -20,13 +21,16 @@ class LocalAuthServiceProvider extends ServiceProvider
 {
     public const LIMITER = 'concierge-local-login';
 
-    public function register(): void
-    {
-        $this->app->singleton(LocalLogin::class);
-    }
-
     public function boot(): void
     {
+        // Decided at boot, like the Concierge provider: nothing until set up.
+        if (! ConciergeServiceProvider::setUp()) {
+            return;
+        }
+
+        // Bound here, behind the gate, so nothing exists before setup; a host's own binding wins.
+        $this->app->singletonIf(LocalLogin::class);
+
         $this->defineRateLimiter();
 
         $this->registerRoutes();
