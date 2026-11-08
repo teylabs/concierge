@@ -5,6 +5,7 @@ namespace Tey\Concierge\Registration;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Fortify\Contracts\RegisterViewResponse;
+use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\Registration\Fortify\GatedRegisterView;
 use Tey\Concierge\Registration\Fortify\GatedUserCreator;
 
@@ -16,9 +17,13 @@ use Tey\Concierge\Registration\Fortify\GatedUserCreator;
  */
 class RegistrationServiceProvider extends ServiceProvider
 {
-    public function register(): void
+    /**
+     * Wired at boot, once setup is known; extending a binding that has already
+     * resolved still wraps it, so the order against Fortify doesn't matter.
+     */
+    public function boot(): void
     {
-        if (! self::fortifyInstalled()) {
+        if (! ConciergeServiceProvider::setUp() || ! self::fortifyInstalled()) {
             return;
         }
 

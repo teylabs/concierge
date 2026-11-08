@@ -62,7 +62,7 @@ php artisan concierge:install
 
 `concierge:install` detects your starter kit (Vue, React, Svelte, Livewire or none, and WorkOS AuthKit), your sign-in, your user model and any team or organisation model. It asks only what it can't detect: whether to use a team model it found as workspaces, app-wide or workspace mode (app-wide by default), and whether to turn on local login when the app has no sign-in. Every question has a flag, and `--no-interaction` takes the defaults. It then publishes and configures Spatie permission, writes `config/concierge.php` with concierge's [routes](#routes) turned on, migrates and creates the roles, printing one line per step. It never edits your models: if one is missing a contract, it prints the exact lines to add and stops, and you run it again. Running it again changes nothing that is already set up.
 
-Until `config/concierge.php` exists, concierge registers nothing: no migrations, routes, middleware, listeners or commands other than `concierge:install`, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in the config to keep concierge unregistered anyway.
+Until `config/concierge.php` exists, concierge registers nothing: no migrations, routes, middleware, listeners or commands other than `concierge:install`, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in the config to keep concierge unregistered anyway. Setup is decided when concierge boots, so a package that sets `concierge.setup` to `true` from its own `register()` (as the kit does for an app without `config/concierge.php`) turns concierge on.
 
 | Feature | Switch | Default |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ Until `config/concierge.php` exists, concierge registers nothing: no migrations,
 | [Tenant invitations](https://concierge.teylabs.com/features/tenant-invitations) | `features.tenant_invitations` | `false` |
 | [Local login](https://concierge.teylabs.com/features/local-login) | `local_login.enabled` | `false` |
 
-Until your app has its own `config/concierge.php`, concierge registers nothing: no migrations, routes, middleware, listeners or commands, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in it to keep concierge unregistered anyway.
+Until your app has its own `config/concierge.php`, concierge registers nothing: no migrations, routes, middleware, listeners or commands, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in it to keep concierge unregistered anyway. `'setup' => true`, set by the app or by another package while it registers, turns it on without the file.
 
 The switches are read while the package provider registers, so set them in `config/concierge.php`, not at runtime. See [Installation](https://concierge.teylabs.com/guide/installation) for the dependencies Composer brings in.
 

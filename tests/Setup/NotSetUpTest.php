@@ -2,6 +2,7 @@
 
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Validated;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
@@ -31,6 +32,8 @@ it('registers no routes, middleware, listeners or bindings', function () {
         ->and($router->getMiddleware())->not->toHaveKeys(['concierge.member', 'concierge.active', 'concierge.scoped'])
         ->and(Event::hasListeners(Login::class))->toBeFalse()
         ->and(Event::hasListeners(PasswordReset::class))->toBeFalse()
+        ->and(Event::hasListeners(Validated::class))->toBeFalse()
+        ->and(Route::has('concierge.local-login.store'))->toBeFalse()
         ->and(app()->bound(Concierge::class))->toBeFalse();
 });
 

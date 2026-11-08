@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Tey\Concierge\ConciergeServiceProvider;
 use Tey\Concierge\LocalAuth\Controllers\LocalLoginController;
 use Tey\Concierge\LocalAuth\Middleware\EnsureLocalLoginAvailable;
 
@@ -27,6 +28,11 @@ class LocalAuthServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Decided at boot, like the Concierge provider: nothing until set up.
+        if (! ConciergeServiceProvider::setUp()) {
+            return;
+        }
+
         $this->defineRateLimiter();
 
         $this->registerRoutes();

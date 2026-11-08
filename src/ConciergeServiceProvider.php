@@ -78,21 +78,42 @@ class ConciergeServiceProvider extends PackageServiceProvider
         $package
             ->name('concierge')
             ->hasConfigFile();
+    }
 
-        // Before setup the config stays publishable and nothing else exists.
-        if (! static::setUp()) {
+    /**
+     * Whether this provider found concierge set up when it booted. Decided once,
+     * at boot, so config another package merges while it registers counts.
+     */
+    protected bool $isSetUp = false;
+
+    /**
+     * Setup is decided here, at the start of boot, not at register: by then every
+     * provider has registered, so a package that supplies concierge's config from
+     * its own register() (after this one) is seen. Everything that depends on setup
+     * (migrations, bindings, routes, middleware, listeners) follows from this.
+     * Before setup the config stays publishable and nothing else exists.
+     */
+    public function bootingPackage(): void
+    {
+        $this->isSetUp = static::setUp();
+
+        if (! $this->isSetUp) {
             return;
         }
 
+        $this->configureSetUpPackage($this->package);
+        $this->registerSetUpBindings();
+    }
+
+    /** Runs before the package's migrations are booted, so these are published and run as before. */
+    protected function configureSetUpPackage(Package $package): void
+    {
         $package->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope']);
 
-        // Read with the same caveat as below: only a host's own config is visible.
         if (static::tenantInvitationsEnabled()) {
             $package->hasMigration('create_concierge_tenant_invitations_table');
         }
 
-        // Read with a default: the package defaults are merged after this runs,
-        // so only a host's own config/concierge.php can be seen here.
         if (static::membershipEnabled()) {
             $package->runsMigrations();
         }
@@ -102,7 +123,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
      * Concierge is set up once the host has its own config/concierge.php, which
      * every install made before 0.10 already has. Until then it registers no
      * migrations, routes, listeners or middleware. A host may force either state
-     * with concierge.setup; it is read while the provider registers.
+     * with concierge.setup. It is read when the provider boots, after every
+     * provider has registered, so another package may set it from its register().
      */
     public static function setUp(): bool
     {
@@ -133,13 +155,19 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         $this->app->bindIf(AppInspector::class, fn ($app) => new AppInspector($app->basePath(), $app->getNamespace().'Models\\'));
 
-        if (! static::setUp()) {
-            return;
-        }
-
+        // Registered whatever the setup state, since a provider can't be added
+        // reliably once booting has begun; each does nothing until it finds
+        // concierge set up when it boots.
         $this->app->register(LocalAuthServiceProvider::class);
         $this->app->register(RegistrationServiceProvider::class);
+    }
 
+    /**
+     * Bound at boot, once setup is known, and with bindIf so a host's own binding
+     * (made at register) still wins. Nothing is bound before setup.
+     */
+    protected function registerSetUpBindings(): void
+    {
         if (! static::membershipEnabled()) {
             return;
         }
@@ -187,7 +215,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         ToolRegistrar::register($this->app);
 
-        if (! static::setUp()) {
+        if (! $this->isSetUp) {
             AboutCommand::add('Concierge', fn () => [
                 'Setup' => '<fg=yellow;options=bold>Not set up: run php artisan concierge:install</>',
             ]);
