@@ -2,6 +2,14 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.11.1] - 2026-11-08
+
+- **Members index host scope is back.** `MembersIndex::scopeMembersUsing()` shipped in 0.9.3 from the 0.9.x branch but never reached 0.10.0 or 0.11.0. Pass `scopeMembersUsing(fn (Builder $memberships, Workspace $workspace) => …)` to narrow who the members index lists, for example to hide a support role. It applies to the Members tab's rows and its count alike, and an `orWhere` in it can't widen the workspace's own constraints. It also covers a single member: `MembersIndex::row()` treats a member it hides as not found (`ModelNotFoundException`, a 404), and the new `MemberPage::scopeMembersUsing()` takes the same scope for the member page. (#159)
+
+### Changed
+
+- **Setup is decided at boot.** Concierge now decides whether it is set up when it boots, not when it registers. A package that sets `concierge.setup` to `true` from its own `register()` now turns Concierge on, and the feature switches it merges count too. Apps with `config/concierge.php`, and apps with neither the file nor the switch, behave as before. An app's own bindings for Concierge's services, made at register, still win. Concierge's services are now bound at boot, so a provider that uses them in its own boot before Concierge has booted won't find them. (#160)
+
 ## [0.11.0] - 2026-11-08
 
 ### Changed
