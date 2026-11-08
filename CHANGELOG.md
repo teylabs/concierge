@@ -2,6 +2,16 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.11.0] - Unreleased
+
+### Changed
+
+- A suspended member's row in `MembersIndex` offers only Reinstate, plus Remove. Their other actions come back once they are reinstated (#157).
+
+### Upgrading
+
+- Change role is no longer offered for non-Active members, and the server now refuses it: `ChangeMemberRoles` denies a suspended member with `not_active` (a 403 through the routes). Reinstate the member first.
+
 ## [0.9.3] - 2026-10-30
 
 ### Added
