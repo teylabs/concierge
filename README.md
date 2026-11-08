@@ -72,7 +72,7 @@ Until `config/concierge.php` exists, concierge registers nothing: no migrations,
 
 Until your app has its own `config/concierge.php`, concierge registers nothing: no migrations, routes, middleware, listeners or commands, so `php artisan migrate` creates no concierge tables. `php artisan about` shows whether it is set up. Set `'setup' => false` in it to keep concierge unregistered anyway. `'setup' => true`, set by the app or by another package while it registers, turns it on without the file.
 
-The switches are read while the package provider registers, so set them in `config/concierge.php`, not at runtime. See [Installation](https://concierge.teylabs.com/guide/installation) for the dependencies Composer brings in.
+The switches are read once, when concierge boots, after every provider has registered: set them in `config/concierge.php` (or merge them from a package's `register()`), not at runtime. See [Installation](https://concierge.teylabs.com/guide/installation) for the dependencies Composer brings in.
 
 ## Quick Start
 

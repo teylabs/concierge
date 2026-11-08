@@ -163,8 +163,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
     }
 
     /**
-     * Bound at boot, once setup is known, and with bindIf so a host's own binding
-     * (made at register) still wins. Nothing is bound before setup.
+     * Bound at boot, once setup is known, and only if not already bound, so a
+     * host's own binding (made at register) still wins. Nothing is bound before setup.
      */
     protected function registerSetUpBindings(): void
     {
@@ -182,8 +182,8 @@ class ConciergeServiceProvider extends PackageServiceProvider
             );
         }
 
-        $this->app->singleton(Concierge::class);
-        $this->app->singleton(AppScope::class);
+        $this->app->singletonIf(Concierge::class);
+        $this->app->singletonIf(AppScope::class);
         $this->registerWorkspaceEngine($mode);
         $this->app->bindIf(GrantPolicy::class, ConfiguredGrantPolicy::class);
         $this->app->bindIf(ScopedAccess::class, MembershipScopedAccess::class);
@@ -202,7 +202,7 @@ class ConciergeServiceProvider extends PackageServiceProvider
     {
         $kit = $mode === Mode::Workspaces && WorkspaceEngine::configured() === WorkspaceEngine::Kit;
 
-        $this->app->scoped(RequestMemo::class);
+        $this->app->scopedIf(RequestMemo::class);
         $this->app->scopedIf(WorkspaceContext::class, match (true) {
             $mode === Mode::App => AppScope::class,
             $kit => KitWorkspaceContext::class,
