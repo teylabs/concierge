@@ -2,12 +2,6 @@
 
 All notable changes to `concierge` will be documented in this file.
 
-## Unreleased
-
-### Changed
-
-- **tey/mod 0.12, 0.13 and 0.14 are allowed.** The constraint now ends `|| ^0.11 || ^0.12 || ^0.13 || ^0.14`, so an app can take mod 0.14's automatic dev discovery cache. No Concierge code changed.
-
 ## [0.9.3] - 2026-10-30
 
 ### Added
