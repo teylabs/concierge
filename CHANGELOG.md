@@ -2,6 +2,12 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.11.2] - 2026-11-15
+
+### Changed
+
+- **tey/mod 0.12, 0.13 and 0.14 are allowed.** The tey/mod constraint now ends `|| ^0.11 || ^0.12 || ^0.13 || ^0.14`, so an app can take mod 0.14 and its automatic dev discovery cache. No Concierge code changed.
+
 ## [0.11.1] - 2026-11-08
 
 - **Members index host scope is back.** `MembersIndex::scopeMembersUsing()` shipped in 0.9.3 from the 0.9.x branch but never reached 0.10.0 or 0.11.0. Pass `scopeMembersUsing(fn (Builder $memberships, Workspace $workspace) => …)` to narrow who the members index lists, for example to hide a support role. It applies to the Members tab's rows and its count alike, and an `orWhere` in it can't widen the workspace's own constraints. It also covers a single member: `MembersIndex::row()` treats a member it hides as not found (`ModelNotFoundException`, a 404), and the new `MemberPage::scopeMembersUsing()` takes the same scope for the member page. (#159)
