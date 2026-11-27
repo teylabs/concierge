@@ -45,7 +45,7 @@ use Tey\Concierge\Support\Scope;
  */
 class Invitation extends Model
 {
-    protected $table = 'concierge_invitations';
+    protected $table = 'invitations';
 
     protected $guarded = [];
 

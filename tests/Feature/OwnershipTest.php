@@ -59,7 +59,7 @@ it('only lets the current owner transfer', function () {
 it('requires an active verified recipient in the same workspace', function () {
     $unverified = host_user('unverified', verified: false);
     $unverifiedMembership = join_as($this->workspace, $this->owner, tap(host_user('temp'), fn () => null));
-    DB::table('concierge_memberships')->where('id', $unverifiedMembership->id)->update(['user_id' => $unverified->id]);
+    DB::table('memberships')->where('id', $unverifiedMembership->id)->update(['user_id' => $unverified->id]);
 
     $other = host_workspace('Other', $otherOwner = host_user('other-owner'));
     $foreign = join_as($other, $otherOwner, host_user('foreigner'));
@@ -73,7 +73,7 @@ it('requires an active verified recipient in the same workspace', function () {
 });
 
 it('lets the schema hold at most one owner per workspace', function () {
-    expect(fn () => DB::table('concierge_ownerships')->insert([
+    expect(fn () => DB::table('ownerships')->insert([
         'workspace_id' => $this->workspace->id,
         'membership_id' => $this->adminMembership->id,
     ]))->toThrow(QueryException::class);
@@ -82,7 +82,7 @@ it('lets the schema hold at most one owner per workspace', function () {
 it('rejects an owner row pointing at another workspace membership', function () {
     $other = host_workspace('Other');
 
-    expect(fn () => DB::table('concierge_ownerships')->insert([
+    expect(fn () => DB::table('ownerships')->insert([
         'workspace_id' => $other->id,
         'membership_id' => $this->adminMembership->id,
     ]))->toThrow(QueryException::class);

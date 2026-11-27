@@ -62,8 +62,8 @@ it('signs in locally without writing ownership or membership to a read-only kit 
     $this->assertAuthenticatedAs(User::query()->where('email', LOCAL_LOGIN_EMAIL)->sole());
     expect($team->owner())->toBeNull()
         ->and(DB::table('team_members')->count())->toBe(0)
-        ->and(DB::table('concierge_memberships')->count())->toBe(0)
-        ->and(DB::table('concierge_ownerships')->count())->toBe(0)
+        ->and(DB::table('memberships')->count())->toBe(0)
+        ->and(DB::table('ownerships')->count())->toBe(0)
         ->and(DB::table('model_has_roles')->count())->toBe(0);
 });
 
@@ -148,7 +148,7 @@ it('lets a kit member through concierge.member and refuses them after removal', 
 
     $this->actingAs($mia)->get("/{$acme->slug}/members")->assertOk()->assertSee('ok');
     $this->actingAs($mia)->get('/dashboard')->assertOk()->assertSee('ok');
-    expect(DB::table('concierge_memberships')->count())->toBe(0);
+    expect(DB::table('memberships')->count())->toBe(0);
 
     $acme->memberships()->where('user_id', $mia->id)->delete();
 
@@ -207,8 +207,8 @@ it("refuses concierge's write actions on a kit team, naming the take-over issue"
     expect(fn () => $write($olive, $team))->toThrow(WorkspaceNotManaged::class, 'teylabs/concierge#57');
 
     expect(app(MembershipSource::class)->members($team))->toHaveCount(1)
-        ->and(DB::table('concierge_memberships')->count())->toBe(0)
-        ->and(DB::table('concierge_invitations')->count())->toBe(0);
+        ->and(DB::table('memberships')->count())->toBe(0)
+        ->and(DB::table('invitations')->count())->toBe(0);
 })->with([
     'invite' => [fn (User $actor, Team $team) => InviteMember::run($actor, $team, 'new@example.test', new GrantSet(['admin']))],
     'establish' => [fn (User $actor, Team $team) => EstablishWorkspace::run($team, $actor)],

@@ -128,10 +128,10 @@ it('grants the first owner only across a local application and process boundary,
             ->and((int) $database->query('SELECT COUNT(*) FROM model_has_roles')->fetchColumn())->toBe($available ? 1 : 0)
             ->and((int) $database->query('SELECT COUNT(*) FROM users')->fetchColumn())->toBe($available ? 1 : 0);
 
-        $overlay = $mode === 'app' ? 'concierge_accounts' : 'concierge_memberships';
+        $overlay = $mode === 'app' ? 'account_statuses' : 'memberships';
         expect((int) $database->query('SELECT COUNT(*) FROM '.$overlay)->fetchColumn())->toBe($available ? 1 : 0);
         if ($mode === 'workspaces') {
-            expect((int) $database->query('SELECT COUNT(*) FROM concierge_ownerships')->fetchColumn())->toBe($available ? 1 : 0);
+            expect((int) $database->query('SELECT COUNT(*) FROM ownerships')->fetchColumn())->toBe($available ? 1 : 0);
         }
     } finally {
         unset($database);

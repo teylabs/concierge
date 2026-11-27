@@ -28,7 +28,7 @@ beforeEach(function () {
 function restoration_writes(): array
 {
     return [
-        'accounts' => DB::table('concierge_accounts')->get()->all(),
+        'accounts' => DB::table('account_statuses')->get()->all(),
         'roles' => DB::table('model_has_roles')->get()->all(),
         'users' => DB::table('users')->get()->all(),
     ];
@@ -62,7 +62,7 @@ it('restores a deactivated user as the --as user, with the roles she had', funct
         'outcome' => 'restored',
     ]);
 
-    $account = DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole();
+    $account = DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole();
 
     expect($account->status)->toBe(AccountStatus::Active->value)
         ->and($account->deactivated_at)->toBeNull()
@@ -80,7 +80,7 @@ it('matches both emails ignoring case and never prompts', function () {
         ->expectsOutputToContain("{$this->presenter->email}: restored")
         ->assertSuccessful();
 
-    expect(DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Active->value);
+    expect(DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Active->value);
 });
 
 it('previews with --dry-run without writing or dispatching events', function (bool $json) {
@@ -100,7 +100,7 @@ it('previews with --dry-run without writing or dispatching events', function (bo
     }
 
     expect(restoration_writes())->toEqual($before)
-        ->and(DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Deactivated->value);
+        ->and(DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Deactivated->value);
     Event::assertNotDispatched(UserRestored::class);
 })->with([true, false]);
 

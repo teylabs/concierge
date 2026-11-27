@@ -37,7 +37,7 @@ it('migrates without the core membership migration or any user, workspace or per
 
     $this->artisan('migrate')->assertSuccessful();
 
-    foreach (['concierge_memberships', 'concierge_ownerships', 'concierge_invitations', 'workspaces', 'users'] as $table) {
+    foreach (['memberships', 'ownerships', 'invitations', 'workspaces', 'users'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse("table [{$table}] must not exist");
     }
 

@@ -65,7 +65,7 @@ foreach ($r["steps"] as $s) {
 
 step 'After setup: about, tables and the kit login'
 php artisan about --only=concierge | grep -q 'Done' || fail 'about does not say concierge is set up'
-php artisan tinker --execute 'echo Schema::hasTable("concierge_invitations") && Spatie\Permission\Models\Role::where("name", "owner")->exists() ? "concierge-ready" : "concierge-missing";' | grep -q 'concierge-ready' || fail 'concierge tables or roles missing'
+php artisan tinker --execute 'echo Schema::hasTable("invitations") && Spatie\Permission\Models\Role::where("name", "owner")->exists() ? "concierge-ready" : "concierge-missing";' | grep -q 'concierge-ready' || fail 'concierge tables or roles missing'
 # No Node build here: point Vite at a dev server so pages render without a manifest.
 echo 'http://localhost:5173' > public/hot
 php artisan test --filter=Authentication || fail 'the starter kit login tests fail with concierge installed'

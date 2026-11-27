@@ -38,7 +38,7 @@ it('stores only a hash of the token and scopes invitations to the workspace', fu
 
     expect($issued->invitation->email)->toBe('new.person@example.test')
         ->and($issued->invitation->token_hash)->toBe(hash('sha256', $issued->token))
-        ->and(DB::table('concierge_invitations')->pluck('token_hash')->all())->not->toContain($issued->token)
+        ->and(DB::table('invitations')->pluck('token_hash')->all())->not->toContain($issued->token)
         ->and($issued->invitation->expires_at->diffInDays(now()->addDays(7)))->toBeLessThan(1);
 
     $other = host_workspace('Other', host_user('other-owner'));
@@ -73,7 +73,7 @@ it('rejects the wrong account, and an unverified other address, without writing 
     expect(fn () => AcceptInvitation::run($other, $issued->token))->toThrow(rejected_as(InvitationState::Unverified))
         ->and($other->fresh()->email_verified_at)->toBeNull()
         ->and($issued->invitation->fresh()->status)->toBe(InvitationStatus::Pending)
-        ->and(DB::table('concierge_memberships')->count())->toBe(1);
+        ->and(DB::table('memberships')->count())->toBe(1);
 });
 
 it('verifies the invited address when an unverified account accepts: the emailed token proves it', function () {
@@ -155,7 +155,7 @@ it('is idempotent for retries by the accepting user', function () {
 
     expect($retry->outcome)->toBe(AcceptanceOutcome::AlreadyMember)
         ->and($retry->membership->is($first->membership))->toBeTrue()
-        ->and(DB::table('concierge_memberships')->where('user_id', $alice->id)->count())->toBe(1);
+        ->and(DB::table('memberships')->where('user_id', $alice->id)->count())->toBe(1);
 
     Event::assertDispatchedTimes(InvitationAccepted::class, 1);
 
@@ -193,7 +193,7 @@ it('never lets an invitation bypass a suspension', function () {
     $alice = host_user('alice');
     $issued = issue($this->owner, $this->workspace, $alice->email);
     $membership = join_as($this->workspace, $this->owner, host_user('bob'));
-    DB::table('concierge_memberships')->where('id', $membership->id)->update(['user_id' => $alice->id, 'status' => 'suspended']);
+    DB::table('memberships')->where('id', $membership->id)->update(['user_id' => $alice->id, 'status' => 'suspended']);
 
     expect(fn () => AcceptInvitation::run($alice, $issued->token))->toThrow(rejected_as(InvitationState::Suspended));
 });

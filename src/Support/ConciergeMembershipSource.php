@@ -11,7 +11,7 @@ use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Models\Membership;
 
 /**
- * Concierge's own engine: concierge_memberships and concierge_ownerships, with
+ * Concierge's own engine: memberships and ownerships, with
  * roles from Spatie assignments scoped to the workspace. members() leaves
  * scoped guests out; member() and workspacesOf() include them, since a guest
  * still needs their workspace to reach their records.

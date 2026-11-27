@@ -9,7 +9,7 @@ use Tey\Concierge\Contracts\Member;
 use Tey\Concierge\Enums\Mode;
 
 /**
- * Keeps the host's own "delete account" working. concierge_accounts.user_id
+ * Keeps the host's own "delete account" working. account_statuses.user_id
  * restricts deletion as a safety net, so when a user model is deleting:
  *
  *  - in app mode, the last active owner is refused with a validation message,

@@ -39,7 +39,7 @@ it('sets a fresh app up app-wide with no questions', function () {
         ->and(file_get_contents(config_path('concierge.php')))->toContain("'mode' => 'app'")->toContain("'user' => \\Workbench\\App\\Models\\User::class")
         ->and(file_get_contents(config_path('permission.php')))->toContain("'teams' => false")
         ->and(Schema::hasTable('roles'))->toBeTrue()
-        ->and(Schema::hasTable('concierge_invitations'))->toBeTrue()
+        ->and(Schema::hasTable('invitations'))->toBeTrue()
         ->and(DB::table('roles')->pluck('name')->all())->toContain('owner');
 });
 
@@ -73,7 +73,7 @@ it('sets up workspace mode with Spatie teams on', function () {
     expect($result['set_up'])->toBeTrue()
         ->and($result['choices'])->toMatchArray(['mode' => 'workspaces', 'engine' => 'concierge', 'workspace_model' => Workspace::class])
         ->and(file_get_contents(config_path('permission.php')))->toContain("'teams' => true")
-        ->and(Schema::hasTable('concierge_memberships'))->toBeTrue()
+        ->and(Schema::hasTable('memberships'))->toBeTrue()
         ->and(Schema::hasColumn('roles', 'workspace_id') || Schema::hasColumn('roles', 'team_id'))->toBeTrue();
 });
 
@@ -92,7 +92,7 @@ it('adopts an existing organisation model without losing its rows', function () 
 
     expect($result['set_up'])->toBeTrue()
         ->and(DB::table('organisations')->pluck('name')->all())->toBe(['Acme'])
-        ->and(Schema::hasTable('concierge_memberships'))->toBeTrue();
+        ->and(Schema::hasTable('memberships'))->toBeTrue();
 });
 
 it('plans without changing anything on a dry run', function () {
@@ -125,7 +125,7 @@ it('says what to add to a user model without the contract, and stops before migr
         ->expectsOutputToContain('migrate: blocked')
         ->assertFailed();
 
-    expect(Schema::hasTable('concierge_invitations'))->toBeFalse();
+    expect(Schema::hasTable('invitations'))->toBeFalse();
 });
 
 it('refuses an unknown mode', function () {

@@ -126,9 +126,9 @@ it('previews creation or a role addition without writing users, roles, ownership
     if ($existing) {
         host_user('first');
     }
-    $tables = ['users', 'roles', 'model_has_roles', 'password_reset_tokens', 'concierge_accounts'];
+    $tables = ['users', 'roles', 'model_has_roles', 'password_reset_tokens', 'account_statuses'];
     if ($this->ownerWorkspace) {
-        $tables = [...$tables, 'concierge_memberships', 'concierge_ownerships'];
+        $tables = [...$tables, 'memberships', 'ownerships'];
     }
     $before = collect($tables)->mapWithKeys(fn ($table) => [$table => DB::table($table)->get()->all()])->all();
 
@@ -155,10 +155,10 @@ it('rolls back a new owner when the real password broker refuses to send a link'
         ->and($error['error'])->toContain('rolled back', 'config/auth.php', 'php artisan concierge:owners')
         ->and(User::query()->count())->toBe(0)
         ->and(DB::table('model_has_roles')->count())->toBe(0)
-        ->and(DB::table('concierge_accounts')->count())->toBe(0);
+        ->and(DB::table('account_statuses')->count())->toBe(0);
     if ($this->ownerWorkspace) {
         expect(app(Concierge::class)->ownerOf($this->ownerWorkspace))->toBeNull()
-            ->and(DB::table('concierge_memberships')->count())->toBe(0);
+            ->and(DB::table('memberships')->count())->toBe(0);
     }
     Notification::assertNothingSent();
 });

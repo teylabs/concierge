@@ -39,7 +39,7 @@ use Tey\Concierge\Support\ConciergeModels;
  */
 class TenantInvitation extends Model
 {
-    protected $table = 'concierge_tenant_invitations';
+    protected $table = 'owner_invitations';
 
     protected $guarded = [];
 

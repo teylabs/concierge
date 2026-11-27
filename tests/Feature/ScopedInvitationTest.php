@@ -92,9 +92,9 @@ beforeEach(function () {
 });
 
 it('creates the scope table and its one-active-row index', function () {
-    $indexes = collect(Schema::getIndexes('concierge_membership_scopes'))->map(fn (array $i) => implode(',', $i['columns']).($i['unique'] ? ' unique' : ''))->sort()->values()->all();
+    $indexes = collect(Schema::getIndexes('membership_scopes'))->map(fn (array $i) => implode(',', $i['columns']).($i['unique'] ? ' unique' : ''))->sort()->values()->all();
 
-    expect(Schema::getColumnListing('concierge_membership_scopes'))->toBe(['id', 'membership_id', 'scope_type', 'scope_id', 'active', 'invitation_id', 'invited_by_id', 'accepted_at', 'revoked_at', 'revoked_by_id', 'created_at', 'updated_at'])
+    expect(Schema::getColumnListing('membership_scopes'))->toBe(['id', 'membership_id', 'scope_type', 'scope_id', 'active', 'invitation_id', 'invited_by_id', 'accepted_at', 'revoked_at', 'revoked_by_id', 'created_at', 'updated_at'])
         ->and($indexes)->toBe(['id unique', 'membership_id,scope_type,scope_id,active unique', 'scope_type,scope_id']);
 });
 

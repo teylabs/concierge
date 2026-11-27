@@ -22,8 +22,8 @@ it('refuses scoped invitations and allows no scoped access in app-wide mode', fu
     $owner = app_owner();
     $document = Document::query()->create(['title' => 'Handbook']);
 
-    expect(Schema::hasTable('concierge_membership_scopes'))->toBeFalse()
-        ->and(Schema::hasColumns('concierge_invitations', ['scope_type', 'scope_id']))->toBeTrue()
+    expect(Schema::hasTable('membership_scopes'))->toBeFalse()
+        ->and(Schema::hasColumns('invitations', ['scope_type', 'scope_id']))->toBeTrue()
         ->and(fn () => InviteMember::run($owner, new Workspace, 'guest@example.test', new GrantSet(['guest']), scope: new Scope('document', '1')))
         ->toThrow(UnsupportedConfiguration::class, "concierge.mode = 'app' has no workspaces; scoped invitations reach one record in a workspace, and app-wide mode has none.")
         ->and(fn () => RevokeScope::run($owner, new MembershipScope))->toThrow(UnsupportedConfiguration::class, 'scoped invitations reach one record')

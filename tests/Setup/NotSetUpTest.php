@@ -21,9 +21,9 @@ it('is not set up without the config file or the switch', function () {
 it('migrates without creating concierge tables', function () {
     $this->artisan('migrate')->assertSuccessful();
 
-    expect(Schema::hasTable('concierge_memberships'))->toBeFalse()
-        ->and(Schema::hasTable('concierge_invitations'))->toBeFalse()
-        ->and(Schema::hasTable('concierge_tenant_invitations'))->toBeFalse();
+    expect(Schema::hasTable('memberships'))->toBeFalse()
+        ->and(Schema::hasTable('invitations'))->toBeFalse()
+        ->and(Schema::hasTable('owner_invitations'))->toBeFalse();
 });
 
 it('registers no routes, middleware, listeners or bindings', function () {

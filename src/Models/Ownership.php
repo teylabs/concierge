@@ -18,7 +18,7 @@ use Tey\Concierge\Support\ConciergeModels;
  */
 class Ownership extends Model
 {
-    protected $table = 'concierge_ownerships';
+    protected $table = 'ownerships';
 
     protected $primaryKey = 'workspace_id';
 
