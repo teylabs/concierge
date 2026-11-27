@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Tey\Concierge\Actions\EstablishWorkspace;
@@ -42,6 +43,17 @@ it('transfers ownership and demotes the previous owner', function () {
         ->and(roles_in($this->adminMembership))->toBe(['owner'])
         ->and(roles_in($previous))->toBe(['admin'])
         ->and(fn () => SuspendMembership::run($this->owner, $this->adminMembership))->toThrow(transfer_denied('owner_protected'));
+});
+
+it('transfers with lazy loading prevented, as an app with Model::preventLazyLoading() runs it', function () {
+    Model::preventLazyLoading();
+    try {
+        TransferOwnership::run($this->owner, $this->adminMembership->fresh());
+    } finally {
+        Model::preventLazyLoading(false);
+    }
+
+    expect(app(Concierge::class)->ownerOf($this->workspace)->is($this->adminMembership))->toBeTrue();
 });
 
 it('requires recent authentication', function () {
