@@ -353,7 +353,7 @@ it('guards routes on an active account rather than a workspace', function () {
     Account::query()->whereKey($alice->id)->update(['status' => AccountStatus::Deactivated->value]);
 
     $this->actingAs($alice)->get('/probe')->assertForbidden();
-    expect(DB::table('concierge_accounts')->where('user_id', $stranger->id)->exists())->toBeFalse();
+    expect(DB::table('account_statuses')->where('user_id', $stranger->id)->exists())->toBeFalse();
 });
 
 it('verifies the invited address when an unverified account accepts an app-wide invitation', function () {

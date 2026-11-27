@@ -99,7 +99,7 @@ it('prints a one-line text outcome without --json', function () {
 
 it('previews without writing or dispatching, and still authorizes', function () {
     Event::fake([UserRolesChanged::class]);
-    $tables = ['users', 'roles', 'model_has_roles', 'concierge_accounts'];
+    $tables = ['users', 'roles', 'model_has_roles', 'account_statuses'];
     $before = collect($tables)->mapWithKeys(fn (string $table) => [$table => DB::table($table)->get()->all()])->all();
 
     expect(Artisan::call('concierge:roles', [

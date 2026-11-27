@@ -28,7 +28,7 @@ use Tey\Concierge\Support\Scope;
  */
 class MembershipScope extends Model
 {
-    protected $table = 'concierge_membership_scopes';
+    protected $table = 'membership_scopes';
 
     protected $guarded = [];
 

@@ -26,7 +26,7 @@ use Tey\Concierge\Support\ConciergeModels;
  */
 class Account extends Model
 {
-    protected $table = 'concierge_accounts';
+    protected $table = 'account_statuses';
 
     protected $primaryKey = 'user_id';
 

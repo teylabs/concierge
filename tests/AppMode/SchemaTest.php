@@ -14,24 +14,24 @@ use Tey\Concierge\Support\ConciergeModels;
 use Workbench\App\Models\Workspace;
 
 it('creates only the tables app-wide mode uses', function () {
-    expect(Schema::hasTable('concierge_invitations'))->toBeTrue()
-        ->and(Schema::hasTable('concierge_accounts'))->toBeTrue()
-        ->and(Schema::hasTable('concierge_memberships'))->toBeFalse()
-        ->and(Schema::hasTable('concierge_ownerships'))->toBeFalse()
-        ->and(Schema::hasTable('concierge_tenant_invitations'))->toBeFalse()
+    expect(Schema::hasTable('invitations'))->toBeTrue()
+        ->and(Schema::hasTable('account_statuses'))->toBeTrue()
+        ->and(Schema::hasTable('memberships'))->toBeFalse()
+        ->and(Schema::hasTable('ownerships'))->toBeFalse()
+        ->and(Schema::hasTable('owner_invitations'))->toBeFalse()
         ->and(Schema::hasColumn('roles', 'workspace_id'))->toBeFalse()
         ->and(Schema::hasColumn('model_has_roles', 'workspace_id'))->toBeFalse();
 
-    $indexes = collect(Schema::getIndexes('concierge_invitations'));
+    $indexes = collect(Schema::getIndexes('invitations'));
 
     expect($indexes->first(fn (array $index) => $index['columns'] === ['pending_key'])['unique'])->toBeTrue()
         ->and($indexes->contains(fn (array $index) => $index['columns'] === ['status']))->toBeTrue()
         ->and($indexes->contains(fn (array $index) => $index['columns'] === ['email']))->toBeTrue()
-        ->and(collect(Schema::getForeignKeys('concierge_invitations'))->pluck('columns')->flatten()->all())->not->toContain('workspace_id');
+        ->and(collect(Schema::getForeignKeys('invitations'))->pluck('columns')->flatten()->all())->not->toContain('workspace_id');
 
-    $accounts = collect(Schema::getForeignKeys('concierge_accounts'))->mapWithKeys(fn (array $fk) => [$fk['columns'][0] => $fk['foreign_table']])->sortKeys();
+    $accounts = collect(Schema::getForeignKeys('account_statuses'))->mapWithKeys(fn (array $fk) => [$fk['columns'][0] => $fk['foreign_table']])->sortKeys();
 
-    expect($accounts->all())->toBe(['deactivated_by_id' => 'users', 'invitation_id' => 'concierge_invitations', 'user_id' => 'users']);
+    expect($accounts->all())->toBe(['deactivated_by_id' => 'users', 'invitation_id' => 'invitations', 'user_id' => 'users']);
 });
 
 it('reports the mode on the facade and binds the app scope as the workspace context', function () {

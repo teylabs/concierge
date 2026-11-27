@@ -108,10 +108,10 @@ class ConciergeServiceProvider extends PackageServiceProvider
     /** Runs before the package's migrations are booted, so these are published and run as before. */
     protected function configureSetUpPackage(Package $package): void
     {
-        $package->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope']);
+        $package->hasMigrations(['create_concierge_tables', 'create_concierge_user_accounts_table', 'update_concierge_invitations_with_message', 'update_concierge_invitations_with_acceptor', 'update_concierge_invitations_with_scope', 'update_concierge_tables_to_plain_names']);
 
         if (static::tenantInvitationsEnabled()) {
-            $package->hasMigration('create_concierge_tenant_invitations_table');
+            $package->hasMigrations(['create_concierge_tenant_invitations_table', 'update_concierge_tenant_invitations_to_owner_invitations']);
         }
 
         if (static::membershipEnabled()) {

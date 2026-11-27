@@ -11,7 +11,7 @@ use Tey\Concierge\Enums\MembershipStatus;
 use Tey\Concierge\Enums\Mode;
 
 /**
- * The default ScopedAccess, over concierge_membership_scopes. Read fresh on
+ * The default ScopedAccess, over membership_scopes. Read fresh on
  * every call, so a revoked scope or a suspended or removed membership denies
  * at once. App-wide mode has no scopes and always denies.
  */

@@ -39,7 +39,7 @@ it('accepts one invitation exactly once under concurrent retries', function () {
     ]);
 
     expect(collect($results)->sort()->values()->all())->toBe(['already_member', 'joined'])
-        ->and(DB::table('concierge_memberships')->where('user_id', $alice->id)->count())->toBe(1)
+        ->and(DB::table('memberships')->where('user_id', $alice->id)->count())->toBe(1)
         ->and(DB::table('model_has_roles')->where('model_id', $alice->id)->count())->toBe(1);
 });
 
@@ -62,7 +62,7 @@ it('signs in two local accounts concurrently but establishes only one workspace 
     ]);
 
     expect($results)->toBe(['first' => '302', 'second' => '302'])
-        ->and(DB::table('concierge_memberships')->where('workspace_id', $workspace->id)->count())->toBe(1)
+        ->and(DB::table('memberships')->where('workspace_id', $workspace->id)->count())->toBe(1)
         ->and(DB::table('model_has_roles')->where('workspace_id', $workspace->id)->count())->toBe(1)
         ->and(roles_in(app(Concierge::class)->ownerOf($workspace)))->toBe(['owner']);
 });
@@ -100,7 +100,7 @@ it('never produces two owners from racing transfers', function () {
     ]);
 
     expect(collect($results)->filter(fn ($r) => $r === 'AuthorizationException:not_owner'))->toHaveCount(1)
-        ->and(DB::table('concierge_ownerships')->where('workspace_id', $this->workspace->id)->count())->toBe(1);
+        ->and(DB::table('ownerships')->where('workspace_id', $this->workspace->id)->count())->toBe(1);
 
     $owners = DB::table('model_has_roles')
         ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
@@ -143,12 +143,12 @@ it('provisions exactly one workspace when a tenant invitation is accepted concur
     $results = race($issued->invitation->id, [
         'first' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
         'second' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
-    ], 'concierge_tenant_invitations');
+    ], 'owner_invitations');
 
     expect(collect($results)->sort()->values()->all())->toBe(['already_provisioned', 'provisioned'])
         ->and(DB::table('workspaces')->count())->toBe($before + 1)
-        ->and(DB::table('concierge_ownerships')->count())->toBe(2) // the seeded Acme and the peer's
-        ->and(DB::table('concierge_memberships')->where('user_id', $peer->id)->count())->toBe(1);
+        ->and(DB::table('ownerships')->count())->toBe(2) // the seeded Acme and the peer's
+        ->and(DB::table('memberships')->where('user_id', $peer->id)->count())->toBe(1);
 });
 
 it('serializes tenant acceptance against revocation', function () {
@@ -164,7 +164,7 @@ it('serializes tenant acceptance against revocation', function () {
     $results = race($issued->invitation->id, [
         'accept' => fn () => AcceptTenantInvitation::run($peer, $issued->token)->outcome->value,
         'revoke' => fn () => RevokeTenantInvitation::run($platform, $issued->invitation)->status->value,
-    ], 'concierge_tenant_invitations');
+    ], 'owner_invitations');
 
     $row = $issued->invitation->fresh();
 

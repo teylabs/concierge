@@ -30,7 +30,7 @@ beforeEach(function () {
 function deactivation_writes(): array
 {
     return [
-        'accounts' => DB::table('concierge_accounts')->get()->all(),
+        'accounts' => DB::table('account_statuses')->get()->all(),
         'sessions' => DB::table('sessions')->get()->all(),
         'users' => DB::table('users')->get()->all(),
     ];
@@ -70,7 +70,7 @@ it('deactivates a user as the --as user, recording who and why, and ends her ses
         'sessionsEnded' => 2,
     ]);
 
-    $account = DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole();
+    $account = DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole();
 
     expect($account->status)->toBe(AccountStatus::Deactivated->value)
         ->and($account->deactivated_by_id)->toBe($this->admin->id)
@@ -100,7 +100,7 @@ it('matches both emails ignoring case and never prompts', function () {
         ->expectsOutputToContain("{$this->presenter->email}: deactivated, no database sessions")
         ->assertSuccessful();
 
-    expect(DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Deactivated->value);
+    expect(DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole()->status)->toBe(AccountStatus::Deactivated->value);
 });
 
 it('previews with --dry-run without writing, mailing or dispatching events', function (bool $json) {
@@ -155,7 +155,7 @@ it('refuses an already deactivated user', function () {
 
     expect(deactivation_refused(['email' => $this->presenter->email, '--as' => $this->admin->email]))
         ->toBe(['error' => 'That account is already deactivated.', 'code' => 'already_deactivated'])
-        ->and(DB::table('concierge_accounts')->where('user_id', $this->presenter->id)->sole()->deactivation_reason)->toBe('Left the company');
+        ->and(DB::table('account_statuses')->where('user_id', $this->presenter->id)->sole()->deactivation_reason)->toBe('Left the company');
 });
 
 it('refuses yourself, an equal or higher rank, and a user you cannot manage', function () {

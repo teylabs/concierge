@@ -30,7 +30,7 @@ use Tey\Concierge\Support\ConciergeModels;
  */
 class Membership extends Model
 {
-    protected $table = 'concierge_memberships';
+    protected $table = 'memberships';
 
     protected $guarded = [];
 

@@ -17,7 +17,7 @@ it('treats an app with its own config file as set up', function () {
 it('migrates and registers as before', function () {
     $this->artisan('migrate')->assertSuccessful();
 
-    expect(Schema::hasTable('concierge_memberships'))->toBeTrue()
+    expect(Schema::hasTable('memberships'))->toBeTrue()
         ->and(app(Router::class)->getMiddleware())->toHaveKeys(['concierge.member', 'concierge.active', 'concierge.scoped'])
         ->and(Event::hasListeners(Login::class))->toBeTrue()
         ->and(Event::hasListeners(Validated::class))->toBeTrue()

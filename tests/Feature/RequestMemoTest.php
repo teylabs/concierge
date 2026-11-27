@@ -43,8 +43,8 @@ it('reads a member once per request: one membership, one ownership and one role 
 
     // Before this change five calls ran twenty queries (four each).
     expect($queries)->toHaveCount(4)
-        ->and(collect($queries)->filter(fn (string $sql) => str_contains($sql, 'concierge_memberships'))->count())->toBe(1)
-        ->and(collect($queries)->filter(fn (string $sql) => str_contains($sql, 'concierge_ownerships'))->count())->toBe(1)
+        ->and(collect($queries)->filter(fn (string $sql) => str_contains($sql, 'memberships'))->count())->toBe(1)
+        ->and(collect($queries)->filter(fn (string $sql) => str_contains($sql, 'ownerships'))->count())->toBe(1)
         ->and(collect($queries)->filter(fn (string $sql) => str_contains($sql, 'model_has_roles'))->count())->toBe(1);
 });
 
@@ -88,7 +88,7 @@ it('reads fresh after an ownership write, even one through the query builder', f
     $source = app(MembershipSource::class);
     expect($source->member($this->acme, $this->adam)?->owner)->toBeFalse();
 
-    DB::table('concierge_ownerships')->where('workspace_id', $this->acme->getKey())->update(['membership_id' => $this->membership->getKey()]);
+    DB::table('ownerships')->where('workspace_id', $this->acme->getKey())->update(['membership_id' => $this->membership->getKey()]);
 
     expect($source->member($this->acme, $this->adam)?->owner)->toBeTrue();
 });
@@ -97,7 +97,7 @@ it('forgets reads made inside a transaction that rolls back', function () {
     $source = app(MembershipSource::class);
 
     DB::beginTransaction();
-    DB::table('concierge_ownerships')->where('workspace_id', $this->acme->getKey())->update(['membership_id' => $this->membership->getKey()]);
+    DB::table('ownerships')->where('workspace_id', $this->acme->getKey())->update(['membership_id' => $this->membership->getKey()]);
     expect($source->member($this->acme, $this->adam)?->owner)->toBeTrue();
     DB::rollBack();
 

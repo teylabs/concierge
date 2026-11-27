@@ -73,7 +73,7 @@ it('plans the import without writing anything on a dry run', function () {
         ->and($plan['workspaces'][0]['owner'])->toMatchArray(['email' => 'olive@example.test', 'source' => 'role', 'action' => 'establish'])
         ->and(array_column($plan['workspaces'][0]['members'], 'role', 'email'))->toBe(['adam@example.test' => 'admin', 'pia@example.test' => 'presenter'])
         ->and(Membership::query()->count())->toBe(0)
-        ->and(DB::table('concierge_ownerships')->count())->toBe(0);
+        ->and(DB::table('ownerships')->count())->toBe(0);
 });
 
 it('imports members and the owner, leaves the pivot alone, and has nothing to do the second time', function () {

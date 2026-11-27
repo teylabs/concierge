@@ -29,7 +29,7 @@ it('registers routes, middleware, listeners and bindings', function () {
 it('creates the concierge tables on migrate', function () {
     $this->artisan('migrate')->assertSuccessful();
 
-    expect(Schema::hasTable('concierge_memberships'))->toBeTrue();
+    expect(Schema::hasTable('memberships'))->toBeTrue();
 });
 
 it('says setup is done in about', function () {
