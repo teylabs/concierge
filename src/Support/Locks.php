@@ -64,6 +64,8 @@ final class Locks
             ->orderBy('id')
             ->lockForUpdate()
             ->get()
+            // The members' users are read next (a transfer checks the recipient's email), so load them now: no lazy load under preventLazyLoading.
+            ->load('user')
             ->keyBy('id')
             ->all();
     }
