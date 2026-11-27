@@ -2,6 +2,27 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.12.0] - 2026-11-27
+
+Concierge's tables drop the `concierge_` prefix:
+
+| Old | New |
+|---|---|
+| `concierge_memberships` | `memberships` |
+| `concierge_membership_scopes` | `membership_scopes` |
+| `concierge_ownerships` | `ownerships` |
+| `concierge_invitations` | `invitations` |
+| `concierge_accounts` | `account_statuses` |
+| `concierge_tenant_invitations` | `owner_invitations` |
+
+Two new migrations rename them; released migrations are unchanged, so a fresh install creates the old names and renames them. `update_concierge_tables_to_plain_names` renames the five always-present tables and refuses, before renaming anything, when a new name is already taken. `update_concierge_tenant_invitations_to_owner_invitations` is registered with tenant invitations, after that table's own migration, so an app that turns them on later still ends on the new name. Rows, keys and foreign keys move with each table. Index and sequence names keep their old prefix.
+
+Verified: the full suite (885 passed), PHPStan and Pint. `tests/Feature/PlainTableNamesTest.php` covers a fresh install, an upgrade moving rows, and both refusals.
+
+### Upgrading
+
+Run `php artisan vendor:publish --tag=concierge-migrations` (or let the package run them), then `php artisan migrate`. Update anything of your own that names the old tables: raw SQL, RLS policies or `except` lists, `exists:`/`unique:` validation rules, and a subclassed model's `$table`. If you already have a table under one of the new names, the migration stops and says which; rename yours first.
+
 ## [0.11.2] - 2026-11-15
 
 ### Changed
