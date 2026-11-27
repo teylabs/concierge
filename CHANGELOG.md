@@ -2,6 +2,12 @@
 
 All notable changes to `concierge` will be documented in this file.
 
+## [0.12.1] - 2026-11-27
+
+Locks::memberships() now eager-loads each membership's user, so TransferOwnership reading the recipient's email no longer lazy-loads. Apps with Model::preventLazyLoading() threw LazyLoadingViolationException on every transfer.
+
+Verified: a new OwnershipTest case runs a transfer with lazy loading prevented. It fails on main with LazyLoadingViolationException and passes here. Full suite, PHPStan and Pint pass.
+
 ## [0.12.0] - 2026-11-27
 
 Concierge's tables drop the `concierge_` prefix:
